@@ -6,4 +6,4 @@ import Solution from "./pages/Solution";
 import Profile from "./pages/Profile";
 import dict from "./data/translations";
 
-export default function App(){const [lang,setLang]=useState("uk");const t=useMemo(()=>dict[lang],[lang]);return <><Header lang={lang} setLang={setLang} t={t}/><Routes><Route path="/" element={<Home t={t}/>}/><Route path="/solution" element={<Solution t={t}/>}/><Route path="/profile" element={<Profile t={t}/>}/></Routes><footer>Atlas 2.0 Foundation</footer></>}
+export default function App(){const [lang,setLang]=useState("uk");const t=useMemo(()=>dict[lang],[lang]);return <><Header lang={lang} setLang={setLang} t={t}/><Routes><Route path="/" element={<Home t={t} lang={lang}/>}/><Route path="/solution" element={<Solution t={t} lang={lang}/>}/><Route path="/profile" element={<Profile t={t}/>}/></Routes><footer>Atlas 2.1</footer></>}
