@@ -1,0 +1,3 @@
+export default function SolutionMetrics({metrics,t,mode}){
+  return <section className="decisionMetrics"><div><span>{mode==="emergency"?t.timeToHelp:t.timeToAction}</span><strong>{metrics.firstActionMinutes} {t.minutes}</strong></div><div><span>{t.distance}</span><strong>{metrics.distanceKm} km</strong></div><div><span>{t.estimatedTime}</span><strong>{metrics.totalMinutes>=1440?`${Math.ceil(metrics.totalMinutes/1440)} ${t.days}`:`${metrics.totalMinutes} ${t.minutes}`}</strong></div><div><span>{t.trust}</span><strong>{metrics.trustScore}/10</strong></div><div><span>{t.completeness}</span><strong>{metrics.completeness}%</strong></div></section>;
+}

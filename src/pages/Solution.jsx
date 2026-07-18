@@ -1,12 +1,21 @@
 import {useMemo,useState} from "react";
-import {Link,useLocation} from "react-router-dom";
-import {ArrowLeft,CheckCircle2,MapPin} from "lucide-react";
-import OpportunityStep from "../components/OpportunityStep";
-import SolutionSummary from "../components/SolutionSummary";
-import {buildAtlasSolution} from "../services/atlasEngine";
+import {Link,useLocation,useNavigate} from "react-router-dom";
+import {ArrowLeft,MapPin,Search} from "lucide-react";
+import UrgencyBanner from "../components/UrgencyBanner";
+import BestActionCard from "../components/BestActionCard";
+import DemoRouteMap from "../components/DemoRouteMap";
+import DecisionModeSelector from "../components/DecisionModeSelector";
+import SolutionPath from "../components/SolutionPath";
+import AlternativeOptions from "../components/AlternativeOptions";
+import HiddenContactsCard from "../components/HiddenContactsCard";
+import SolutionMetrics from "../components/SolutionMetrics";
+import {buildDecisionSolution} from "../services/atlasEngine";
+
+const examples={uk:["Болить живіт","Потрібна найближча аптека","Пробило колесо","Хочу відкрити кав'ярню"],en:["I have stomach pain","I need the nearest pharmacy","I have a flat tire","I want to open a coffee shop"]};
 
 export default function Solution({t,lang}){
-  const {state}=useLocation();const [showDetails,setShowDetails]=useState(false);const task=state?.task||t.taskPh;const where=state?.where||"";
-  const result=useMemo(()=>buildAtlasSolution(task,where,lang),[task,where,lang]);
-  return <main className="page"><div className="shell"><Link className="back" to="/"><ArrowLeft size={18}/>{t.back}</Link><div className="title"><div className="ok"><CheckCircle2/></div><div><h1>{t.found}</h1><p>{t.sub}</p></div></div><div className="goalCard"><div><span>{t.goal}</span><strong>{result.goal.originalGoal}</strong></div><div><span>{t.location}</span><strong><MapPin size={16}/>{where||t.notSpecified}</strong></div></div><SolutionSummary result={result} t={t}/><section className="opportunityChain">{result.chain.map(step=><OpportunityStep key={step.requirement.id} step={step} t={t} showDetails={showDetails}/>)}</section><button className="primary detailsButton" onClick={()=>setShowDetails(value=>!value)}>{showDetails?t.hideDetails:t.showDetails}</button><section className="alternatives"><h2>{t.alternatives}</h2>{result.alternatives.length?<div className="alternativeGrid">{result.alternatives.map(({requirement,candidate})=><article key={`${requirement.id}-${candidate.id}`}><span>{requirement.title}</span><h3>{candidate.title}</h3><p>{candidate.city} · {candidate.distanceKm} km · {candidate.trustScore}%</p></article>)}</div>:<p>{t.noAlternatives}</p>}</section></div></main>;
+  const {state}=useLocation();const navigate=useNavigate();const initialTask=state?.task||t.taskPh;const initialWhere=state?.where||"";const [task,setTask]=useState(initialTask);const [where,setWhere]=useState(initialWhere);const [forcedMode,setForcedMode]=useState(null);const [showDetails,setShowDetails]=useState(false);
+  const solution=useMemo(()=>buildDecisionSolution(initialTask,initialWhere,lang,forcedMode),[initialTask,initialWhere,lang,forcedMode]);
+  function submit(e){e.preventDefault();if(task.trim()){setForcedMode(null);setShowDetails(false);navigate("/solution",{state:{task,where}})}}
+  return <main className="decisionPage"><div className="decisionTop"><Link className="back" to="/"><ArrowLeft size={18}/>{t.back}</Link><span>{t.demoDataNotice}</span></div><div className="decisionLayout"><aside className="decisionSidebar"><form onSubmit={submit}><label>{t.task}</label><textarea required value={task} onChange={e=>setTask(e.target.value)}/><label>{t.location}</label><div className="location"><MapPin size={18}/><input value={where} onChange={e=>setWhere(e.target.value)} placeholder={t.wherePh}/></div><button className="primary"><Search size={18}/>{t.build}</button></form><div className="decisionExamples"><span>{t.examples}</span>{examples[lang].map(example=><button key={example} onClick={()=>setTask(example)}>{example}</button>)}</div><DecisionModeSelector value={forcedMode||solution.mode} onChange={setForcedMode} t={t}/><p className="atlasExplanation">{t.atlasExplanation}</p></aside><section className="decisionMain"><UrgencyBanner mode={solution.mode} t={t}/>{solution.warning&&<div className={`safetyWarning ${solution.mode}`}>{solution.warning}</div>}<BestActionCard solution={solution} t={t} onShowDetails={()=>setShowDetails(true)}/><SolutionPath solution={solution} t={t}/><SolutionMetrics metrics={solution.metrics} t={t} mode={solution.mode}/></section><aside className="decisionRight"><DemoRouteMap route={solution.route} t={t}/><AlternativeOptions alternatives={solution.alternatives} t={t}/><HiddenContactsCard visible={showDetails} onToggle={()=>setShowDetails(value=>!value)} policy={solution.contactPolicy} t={t}/></aside></div></main>;
 }

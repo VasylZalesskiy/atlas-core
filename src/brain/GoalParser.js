@@ -7,6 +7,19 @@ const universalSteps = [
 ];
 
 const scenarios = [
+  {id:"medical-emergency",category:"health",intent:"get-help",terms:["болить живіт","сильний біль","камін","камінь","камен","ниркова колька","дуже погано","blood","bleeding","can't breathe","cannot breathe","severe pain","stomach pain"],steps:[
+    ["medical-assessment",{uk:"Діагностика та огляд",en:"Assessment and examination"},"medical",["огляд","діагностика","assessment"]],
+    ["medical-tests",{uk:"Обстеження",en:"Tests"},"medical",["обстеження","tests"]],
+    ["medical-care",{uk:"Лікування",en:"Treatment"},"medical",["лікування","treatment"]],
+    ["nearby-pharmacy",{uk:"Аптека поруч",en:"Nearby pharmacy"},"pharmacy",["аптека","pharmacy"]],
+    ["follow-up",{uk:"Контроль після лікування",en:"Follow-up care"},"medical",["контроль","follow-up"]]
+  ]},
+  {id:"pharmacy",category:"health",intent:"find",terms:["аптек","pharmacy","medicine"],steps:[
+    ["pharmacy",{uk:"Найближча аптека",en:"Nearest pharmacy"},"pharmacy",["аптека","ліки","pharmacy"]]
+  ]},
+  {id:"roadside",category:"roadside",intent:"repair",terms:["пробило колесо","евакуатор","зламалась машина","зламалася машина","flat tire","tow truck","car broke"],steps:[
+    ["roadside-help",{uk:"Допомога на дорозі",en:"Roadside assistance"},"service",["колесо","евакуатор","ремонт","roadside","tow"]]
+  ]},
   {id:"greenhouse",category:"agriculture",intent:"build",terms:["теплиц","greenhouse"],steps:[
     ["design",{uk:"Проєктування теплиці",en:"Greenhouse design"},"consulting",["проєктування","теплиця","design","greenhouse"]],
     ["materials",{uk:"Матеріали для теплиці",en:"Greenhouse materials"},"resource",["полікарбонат","каркас","матеріали","materials"]],
@@ -45,6 +58,16 @@ const scenarios = [
 ];
 
 function normalize(text){return text.toLowerCase().replace(/[.,!?;:()]/g," ").replace(/\s+/g," ").trim()}
+const emergencyTerms=["сильний біль","болить живіт","камін","ниркова колька","кровотеч","не можу дихати","пожеж","аварія","небезпек","дуже погано","severe pain","stomach pain","bleeding","can't breathe","cannot breathe","fire","danger"];
+const quickTerms=["пробило колесо","потрібна аптека","потрібен майстер","потрібен евакуатор","терміново перевезти","зламалась машина","зламалася машина","flat tire","pharmacy","urgent transport","tow truck","car broke"];
+const plannedTerms=["відкрити кав","побудувати теплиц","знайти робот","організувати виробництво","ремонт","перевез","open a coffee","build a greenhouse","find a job","renovat","transport"];
+
+function detectUrgency(goal,scenario){
+  if(emergencyTerms.some(term=>goal.includes(term)))return "emergency";
+  if(quickTerms.some(term=>goal.includes(term))||["pharmacy","roadside"].includes(scenario))return "quick";
+  if(plannedTerms.some(term=>goal.includes(term)))return "planned";
+  return "planned";
+}
 function localizeStep(step,lang,category){
   if(Array.isArray(step)){return {id:step[0],title:step[1][lang]||step[1].uk,type:step[2],category,keywords:step[3]}}
   return {id:step.id,title:step.titles[lang]||step.titles.uk,type:step.type,category:"general",keywords:step.keywords};
@@ -54,20 +77,22 @@ function localizeStep(step,lang,category){
  * Перетворює довільну мету на структурований сценарій за словниковими правилами.
  * @param {string} goal Початковий текст мети.
  * @param {"uk"|"en"} lang Мова результату.
- * @returns {{originalGoal:string,normalizedGoal:string,category:string,intent:string,keywords:string[],scenario:string,requiredOpportunities:Array}}
+ * @returns {{originalGoal:string,normalizedGoal:string,category:string,intent:string,urgencyLevel:string,keywords:string[],scenario:string,requiredOpportunities:Array}}
  */
 export function parseGoal(goal,lang="uk"){
   const originalGoal=String(goal||"").trim();
   const normalizedGoal=normalize(originalGoal).replace(/^(я |i |хочу |потрібно |мені потрібно |want to |need to )+/i,"").trim();
   const scenario=scenarios.find(item=>item.terms.some(term=>normalizedGoal.includes(term)));
   const words=normalizedGoal.split(" ").filter(word=>word.length>2);
+  const scenarioId=scenario?.id||"universal";
   return {
     originalGoal,
     normalizedGoal,
     category:scenario?.category||"general",
     intent:scenario?.intent||"solve",
+    urgencyLevel:detectUrgency(normalizedGoal,scenarioId),
     keywords:[...new Set(words)],
-    scenario:scenario?.id||"universal",
+    scenario:scenarioId,
     requiredOpportunities:(scenario?.steps||universalSteps).map(step=>localizeStep(step,lang,scenario?.category||"general"))
   };
 }
