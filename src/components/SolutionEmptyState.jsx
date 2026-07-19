@@ -1,0 +1,2 @@
+import {Home,Search} from "lucide-react";
+export default function SolutionEmptyState({t,onSearch,onClarify,onHome}){return <section className="solutionEmptyState"><h2>{t.emptyConcrete.title}</h2><p>{t.emptyConcrete.description}</p><div><button className="primary" onClick={onSearch}><Search/>{t.emptyConcrete.maps}</button><button className="secondary" onClick={onClarify}>{t.emptyConcrete.clarify}</button><button className="secondary" onClick={onHome}><Home/>{t.home}</button></div></section>}

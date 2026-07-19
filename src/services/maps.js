@@ -14,13 +14,10 @@ export function buildGoogleMapsDirectionsUrl(location,destination){
   return `${mapsBase}/dir/?${params.toString()}`;
 }
 
-function openExternal(url){
-  if(typeof window!=="undefined")window.location.assign(url);
-  return url;
-}
+import {openExternalResource} from "./externalNavigation.js";
 
-export function openGoogleMapsSearch(query){return openExternal(buildGoogleMapsSearchUrl(query))}
-export function openGoogleMapsDirections(location,destination){return openExternal(buildGoogleMapsDirectionsUrl(location,destination))}
+export function openGoogleMapsSearch(query,options){const url=buildGoogleMapsSearchUrl(query);openExternalResource(url,options);return url}
+export function openGoogleMapsDirections(location,destination,options){const url=buildGoogleMapsDirectionsUrl(location,destination);openExternalResource(url,options);return url}
 
 /** Повертає безпечний пошуковий запит для поточного сценарію. */
 export function getScenarioSearchQuery(solution,lang="uk"){

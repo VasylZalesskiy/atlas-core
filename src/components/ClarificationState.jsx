@@ -1,0 +1,4 @@
+import {Search} from "lucide-react";
+import {useState} from "react";
+
+export default function ClarificationState({place,kind="generic",t,onClarify}){const [custom,setCustom]=useState("");const c=kind==="agriculture_intent"?t.agricultureClarification:t.clarification;function submit(event){event.preventDefault();if(custom.trim())onClarify(custom.trim())}return <section className="clarificationState"><span className="eyebrow">ATLAS</span><h1>{c.title}</h1><p>{c.description.replace("{place}",place).replace("{query}",place)}</p><div className="clarificationChoices">{Object.entries(c.categories).map(([key,label])=><button key={key} onClick={()=>onClarify(label)}>{label}</button>)}</div><form onSubmit={submit}><label>{c.customLabel}</label><div><input value={custom} onChange={event=>setCustom(event.target.value)} placeholder={c.customPlaceholder}/><button className="primary"><Search/>{c.continue}</button></div></form></section>}

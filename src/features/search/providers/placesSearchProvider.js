@@ -1,0 +1,1 @@
+export const placesSearchProvider={id:"places",async search(){return {id:"places",type:"maps",title:"places",status:"disabled",count:null,isRealData:false,message:"places-api-not-connected",items:[],actions:[]}}};

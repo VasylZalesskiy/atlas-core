@@ -1,0 +1,1 @@
+export const communitiesSearchProvider={id:"communities",async search(){return {id:"communities",type:"community",title:"communities",status:"disabled",count:null,isRealData:false,message:"accounts-and-communities-required",items:[],actions:[]}}};

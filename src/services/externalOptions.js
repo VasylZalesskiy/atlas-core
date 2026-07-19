@@ -1,7 +1,7 @@
 import {buildGoogleMapsSearchUrl} from "./maps.js";
 
 function option(sourceType,title,description,actionLabel,actionQuery,t,actionType="search",actionUrl=null){
-  return {sourceType,sourceLabel:sourceType,isVerified:false,title,description,location:"",distance:t.distanceAfterMap,availability:t.checkMapsAvailability,actionType,actionUrl:actionUrl||buildGoogleMapsSearchUrl(actionQuery),actionLabel,actionQuery};
+  const url=actionUrl||buildGoogleMapsSearchUrl(actionQuery);return {sourceType,sourceLabel:sourceType,isVerified:false,title,description,location:"",actionType,actionUrl:url,mapsUrl:url.startsWith("https://www.google.com/maps")?url:null,phone:url.startsWith("tel:")?url.slice(4):null,actionLabel,actionQuery};
 }
 
 /** Формує 3–5 чесно позначених зовнішніх напрямків пошуку. */
@@ -26,5 +26,5 @@ export function buildExternalOptions(solution,t){
     option("external_web",t.externalOptionTitles.gasStations,t.externalOptionDescriptions.gasStations,t.showOnMap,t.externalQueries.gasStations,t)
   ];
   const query=solution.goal.keywords.join(" ")||solution.goal.originalGoal;
-  return [option("external_web",t.externalOptionTitles.webSearch,t.externalOptionDescriptions.webSearch,t.find,query,t),option("external_web",t.externalOptionTitles.mapSearch,t.externalOptionDescriptions.mapSearch,t.showOnMap,query,t),option("demo_fallback",t.externalOptionTitles.demoFallback,t.externalOptionDescriptions.demoFallback,t.showDetails,query,t,"details","#demo-route")];
+  return [option("external_web",t.externalOptionTitles.webSearch,t.externalOptionDescriptions.webSearch,t.find,query,t),option("external_web",t.externalOptionTitles.mapSearch,t.externalOptionDescriptions.mapSearch,t.showOnMap,query,t)];
 }

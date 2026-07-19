@@ -1,0 +1,3 @@
+import {buildMarketplaceSearchUrl} from "../externalSearchUrlBuilder.js";
+function agricultural(query){return /картоп|зерн|тонн|врож|агро|potato|grain|harvest|agri/i.test(query)}function product(query){return /куп|прод|товар|обладнан|buy|sell|product|equipment/i.test(query)}
+export const marketplaceSearchProvider={id:"marketplaces",async search({query,location}){const ids=["general",...(agricultural(query)?["wholesale","agriculture"]:product(query)?["retail"]:[])];return {id:"marketplaces",type:"marketplace",title:"marketplaces",status:"available_external",count:null,isRealData:false,message:"external-search-prepared",items:[],actions:ids.map(id=>({id:`marketplace-${id}`,title:id,kind:"external",externalUrl:buildMarketplaceSearchUrl(id,query,location)}))}}};

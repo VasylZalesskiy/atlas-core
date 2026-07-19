@@ -72,6 +72,8 @@ function localizeStep(step,lang,category){
   if(Array.isArray(step)){return {id:step[0],title:step[1][lang]||step[1].uk,type:step[2],category,keywords:step[3]}}
   return {id:step.id,title:step.titles[lang]||step.titles.uk,type:step.type,category:"general",keywords:step.keywords};
 }
+export function isAmbiguousGoal(goal,scenario=null){const normalized=normalize(String(goal||""));if(!normalized||scenario)return false;const words=normalized.split(" ").filter(Boolean);const actionTerms=["хочу","потріб","знайти","купити","продати","робота","житло","допомога","транспорт","послуг","консультація","інше","need","want","find","buy","sell","job","housing","help","service","other"];return words.length<=2&&!actionTerms.some(term=>normalized.includes(term))}
+export function isAmbiguousAgriculturalIntent(goal){const value=normalize(String(goal||""));const commodity=/картоп|зерн|пшениц|овоч|врож|potato|grain|wheat|harvest/.test(value);const quantity=/\b\d+\b|тонн|кілограм|tons?|kg/.test(value);const intent=/прод|куп|перевез|достав|зберіг|перероб|sell|buy|transport|deliver|store|process/.test(value);return commodity&&quantity&&!intent}
 
 /**
  * Перетворює довільну мету на структурований сценарій за словниковими правилами.
@@ -82,7 +84,7 @@ function localizeStep(step,lang,category){
 export function parseGoal(goal,lang="uk"){
   const originalGoal=String(goal||"").trim();
   const normalizedGoal=normalize(originalGoal).replace(/^(я |i |хочу |потрібно |мені потрібно |want to |need to )+/i,"").trim();
-  const scenario=scenarios.find(item=>item.terms.some(term=>normalizedGoal.includes(term)));
+  const scenario=scenarios.find(item=>item.terms.some(term=>normalizedGoal.includes(term)));const agricultureClarification=isAmbiguousAgriculturalIntent(originalGoal);const needsClarification=agricultureClarification||isAmbiguousGoal(originalGoal,scenario);
   const words=normalizedGoal.split(" ").filter(word=>word.length>2);
   const scenarioId=scenario?.id||"universal";
   return {
@@ -93,6 +95,8 @@ export function parseGoal(goal,lang="uk"){
     urgencyLevel:detectUrgency(normalizedGoal,scenarioId),
     keywords:[...new Set(words)],
     scenario:scenarioId,
+    needsClarification,
+    clarificationKind:agricultureClarification?"agriculture_intent":needsClarification?"generic":null,
     requiredOpportunities:(scenario?.steps||universalSteps).map(step=>localizeStep(step,lang,scenario?.category||"general"))
   };
 }

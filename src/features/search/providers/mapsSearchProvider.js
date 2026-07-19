@@ -1,0 +1,2 @@
+import {buildMapsSearchUrl} from "../externalSearchUrlBuilder.js";
+export const mapsSearchProvider={id:"maps",async search({query,location}){return {id:"maps",type:"maps",title:"maps",status:"available_external",count:null,isRealData:false,message:"places-api-not-connected",items:[],actions:[{id:"google-maps",title:"googleMaps",kind:"external",mapsUrl:buildMapsSearchUrl(query,location),externalUrl:buildMapsSearchUrl(query,location)}]}}};
