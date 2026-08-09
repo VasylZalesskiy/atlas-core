@@ -1,6 +1,7 @@
-import {useState} from "react";
+import {useEffect,useState} from "react";
 import {Link,useNavigate} from "react-router-dom";
 import {FileText,MapPin,MessageSquare,PlusCircle,Search} from "lucide-react";
+import ThinkingState from "../components/ThinkingState";
 import {saveAtlasFeedback} from "../services/feedbackStore";
 
 const examples={
@@ -11,16 +12,26 @@ const examples={
 export default function Home({t,lang}){
   const [task,setTask]=useState("");
   const [where,setWhere]=useState("");
+  const [thinking,setThinking]=useState(false);
+  const [activeStep,setActiveStep]=useState(0);
   const [feedback,setFeedback]=useState("");
   const [feedbackBusy,setFeedbackBusy]=useState(false);
   const [feedbackStatus,setFeedbackStatus]=useState("");
   const nav=useNavigate();
 
+  useEffect(()=>{
+    if(!thinking)return;
+    const timer=setInterval(()=>setActiveStep(step=>Math.min(step+1,t.thinkingSteps.length-1)),480);
+    const done=setTimeout(()=>nav("/solution",{state:{task:task.trim(),where:where.trim()}}),2500);
+    return()=>{clearInterval(timer);clearTimeout(done)};
+  },[thinking,nav,task,where,t.thinkingSteps.length]);
+
   function go(e){
     e.preventDefault();
     const cleanTask=task.trim();
     if(!cleanTask)return;
-    nav("/solution",{state:{task:cleanTask,where:where.trim()}});
+    setActiveStep(0);
+    setThinking(true);
   }
 
   async function sendFeedback(e){
@@ -41,6 +52,8 @@ export default function Home({t,lang}){
       setFeedbackBusy(false);
     }
   }
+
+  if(thinking)return <ThinkingState steps={t.thinkingSteps} activeStep={activeStep}/>;
 
   const title=lang==="uk"?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task";
   const subtitle=lang==="uk"
