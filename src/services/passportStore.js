@@ -32,6 +32,21 @@ function createSlug(displayName,userId){
   return `${slugBase(displayName)}-${suffix}`;
 }
 
+async function enrichRequests(rows){
+  const requests=rows||[];
+  const opportunityIds=[...new Set(requests.map(item=>item.opportunity_id).filter(Boolean))];
+  if(!opportunityIds.length)return requests;
+
+  const {data,error}=await supabase
+    .from("atlas_opportunities")
+    .select("id,kind,text")
+    .in("id",opportunityIds);
+  if(error)return requests;
+
+  const byId=new Map((data||[]).map(item=>[item.id,item]));
+  return requests.map(item=>({...item,opportunity:byId.get(item.opportunity_id)||null}));
+}
+
 export async function loadMyPassport(){
   const user=await ensureAtlasSession();
 
@@ -148,7 +163,7 @@ export async function loadPublicPassport(slug){
   if(!supabase)throw fail("supabase-unavailable");
   const {data:passport,error:passportError}=await supabase
     .from("atlas_passports")
-    .select("id,slug,display_name,city,created_at")
+    .select("id,owner_id,slug,display_name,city,created_at")
     .eq("slug",slug)
     .maybeSingle();
   if(passportError)throw passportError;
@@ -162,4 +177,81 @@ export async function loadPublicPassport(slug){
     .order("created_at",{ascending:false});
   if(error)throw error;
   return {passport,opportunities:data||[]};
+}
+
+export async function createPassportRequest(passport,opportunity,{message,requesterName=""}){
+  const user=await ensureAtlasSession();
+  const cleanMessage=String(message||"").trim();
+  const cleanName=String(requesterName||"").trim().slice(0,80);
+  if(!passport?.id||!passport?.owner_id)throw fail("passport-required");
+  if(!opportunity?.id)throw fail("opportunity-required");
+  if(!cleanMessage)throw fail("message-required");
+  if(user.id===passport.owner_id)throw fail("own-passport-request");
+
+  const {data,error}=await supabase
+    .from("atlas_requests")
+    .insert({
+      passport_id:passport.id,
+      opportunity_id:opportunity.id,
+      owner_id:passport.owner_id,
+      requester_id:user.id,
+      requester_name:cleanName,
+      message:cleanMessage,
+      status:"pending"
+    })
+    .select("id,passport_id,opportunity_id,requester_name,message,status,owner_contact,created_at,updated_at")
+    .single();
+  if(error)throw error;
+  return {...data,opportunity};
+}
+
+export async function loadMyRequestsForPassport(passportId){
+  const user=await ensureAtlasSession();
+  if(!passportId)return [];
+  const {data,error}=await supabase
+    .from("atlas_requests")
+    .select("id,passport_id,opportunity_id,requester_name,message,status,owner_contact,created_at,updated_at")
+    .eq("requester_id",user.id)
+    .eq("passport_id",passportId)
+    .order("created_at",{ascending:false});
+  if(error)throw error;
+  return enrichRequests(data||[]);
+}
+
+export async function loadIncomingRequests(){
+  const user=await ensureAtlasSession();
+  const {data,error}=await supabase
+    .from("atlas_requests")
+    .select("id,passport_id,opportunity_id,requester_name,message,status,created_at,updated_at")
+    .eq("owner_id",user.id)
+    .order("created_at",{ascending:false});
+  if(error)throw error;
+  return enrichRequests(data||[]);
+}
+
+export async function respondToPassportRequest(id,status){
+  const user=await ensureAtlasSession();
+  const nextStatus=status==="accepted"?"accepted":"declined";
+  let ownerContact=null;
+
+  if(nextStatus==="accepted"){
+    const {data,error}=await supabase
+      .from("atlas_private_contacts")
+      .select("contact")
+      .eq("owner_id",user.id)
+      .single();
+    if(error)throw error;
+    ownerContact=String(data?.contact||"").trim();
+    if(!ownerContact)throw fail("contact-required");
+  }
+
+  const {data,error}=await supabase
+    .from("atlas_requests")
+    .update({status:nextStatus,owner_contact:ownerContact,updated_at:new Date().toISOString()})
+    .eq("id",id)
+    .eq("owner_id",user.id)
+    .select("id,passport_id,opportunity_id,requester_name,message,status,created_at,updated_at")
+    .single();
+  if(error)throw error;
+  return data;
 }
