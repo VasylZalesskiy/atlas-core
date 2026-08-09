@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useState} from "react";
-import {Link,useLocation} from "react-router-dom";
+import {useLocation,useNavigate} from "react-router-dom";
 import {ArrowLeft,Clock3,ExternalLink,MapPin,MessageCircle,Navigation,Phone,RefreshCw,Search,UserRound} from "lucide-react";
 import {analyzeAtlasQuery,createFallbackPlan} from "../services/atlasBrain";
 import {searchPassportProfiles} from "../services/passportSearch";
@@ -42,7 +42,7 @@ function externalCard(item,index,lang){
   return {
     kind:"external",
     id:`external-${index}-${item.url}`,
-    eyebrow:item.source_type|| (lang==="uk"?"Зовнішнє джерело":"External source"),
+    eyebrow:item.source_type||(lang==="uk"?"Зовнішнє джерело":"External source"),
     title:item.title,
     subtitle:item.snippet,
     url:item.url,
@@ -84,6 +84,7 @@ function ResultCard({item,origin,lang}){
 
 export default function Solution({lang}){
   const {state}=useLocation();
+  const navigate=useNavigate();
   const initialTask=String(state?.task||"").trim();
   const initialWhere=String(state?.where||"").trim();
   const [task,setTask]=useState(initialTask);
@@ -203,11 +204,11 @@ export default function Solution({lang}){
   const visibleCards=showMore?cards:cards.slice(0,3);
   const busy=brainLoading||passportLoading||mapLoading||externalLoading;
   const nothingFound=!busy&&!plan?.clarification?.required&&cards.length===0;
-  const locationText=geo.location?(initialWhere|| (lang==="uk"?"поточна локація":"current location")):(initialWhere|| (lang==="uk"?"не визначена":"not set"));
+  const locationText=geo.location?(initialWhere||(lang==="uk"?"поточна локація":"current location")):(initialWhere||(lang==="uk"?"не визначена":"not set"));
 
   return <main className="simpleSolutionPage">
     <section className="simpleSolutionShell">
-      <Link className="simpleBack" to="/"><ArrowLeft size={17}/>{lang==="uk"?"Назад":"Back"}</Link>
+      <a className="simpleBack" href="#" onClick={event=>{event.preventDefault();navigate(-1)}}><ArrowLeft size={17}/>{lang==="uk"?"Назад":"Back"}</a>
 
       <form className="simpleQueryForm" onSubmit={submit}>
         <input value={task} onChange={e=>setTask(e.target.value)} placeholder={lang==="uk"?"Що вам потрібно?":"What do you need?"}/>
