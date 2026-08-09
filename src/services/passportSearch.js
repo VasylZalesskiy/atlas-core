@@ -36,63 +36,72 @@ function scoreText(text,plan){
 }
 
 async function searchNewPassports(plan,{limit}){
+  const {data:passports,error:passportError}=await supabase
+    .from("atlas_passports")
+    .select("id,slug,display_name,profession,skills,city")
+    .limit(1000);
+  if(passportError)throw passportError;
+  if(!passports?.length)return [];
+
   const {data:opportunities,error:opportunityError}=await supabase
     .from("atlas_opportunities")
     .select("id,passport_id,kind,text,created_at")
     .eq("is_active",true)
-    .limit(1000);
-
+    .limit(2000);
   if(opportunityError)throw opportunityError;
-  if(!opportunities?.length)return [];
 
-  const passportIds=[...new Set(opportunities.map(item=>item.passport_id).filter(Boolean))];
-  const {data:passports,error:passportError}=await supabase
-    .from("atlas_passports")
-    .select("id,slug,display_name,city")
-    .in("id",passportIds);
-  if(passportError)throw passportError;
-
-  const byId=new Map((passports||[]).map(item=>[item.id,item]));
-  const ranked=(opportunities||[])
-    .map(opportunity=>{
-      const passport=byId.get(opportunity.passport_id);
-      if(!passport)return null;
-      const scored=scoreText([
-        opportunity.text,
-        opportunity.kind,
-        passport.display_name,
-        passport.city
-      ].filter(Boolean).join(" "),plan);
-      return {...opportunity,passport,...scored};
-    })
-    .filter(Boolean)
-    .filter(item=>item.score>0)
-    .sort((a,b)=>b.score-a.score);
-
-  // One card per person in the first result set. If one person has several
-  // matching opportunities, keep the strongest match and let the public
-  // Passport page show the rest.
-  const seen=new Set();
-  const matches=[];
-  for(const item of ranked){
-    if(seen.has(item.passport.id))continue;
-    seen.add(item.passport.id);
-    matches.push({
-      slug:item.passport.slug,
-      name:item.passport.display_name,
-      city:item.passport.city||"",
-      headline:item.text,
-      can_help:item.text,
-      can_share:item.kind,
-      needs:"",
-      opportunity_id:item.id,
-      opportunity_kind:item.kind,
-      score:item.score,
-      matched:item.matched
-    });
-    if(matches.length>=limit)break;
+  const opportunitiesByPassport=new Map();
+  for(const item of opportunities||[]){
+    if(!opportunitiesByPassport.has(item.passport_id))opportunitiesByPassport.set(item.passport_id,[]);
+    opportunitiesByPassport.get(item.passport_id).push(item);
   }
-  return matches;
+
+  const ranked=(passports||[]).map(passport=>{
+    const profileScore=scoreText([
+      passport.profession,
+      passport.skills,
+      passport.display_name,
+      passport.city
+    ].filter(Boolean).join(" "),plan);
+
+    let bestOpportunity=null;
+    let bestOpportunityScore={score:0,matched:[]};
+    for(const opportunity of opportunitiesByPassport.get(passport.id)||[]){
+      const scored=scoreText([opportunity.text,opportunity.kind].filter(Boolean).join(" "),plan);
+      if(scored.score>bestOpportunityScore.score){
+        bestOpportunity=opportunity;
+        bestOpportunityScore=scored;
+      }
+    }
+
+    const score=profileScore.score+bestOpportunityScore.score;
+    const matched=[...new Set([...profileScore.matched,...bestOpportunityScore.matched])];
+    const profileWins=profileScore.score>=bestOpportunityScore.score&&profileScore.score>0;
+    const headline=profileWins
+      ?(passport.profession||passport.skills||bestOpportunity?.text||passport.display_name)
+      :(bestOpportunity?.text||passport.profession||passport.skills||passport.display_name);
+
+    return {
+      slug:passport.slug,
+      name:passport.display_name,
+      city:passport.city||"",
+      profession:passport.profession||"",
+      skills:passport.skills||"",
+      headline,
+      can_help:[passport.profession,passport.skills,bestOpportunity?.text].filter(Boolean).join(" · "),
+      can_share:bestOpportunity?.kind||"",
+      needs:"",
+      opportunity_id:bestOpportunity?.id||null,
+      opportunity_kind:bestOpportunity?.kind||"",
+      score,
+      matched
+    };
+  })
+    .filter(item=>item.score>0)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,limit);
+
+  return ranked;
 }
 
 async function searchLegacyProfiles(plan,{limit}){
@@ -118,6 +127,7 @@ async function searchLegacyProfiles(plan,{limit}){
 
 /**
  * First-stage Atlas retrieval: real Opportunity Passports.
+ * Profession, skills and active opportunities are searchable.
  * Private contact data lives in atlas_private_contacts and is never selected here.
  */
 export async function searchPassportProfiles(plan,{limit=5}={}){
@@ -127,9 +137,7 @@ export async function searchPassportProfiles(plan,{limit=5}={}){
     const matches=await searchNewPassports(plan,{limit});
     return {matches,error:null};
   }catch(error){
-    // Transitional fallback only while the new production Passport schema has
-    // not yet been applied. Once atlas_* tables exist, Atlas uses them exclusively.
-    if(/atlas_opportunities|atlas_passports|relation .* does not exist/i.test(String(error?.message||""))){
+    if(/atlas_opportunities|atlas_passports|profession|skills|relation .* does not exist/i.test(String(error?.message||""))){
       const matches=await searchLegacyProfiles(plan,{limit});
       return {matches,error:"production-passports-not-initialized"};
     }
