@@ -27,7 +27,7 @@ function ResourceCard({title,item,route,origin,lang}){
 export default function NearbyMedicalResources({geo,lang="uk"}){
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState("");
-  const [places,setPlaces]=useState({hospitals:[],pharmacies:[]});
+  const [places,setPlaces]=useState({hospitals:[],otherCare:[],pharmacies:[]});
   const [routes,setRoutes]=useState({hospital:null,pharmacy:null});
   const origin=geo.location;
 
@@ -37,7 +37,7 @@ export default function NearbyMedicalResources({geo,lang="uk"}){
     try{
       const result=await findNearbyMedical(location,{lang});
       setPlaces(result);
-      const hospital=result.hospitals?.[0]||null;
+      const hospital=result.hospitals?.[0]||result.otherCare?.[0]||null;
       const pharmacy=result.pharmacies?.[0]||null;
       const [hospitalRoute,pharmacyRoute]=await Promise.all([
         hospital?getDrivingRoute(location,hospital).catch(()=>null):Promise.resolve(null),
@@ -51,7 +51,7 @@ export default function NearbyMedicalResources({geo,lang="uk"}){
 
   useEffect(()=>{if(origin)load(origin)},[origin?.latitude,origin?.longitude,lang]);
 
-  const hospital=useMemo(()=>places.hospitals?.[0]||null,[places]);
+  const hospital=useMemo(()=>places.hospitals?.[0]||places.otherCare?.[0]||null,[places]);
   const pharmacy=useMemo(()=>places.pharmacies?.[0]||null,[places]);
 
   async function locate(){
@@ -62,12 +62,12 @@ export default function NearbyMedicalResources({geo,lang="uk"}){
   return <section className="nearbyMedical">
     <div className="sectionHeading">
       <span>{lang==="uk"?"РЕАЛЬНА ДОПОМОГА ПОРУЧ":"REAL HELP NEARBY"}</span>
-      <h2>{lang==="uk"?"Лікарня, лікар і аптека поруч":"Nearby medical care and pharmacy"}</h2>
+      <h2>{lang==="uk"?"Лікарня та аптека поруч":"Nearby hospital and pharmacy"}</h2>
     </div>
 
     {!origin&&<div className="medicalLocationPrompt">
       <Stethoscope size={24}/>
-      <div><strong>{lang==="uk"?"Дайте Atlas вашу поточну локацію":"Share your current location with Atlas"}</strong><p>{lang==="uk"?"Atlas сам знайде найближчі медичні точки та порахує маршрут. Координати не додаються до Паспортів.":"Atlas will find nearby medical locations and calculate the route. Your coordinates are not added to Opportunity Passports."}</p></div>
+      <div><strong>{lang==="uk"?"Дайте Atlas вашу поточну локацію":"Share your current location with Atlas"}</strong><p>{lang==="uk"?"Atlas сам знайде найближчу лікарню й аптеку та порахує маршрут. Координати не додаються до Паспортів.":"Atlas will find the nearest hospital and pharmacy and calculate the route. Your coordinates are not added to Opportunity Passports."}</p></div>
       <button className="primary" type="button" onClick={locate} disabled={geo.loading}><MapPin size={18}/>{geo.loading?(lang==="uk"?"Визначаю…":"Locating…"):(lang==="uk"?"Використати мою локацію":"Use my location")}</button>
     </div>}
 
@@ -75,7 +75,7 @@ export default function NearbyMedicalResources({geo,lang="uk"}){
     {origin&&!loading&&error&&<div className="passportSearchState muted">{lang==="uk"?"Не вдалося отримати картографічні дані. Спробуйте ще раз.":"Map data could not be loaded. Please try again."}<button className="secondary" type="button" onClick={()=>load(origin)}>{lang==="uk"?"Повторити":"Retry"}</button></div>}
 
     {origin&&!loading&&!error&&<div className="medicalResourceGrid">
-      <ResourceCard title={lang==="uk"?"Найближча медична допомога":"Nearest medical care"} item={hospital} route={routes.hospital} origin={origin} lang={lang}/>
+      <ResourceCard title={hospital?.type==="hospital"?(lang==="uk"?"Найближча лікарня":"Nearest hospital"):(lang==="uk"?"Найближча медична допомога":"Nearest medical care")} item={hospital} route={routes.hospital} origin={origin} lang={lang}/>
       <ResourceCard title={lang==="uk"?"Найближча аптека":"Nearest pharmacy"} item={pharmacy} route={routes.pharmacy} origin={origin} lang={lang}/>
     </div>}
 
