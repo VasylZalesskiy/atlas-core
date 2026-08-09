@@ -56,6 +56,12 @@ function hasMapMode(plan,mode){
     :false;
 }
 
+function hasWebRetrieval(plan){
+  return Array.isArray(plan?.external_searches)
+    ?plan.external_searches.some(item=>item&&["web","marketplace","official"].includes(item.source)&&String(item.query||"").trim())
+    :false;
+}
+
 function hasAnyRetrieval(plan){
   const searches=Array.isArray(plan?.external_searches)
     ?plan.external_searches.some(item=>item&&item.source&&item.source!=="none"&&String(item.query||"").trim())
@@ -64,7 +70,7 @@ function hasAnyRetrieval(plan){
   return searches||passportTerms;
 }
 
-function planNeedsRecovery(plan){
+function planNeedsRecovery(plan,{locationAvailable=false}={}){
   if(plan?.clarification?.required&&plan?.clarification?.question)return false;
 
   // A destination route is not a nearby-place lookup. Atlas must resolve the
@@ -76,35 +82,73 @@ function planNeedsRecovery(plan){
   if(plan?.solution_scope==="local_action"&&plan?.needs_location&&!hasMapMode(plan,"nearby"))return true;
   if(plan?.needs_location&&!hasSearch(plan,"maps"))return true;
 
+  // Channel-neutral mixed tasks must not collapse into web/delivery only.
+  // When Atlas itself classifies the task as mixed and the user's location is
+  // already known, a web retrieval path must be accompanied by a nearby path.
+  if(plan?.solution_scope==="mixed"&&locationAvailable&&hasWebRetrieval(plan)&&!hasMapMode(plan,"nearby"))return true;
+
   // Atlas must not stop after merely understanding the request.
   return !hasAnyRetrieval(plan);
 }
 
-export async function analyzeAtlasQuery(query,{lang="uk",location=null,signal}={}){
-  const original=String(query||"").trim();
-  const firstPlan=await requestBrainPlan(original,{lang,location,signal});
-  if(!planNeedsRecovery(firstPlan))return firstPlan;
-
-  const routeRule=firstPlan?.solution_scope==="destination_route"
+function recoveryInstruction(plan,{lang="uk",locationAvailable=false}={}){
+  const routeRule=plan?.solution_scope==="destination_route"
     ?(lang==="uk"
       ?"Це маршрут до названого пункту призначення. План зобов'язаний містити source=maps, mode=destination, а query має бути лише назвою/адресою пункту призначення без слів про маршрут."
       :"This is a route to a named destination. The plan must contain source=maps, mode=destination, and query must be only the destination name/address without route wording.")
     :"";
-  const localRule=firstPlan?.solution_scope==="local_action"&&firstPlan?.needs_location
+
+  const localRule=plan?.solution_scope==="local_action"&&plan?.needs_location
     ?(lang==="uk"
       ?"Це локальна фізична дія. План зобов'язаний містити source=maps, mode=nearby для реальної людини/місця/сервісу поруч."
       :"This is a local physical action. The plan must contain source=maps, mode=nearby for a real nearby person/place/service.")
     :"";
 
-  const recoveryQuery=lang==="uk"
-    ?`Оригінальний запит користувача: «${original}». Перший план не пройшов контроль якості. ${routeRule} ${localRule} Паспорти можливостей завжди перевіряються першими, але їх відсутність не може зупинити виконання задачі. Якщо одного відсутнього параметра справді бракує — постав одне коротке уточнення. Інакше сформуй практичні пошуки, які ведуть до конкретної дії. Не вигадуй результатів і не створюй сценарій під цей приклад.`
-    :`Original user request: “${original}”. The first plan failed the quality gate. ${routeRule} ${localRule} Opportunity Passports are always checked first, but a Passport miss must not stop execution. If one missing parameter truly blocks progress, ask one short clarification. Otherwise produce practical retrieval actions that lead to a concrete next step. Do not invent results or create a scenario for this example.`;
+  const mixedRule=plan?.solution_scope==="mixed"&&locationAvailable&&hasWebRetrieval(plan)&&!hasMapMode(plan,"nearby")
+    ?(lang==="uk"
+      ?"Це змішана задача з відомою локацією, але план звузив рішення до web/доставки. Це порушує нейтральність каналів: додай source=maps, mode=nearby для реальних локальних варіантів. Web/доставка може залишитися лише додатковим каналом після Паспортів і локальних варіантів."
+      :"This is a mixed task with known location, but the plan collapsed fulfillment into web/delivery. This violates channel neutrality: add source=maps, mode=nearby for real local options. Web/delivery may remain only as an additional channel after Passports and local options.")
+    :"";
 
-  try{
-    const recoveryPlan=await requestBrainPlan(recoveryQuery,{lang,location,signal});
-    return planNeedsRecovery(recoveryPlan)?firstPlan:recoveryPlan;
-  }catch(error){
-    if(error?.name==="AbortError")throw error;
-    return firstPlan;
+  return [routeRule,localRule,mixedRule].filter(Boolean).join(" ");
+}
+
+export async function analyzeAtlasQuery(query,{lang="uk",location=null,signal}={}){
+  const original=String(query||"").trim();
+  const qualityContext={locationAvailable:Boolean(location)};
+  let candidate=await requestBrainPlan(original,{lang,location,signal});
+  if(!planNeedsRecovery(candidate,qualityContext))return candidate;
+
+  // Give Brain up to two chances to rebuild an invalid plan. Never return the
+  // original invalid plan merely because the first recovery was also invalid.
+  for(let attempt=0;attempt<2;attempt+=1){
+    const violation=recoveryInstruction(candidate,{lang,...qualityContext});
+    const recoveryQuery=lang==="uk"
+      ?`Оригінальний запит користувача: «${original}». Поточний план не пройшов контроль якості. ${violation} Паспорти можливостей завжди перевіряються першими, але їх відсутність не може зупинити виконання задачі. Не нав'язуй канал, якого користувач не просив. Якщо одного відсутнього параметра справді бракує — постав одне коротке уточнення. Інакше сформуй практичні пошуки, які ведуть до конкретної дії. Не вигадуй результатів і не створюй сценарій під цей приклад.`
+      :`Original user request: “${original}”. The current plan failed the quality gate. ${violation} Opportunity Passports are always checked first, but a Passport miss must not stop execution. Do not impose a fulfillment channel the user did not request. If one missing parameter truly blocks progress, ask one short clarification. Otherwise produce practical retrieval actions that lead to a concrete next step. Do not invent results or create a scenario for this example.`;
+
+    try{
+      candidate=await requestBrainPlan(recoveryQuery,{lang,location,signal});
+      if(!planNeedsRecovery(candidate,qualityContext))return candidate;
+    }catch(error){
+      if(error?.name==="AbortError")throw error;
+      break;
+    }
   }
+
+  // If Brain still cannot produce a quality-valid plan, suppress web-only
+  // fulfillment rather than presenting a misleading single-channel answer.
+  if(candidate?.solution_scope==="mixed"&&qualityContext.locationAvailable&&hasWebRetrieval(candidate)&&!hasMapMode(candidate,"nearby")){
+    return {
+      ...candidate,
+      external_searches:(candidate.external_searches||[]).filter(item=>!["web","marketplace","official"].includes(item?.source)),
+      clarification:{
+        required:true,
+        question:lang==="uk"?"Що для вас зручніше: варіант поруч чи онлайн/доставка?":"Which is more convenient: a nearby option or online/delivery?",
+        options:lang==="uk"?["Поруч","Онлайн / доставка"]:["Nearby","Online / delivery"]
+      }
+    };
+  }
+
+  return candidate;
 }
