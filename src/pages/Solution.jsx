@@ -4,7 +4,7 @@ import {ArrowLeft,Clock3,ExternalLink,MapPin,MessageCircle,Navigation,Phone,Refr
 import {analyzeAtlasQuery,createFallbackPlan} from "../services/atlasBrain";
 import {searchPassportProfiles} from "../services/passportSearch";
 import {searchExternalSources} from "../services/externalSearch";
-import {searchNearbyPlaces} from "../services/genericPlaces";
+import {searchDestination,searchNearbyPlaces} from "../services/genericPlaces";
 import {getDrivingRoute,openOsmDirections} from "../services/medicalPlaces";
 import useGeolocation from "../hooks/useGeolocation";
 import "../styles/simpleSolution.css";
@@ -27,12 +27,14 @@ function passportCard(profile,lang){
   };
 }
 
-function placeCard(place,searchLabel){
+function placeCard(place,search,lang){
+  const destination=search?.mode==="destination";
   return {
     ...place,
     kind:"place",
     id:place.id,
-    eyebrow:searchLabel,
+    mapMode:search?.mode||"nearby",
+    eyebrow:destination?(lang==="uk"?"Пункт призначення":"Destination"):(search?.query||""),
     title:place.name,
     distanceKm:place.straightDistanceKm
   };
@@ -53,6 +55,8 @@ function externalCard(item,index,lang){
 
 function ResultCard({item,origin,lang}){
   const routeMinutes=Number.isFinite(item.route?.minutes)?Math.max(1,Math.round(item.route.minutes)):null;
+  const routeDistance=Number.isFinite(item.route?.distanceKm)?item.route.distanceKm:null;
+  const shownDistance=routeDistance??(Number.isFinite(item.distanceKm)?item.distanceKm:null);
   const description=[item.typeLabel,item.address].filter(Boolean).join(" · ");
 
   return <article className={`simpleResultCard ${item.kind}`}>
@@ -64,7 +68,7 @@ function ResultCard({item,origin,lang}){
       {description&&<p>{description}</p>}
       {!description&&item.subtitle&&<p>{item.subtitle}</p>}
       <div className="simpleFacts">
-        {Number.isFinite(item.distanceKm)&&<span className="simpleFact"><MapPin size={14}/>{formatDistance(item.distanceKm)}</span>}
+        {Number.isFinite(shownDistance)&&<span className="simpleFact"><MapPin size={14}/>{formatDistance(shownDistance)}{routeDistance!==null?(lang==="uk"?" маршрутом":" by route"):""}</span>}
         {routeMinutes&&<span className="simpleFact"><Clock3 size={14}/>≈ {routeMinutes} хв авто</span>}
         {item.city&&<span className="simpleFact"><MapPin size={14}/>{item.city}</span>}
         {item.locationText&&<span className="simpleFact"><MapPin size={14}/>{item.locationText}</span>}
@@ -168,8 +172,10 @@ export default function Solution({lang}){
     }
     setMapLoading(true);setMapError("");
     Promise.all(mapSearches.map(async search=>{
-      const places=await searchNearbyPlaces(geo.location,search.query,{lang,limit:3,signal:controller.signal});
-      return places.map(place=>placeCard(place,search.query));
+      const places=search.mode==="destination"
+        ?await searchDestination(geo.location,search.query,{lang,limit:3,signal:controller.signal})
+        :await searchNearbyPlaces(geo.location,search.query,{lang,limit:3,signal:controller.signal});
+      return places.map(place=>placeCard(place,search,lang));
     }))
       .then(async groups=>{
         if(controller.signal.aborted)return;
