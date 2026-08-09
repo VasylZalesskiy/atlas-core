@@ -1,4 +1,4 @@
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 import {Link,useLocation,useNavigate} from "react-router-dom";
 import {ArrowLeft,MapPin,Search} from "lucide-react";
 import UrgencyBanner from "../components/UrgencyBanner";
@@ -9,7 +9,9 @@ import SolutionPath from "../components/SolutionPath";
 import AlternativeOptions from "../components/AlternativeOptions";
 import HiddenContactsCard from "../components/HiddenContactsCard";
 import SolutionMetrics from "../components/SolutionMetrics";
+import PassportMatches from "../components/PassportMatches";
 import {buildDecisionSolution} from "../services/atlasEngine";
+import {searchPassportProfiles} from "../services/passportSearch";
 import useGeolocation from "../hooks/useGeolocation";
 import {getScenarioSearchQuery,openGoogleMapsDirections,openGoogleMapsSearch} from "../services/maps";
 
@@ -24,6 +26,9 @@ export default function Solution({t,lang}){
   const [where,setWhere]=useState(initialWhere);
   const [forcedMode,setForcedMode]=useState(null);
   const [showDetails,setShowDetails]=useState(false);
+  const [passportMatches,setPassportMatches]=useState([]);
+  const [passportLoading,setPassportLoading]=useState(true);
+  const [passportError,setPassportError]=useState("");
   const geo=useGeolocation(state?.geoLocation||null);
 
   const solution=useMemo(()=>buildDecisionSolution(initialTask,initialWhere,lang,forcedMode),[initialTask,initialWhere,lang,forcedMode]);
@@ -31,6 +36,19 @@ export default function Solution({t,lang}){
   const hasRoute=Number(solution.route?.distanceKm)>0&&Number(solution.route?.minutes)>0;
   const hasAlternatives=Array.isArray(solution.alternatives)&&solution.alternatives.length>0;
   const medical=["health-symptom","medical-emergency"].includes(solution.goal?.scenario);
+
+  useEffect(()=>{
+    let alive=true;
+    setPassportLoading(true);
+    setPassportError("");
+    searchPassportProfiles(solution.goal,{limit:5}).then(({matches,error})=>{
+      if(!alive)return;
+      setPassportMatches(matches||[]);
+      setPassportError(error||"");
+      setPassportLoading(false);
+    });
+    return()=>{alive=false};
+  },[solution.goal?.originalGoal,solution.goal?.scenario,solution.goal?.category]);
 
   function submit(e){
     e.preventDefault();
@@ -44,7 +62,7 @@ export default function Solution({t,lang}){
   async function openRoute(){const origin=geo.location||await geo.requestLocation();if(origin)openGoogleMapsDirections(origin,searchQuery)}
 
   return <main className="decisionPage">
-    <div className="decisionTop"><Link className="back" to="/"><ArrowLeft size={18}/>{t.back}</Link><span>{medical?"Atlas не вигадує медичні установи або маршрути":t.demoDataNotice}</span></div>
+    <div className="decisionTop"><Link className="back" to="/"><ArrowLeft size={18}/>{t.back}</Link><span>{medical?"Atlas спочатку шукає можливості людей і не вигадує медичні установи":t.demoDataNotice}</span></div>
     <div className="decisionLayout">
       <aside className="decisionSidebar">
         <form onSubmit={submit}>
@@ -62,6 +80,14 @@ export default function Solution({t,lang}){
       <section className="decisionMain">
         <UrgencyBanner mode={solution.mode} t={t}/>
         {solution.warning&&<div className={`safetyWarning ${solution.mode}`}>{solution.warning}</div>}
+
+        <PassportMatches
+          matches={passportMatches}
+          loading={passportLoading}
+          error={passportError}
+          medical={medical}
+        />
+
         <BestActionCard solution={solution} t={t} onShowDetails={()=>setShowDetails(true)} geo={geo} onSearch={openSearch} onRoute={openRoute}/>
         <SolutionPath solution={solution} t={t}/>
         {!medical&&<SolutionMetrics metrics={solution.metrics} t={t} mode={solution.mode}/>} 
