@@ -10,6 +10,7 @@ import AlternativeOptions from "../components/AlternativeOptions";
 import HiddenContactsCard from "../components/HiddenContactsCard";
 import SolutionMetrics from "../components/SolutionMetrics";
 import PassportMatches from "../components/PassportMatches";
+import NearbyMedicalResources from "../components/NearbyMedicalResources";
 import {buildDecisionSolution} from "../services/atlasEngine";
 import {searchPassportProfiles} from "../services/passportSearch";
 import useGeolocation from "../hooks/useGeolocation";
@@ -62,7 +63,10 @@ export default function Solution({t,lang}){
   async function openRoute(){const origin=geo.location||await geo.requestLocation();if(origin)openGoogleMapsDirections(origin,searchQuery)}
 
   return <main className="decisionPage">
-    <div className="decisionTop"><Link className="back" to="/"><ArrowLeft size={18}/>{t.back}</Link><span>{medical?"Atlas спочатку шукає можливості людей і не вигадує медичні установи":t.demoDataNotice}</span></div>
+    <div className="decisionTop">
+      <Link className="back" to="/"><ArrowLeft size={18}/>{t.back}</Link>
+      <span>{medical?"Atlas: Паспорти можливостей → реальні медичні точки поруч → маршрут":t.demoDataNotice}</span>
+    </div>
     <div className="decisionLayout">
       <aside className="decisionSidebar">
         <form onSubmit={submit}>
@@ -88,14 +92,16 @@ export default function Solution({t,lang}){
           medical={medical}
         />
 
+        {medical&&<NearbyMedicalResources geo={geo} lang={lang}/>} 
+
         <BestActionCard solution={solution} t={t} onShowDetails={()=>setShowDetails(true)} geo={geo} onSearch={openSearch} onRoute={openRoute}/>
         <SolutionPath solution={solution} t={t}/>
         {!medical&&<SolutionMetrics metrics={solution.metrics} t={t} mode={solution.mode}/>} 
       </section>
 
       <aside className="decisionRight">
-        {hasRoute&&<DemoRouteMap route={solution.route} t={t} hasRealLocation={Boolean(geo.location)} onOpenRealMap={geo.location?openRoute:openSearch}/>} 
-        {hasAlternatives&&<AlternativeOptions alternatives={solution.alternatives} t={t}/>} 
+        {!medical&&hasRoute&&<DemoRouteMap route={solution.route} t={t} hasRealLocation={Boolean(geo.location)} onOpenRealMap={geo.location?openRoute:openSearch}/>} 
+        {!medical&&hasAlternatives&&<AlternativeOptions alternatives={solution.alternatives} t={t}/>} 
         {!medical&&<HiddenContactsCard visible={showDetails} onToggle={()=>setShowDetails(value=>!value)} policy={solution.contactPolicy} t={t}/>} 
       </aside>
     </div>
