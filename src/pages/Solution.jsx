@@ -4,8 +4,7 @@ import {ArrowLeft,Clock3,ExternalLink,MapPin,Navigation,Phone,RefreshCw,Search,U
 import {analyzeAtlasQuery,createFallbackPlan} from "../services/atlasBrain";
 import {searchPassportProfiles} from "../services/passportSearch";
 import {searchExternalSources} from "../services/externalSearch";
-import {searchDestination,searchNearbyPlaces} from "../services/genericPlaces";
-import {getDrivingRoute,openOsmDirections} from "../services/medicalPlaces";
+import {getDrivingRoute,openGoogleDirections,searchDestination,searchNearbyPlaces} from "../services/googleMaps";
 import useGeolocation from "../hooks/useGeolocation";
 import "../styles/simpleSolution.css";
 
@@ -59,6 +58,7 @@ function ResultCard({item,origin,lang}){
   const routeDistance=Number.isFinite(item.route?.distanceKm)?item.route.distanceKm:null;
   const shownDistance=routeDistance??(Number.isFinite(item.distanceKm)?item.distanceKm:null);
   const description=[item.typeLabel,item.address].filter(Boolean).join(" · ");
+  const googleContent=item.source==="Google Maps"||item.route?.source==="Google Maps";
 
   return <article className={`simpleResultCard ${item.kind}`}>
     <div className="simpleResultIcon">{item.kind==="passport"?<UserRound size={25}/>:item.kind==="external"?<Search size={25}/>:<MapPin size={25}/>}</div>
@@ -71,14 +71,17 @@ function ResultCard({item,origin,lang}){
       <div className="simpleFacts">
         {Number.isFinite(shownDistance)&&<span className="simpleFact"><MapPin size={14}/>{formatDistance(shownDistance)}{routeDistance!==null?(lang==="uk"?" маршрутом":" by route"):""}</span>}
         {routeMinutes&&<span className="simpleFact"><Clock3 size={14}/>≈ {routeMinutes} хв авто</span>}
+        {item.openNow===true&&<span className="simpleFact">{lang==="uk"?"Відкрито зараз":"Open now"}</span>}
+        {item.openNow===false&&<span className="simpleFact">{lang==="uk"?"Зараз зачинено":"Closed now"}</span>}
         {item.city&&<span className="simpleFact"><MapPin size={14}/>{item.city}</span>}
         {item.locationText&&<span className="simpleFact"><MapPin size={14}/>{item.locationText}</span>}
+        {googleContent&&<a className="simpleFact" href={item.googleMapsUri||undefined} target={item.googleMapsUri?"_blank":undefined} rel={item.googleMapsUri?"noreferrer":undefined}>Google Maps</a>}
       </div>
     </div>
     <div className="simpleResultActions">
       {item.kind==="passport"&&item.passportUrl&&<a className="primary" href={item.passportUrl}><UserRound size={17}/>{lang==="uk"?"Відкрити Паспорт":"Open Passport"}</a>}
       {item.kind==="place"&&<>
-        {origin&&<button className="primary" type="button" onClick={()=>openOsmDirections(origin,item)}><Navigation size={17}/>{lang==="uk"?"Маршрут":"Route"}</button>}
+        {origin&&<button className="primary" type="button" onClick={()=>openGoogleDirections(origin,item)}><Navigation size={17}/>{lang==="uk"?"Маршрут":"Route"}</button>}
         {item.phone&&<a className="secondary" href={`tel:${item.phone}`}><Phone size={17}/>{lang==="uk"?"Подзвонити":"Call"}</a>}
         {item.website&&<a className="secondary" href={item.website} target="_blank" rel="noreferrer"><ExternalLink size={17}/>{lang==="uk"?"Сайт":"Website"}</a>}
       </>}
@@ -184,7 +187,7 @@ export default function Solution({lang}){
         const flat=groups.flat().filter(item=>{if(seen.has(item.id))return false;seen.add(item.id);return true}).slice(0,6);
         const routed=await Promise.all(flat.map(async(item,index)=>{
           if(index>2)return item;
-          const route=await getDrivingRoute(geo.location,item).catch(()=>null);
+          const route=await getDrivingRoute(geo.location,item,{lang,signal:controller.signal}).catch(()=>null);
           return {...item,route};
         }));
         if(!controller.signal.aborted)setMapResults(routed);
