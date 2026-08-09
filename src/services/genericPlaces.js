@@ -17,6 +17,35 @@ function boxFor(lat,lon,radiusKm){
   return `${lon-dLon},${lat+dLat},${lon+dLon},${lat-dLat}`;
 }
 
+function normalizePlace(item,origin,fallbackName){
+  const latitude=toNumber(item?.lat);
+  const longitude=toNumber(item?.lon);
+  if(latitude===null||longitude===null)return null;
+  const extra=item.extratags||{};
+  const name=item.name||item.namedetails?.name||String(item.display_name||"").split(",")[0]||fallbackName;
+  const point={latitude,longitude};
+  return {
+    id:`place-${item.place_id}`,
+    name,
+    title:name,
+    latitude,
+    longitude,
+    address:item.display_name||"",
+    typeLabel:item.type||item.category||"",
+    phone:extra.phone||extra["contact:phone"]||"",
+    website:extra.website||extra["contact:website"]||"",
+    openingHours:extra.opening_hours||"",
+    straightDistanceKm:origin?distanceKm(origin,point):null,
+    source:"OpenStreetMap"
+  };
+}
+
+async function nominatimSearch(params,signal){
+  const response=await fetch(`${nominatimBase}?${params.toString()}`,{headers:{Accept:"application/json"},signal});
+  if(!response.ok)throw new Error(`place-search-${response.status}`);
+  return await response.json();
+}
+
 export async function searchNearbyPlaces(location,query,{lang="uk",radiusKm=30,limit=5,signal}={}){
   if(!location)throw new Error("location-required");
   const q=String(query||"").trim();
@@ -33,28 +62,29 @@ export async function searchNearbyPlaces(location,query,{lang="uk",radiusKm=30,l
     bounded:"1",
     accept_language:lang==="en"?"en":"uk"
   });
-  const response=await fetch(`${nominatimBase}?${params.toString()}`,{headers:{Accept:"application/json"},signal});
-  if(!response.ok)throw new Error(`place-search-${response.status}`);
-  const data=await response.json();
-  return (data||[]).map(item=>{
-    const latitude=toNumber(item.lat);const longitude=toNumber(item.lon);
-    if(latitude===null||longitude===null)return null;
-    const extra=item.extratags||{};
-    const name=item.name||item.namedetails?.name||String(item.display_name||"").split(",")[0]||q;
-    const point={latitude,longitude};
-    return {
-      id:`place-${item.place_id}`,
-      name,
-      title:name,
-      latitude,
-      longitude,
-      address:item.display_name||"",
-      typeLabel:item.type||item.category||"",
-      phone:extra.phone||extra["contact:phone"]||"",
-      website:extra.website||extra["contact:website"]||"",
-      openingHours:extra.opening_hours||"",
-      straightDistanceKm:distanceKm(origin,point),
-      source:"OpenStreetMap"
-    };
-  }).filter(Boolean).sort((a,b)=>a.straightDistanceKm-b.straightDistanceKm);
+  const data=await nominatimSearch(params,signal);
+  return (data||[])
+    .map(item=>normalizePlace(item,origin,q))
+    .filter(Boolean)
+    .sort((a,b)=>(a.straightDistanceKm??Infinity)-(b.straightDistanceKm??Infinity));
+}
+
+// Resolve a named destination globally rather than restricting the search to the
+// user's nearby radius. This is used for requests such as travelling to a city,
+// address, venue or other explicitly named destination.
+export async function searchDestination(location,query,{lang="uk",limit=3,signal}={}){
+  const q=String(query||"").trim();
+  if(!q)return [];
+  const origin=location?{latitude:Number(location.latitude),longitude:Number(location.longitude)}:null;
+  const params=new URLSearchParams({
+    format:"jsonv2",
+    q,
+    limit:String(Math.min(Math.max(limit,1),6)),
+    addressdetails:"1",
+    extratags:"1",
+    namedetails:"1",
+    accept_language:lang==="en"?"en":"uk"
+  });
+  const data=await nominatimSearch(params,signal);
+  return (data||[]).map(item=>normalizePlace(item,origin,q)).filter(Boolean);
 }
