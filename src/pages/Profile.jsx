@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from "react";
-import {ArrowLeft,CheckCircle2,Copy,Inbox,PlusCircle,Share2,Trash2,XCircle} from "lucide-react";
+import {ArrowLeft,CheckCircle2,Copy,Inbox,Pencil,PlusCircle,Share2,Trash2,XCircle} from "lucide-react";
 import {Link} from "react-router-dom";
-import {addMyOpportunity,deleteMyOpportunity,loadIncomingRequests,loadMyPassport,respondToPassportRequest,saveMyPassport} from "../services/passportStore";
+import {addMyOpportunity,deleteMyOpportunity,loadIncomingRequests,loadMyPassport,respondToPassportRequest,saveMyPassport,updateMyOpportunity} from "../services/passportStore";
 
 const kinds=[
   {value:"help",uk:"Можу допомогти",en:"I can help"},
@@ -28,6 +28,8 @@ export default function Profile({t,lang="uk"}){
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [adding,setAdding]=useState(false);
+  const [editBusy,setEditBusy]=useState("");
+  const [editing,setEditing]=useState(null);
   const [requestBusy,setRequestBusy]=useState("");
   const [error,setError]=useState("");
   const [requestError,setRequestError]=useState("");
@@ -64,6 +66,7 @@ export default function Profile({t,lang="uk"}){
   },[loading,passport?.id]);
 
   function scrollToAdd(updateHash=true){
+    setEditing(null);
     if(updateHash)history.replaceState(null,"","#add-opportunity");
     addRef.current?.scrollIntoView({behavior:"smooth",block:"start"});
     setTimeout(()=>textareaRef.current?.focus(),350);
@@ -88,9 +91,25 @@ export default function Profile({t,lang="uk"}){
     }catch(e){setError(friendlyError(e,uk))}finally{setAdding(false)}
   }
 
+  function startEdit(item){
+    setError("");setNotice("");
+    setEditing({id:item.id,kind:item.kind,text:item.text});
+  }
+
+  async function saveEdit(){
+    if(!editing?.id||!editing.text.trim()||editBusy)return;
+    setError("");setNotice("");setEditBusy(editing.id);
+    try{
+      const updated=await updateMyOpportunity(editing.id,editing);
+      setOpportunities(items=>items.map(item=>item.id===editing.id?{...item,...updated}:item));
+      setEditing(null);
+      setNotice(uk?"✓ Можливість оновлено. Atlas уже шукає за новим текстом.":"✓ Opportunity updated. Atlas is already searching the new text.");
+    }catch(e){setError(friendlyError(e,uk))}finally{setEditBusy("")}
+  }
+
   async function removeOpportunity(id){
     setError("");setNotice("");
-    try{await deleteMyOpportunity(id);setOpportunities(items=>items.filter(item=>item.id!==id));setNotice(uk?"Можливість видалено.":"Opportunity removed.")}
+    try{await deleteMyOpportunity(id);setOpportunities(items=>items.filter(item=>item.id!==id));if(editing?.id===id)setEditing(null);setNotice(uk?"Можливість видалено.":"Opportunity removed.")}
     catch(e){setError(friendlyError(e,uk))}
   }
 
@@ -134,7 +153,7 @@ export default function Profile({t,lang="uk"}){
 
       <div style={{marginTop:30}}>
         <div style={{display:"flex",justifyContent:"space-between",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-          <div><h2 style={{margin:"0 0 4px",fontSize:25}}>{uk?"Мої можливості":"My opportunities"} · {opportunities.length}</h2><span style={{color:"#66746c"}}>{uk?"Кожна з них окремо бере участь у пошуку Atlas.":"Each one is searched independently by Atlas."}</span></div>
+          <div><h2 style={{margin:"0 0 4px",fontSize:25}}>{uk?"Мої можливості":"My opportunities"} · {opportunities.length}</h2><span style={{color:"#66746c"}}>{uk?"Кожну можна швидко змінити або видалити.":"Each one can be quickly edited or removed."}</span></div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             <button type="button" onClick={()=>scrollToAdd()} className="primary"><PlusCircle size={17}/>{uk?"Додати ще":"Add another"}</button>
             {shareUrl&&<><button type="button" onClick={copyLink} className="secondary"><Copy size={17}/>{uk?"Копіювати":"Copy"}</button><button type="button" onClick={sharePassport} className="secondary"><Share2 size={17}/>{uk?"Поділитися":"Share"}</button></>}
@@ -142,7 +161,20 @@ export default function Profile({t,lang="uk"}){
         </div>
         <div style={{display:"grid",gap:10,marginTop:16}}>
           {opportunities.length===0&&<div style={{padding:18,border:"1px dashed #cbd8ce",borderRadius:12,color:"#66746c"}}>{uk?"Поки немає можливостей. Додайте першу вище.":"No opportunities yet. Add the first one above."}</div>}
-          {opportunities.map(item=>{const kind=kinds.find(k=>k.value===item.kind);return <div key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14,padding:16,border:"1px solid #e1e9e3",borderRadius:14,background:"#fff"}}><div><strong style={{display:"block",fontSize:13,color:"#0b8d46",marginBottom:5}}>{kind?(uk?kind.uk:kind.en):(uk?"Можливість":"Opportunity")}</strong><span style={{fontSize:17,lineHeight:1.45}}>{item.text}</span></div><button type="button" onClick={()=>removeOpportunity(item.id)} title={uk?"Видалити":"Delete"} style={{border:"1px solid #e1e9e3",background:"white",borderRadius:10,padding:9,cursor:"pointer",flex:"0 0 auto"}}><Trash2 size={18}/></button></div>})}
+          {opportunities.map(item=>{
+            const kind=kinds.find(k=>k.value===item.kind);
+            const isEditing=editing?.id===item.id;
+            return <div key={item.id} style={{padding:16,border:"1px solid #e1e9e3",borderRadius:14,background:"#fff"}}>
+              {isEditing?<div style={{display:"grid",gap:12}}>
+                <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{kinds.map(option=><button key={option.value} type="button" onClick={()=>setEditing(value=>({...value,kind:option.value}))} style={{border:editing.kind===option.value?"2px solid #11934b":"1px solid #d8e1da",background:editing.kind===option.value?"#eef9f2":"white",borderRadius:999,padding:"7px 11px",fontWeight:700,cursor:"pointer"}}>{uk?option.uk:option.en}</button>)}</div>
+                <textarea value={editing.text} onChange={e=>setEditing(value=>({...value,text:e.target.value}))} style={{minHeight:90,fontSize:16,padding:12,border:"1px solid #cbd8ce",borderRadius:11}} autoFocus/>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button type="button" className="primary" disabled={editBusy===item.id||!editing.text.trim()} onClick={saveEdit}><CheckCircle2 size={17}/>{editBusy===item.id?(uk?"Зберігаю…":"Saving…"):(uk?"Зберегти":"Save")}</button><button type="button" className="secondary" disabled={editBusy===item.id} onClick={()=>setEditing(null)}><XCircle size={17}/>{uk?"Скасувати":"Cancel"}</button></div>
+              </div>:<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14}}>
+                <div><strong style={{display:"block",fontSize:13,color:"#0b8d46",marginBottom:5}}>{kind?(uk?kind.uk:kind.en):(uk?"Можливість":"Opportunity")}</strong><span style={{fontSize:17,lineHeight:1.45}}>{item.text}</span></div>
+                <div style={{display:"flex",gap:7,flex:"0 0 auto"}}><button type="button" onClick={()=>startEdit(item)} title={uk?"Редагувати":"Edit"} style={{border:"1px solid #e1e9e3",background:"white",borderRadius:10,padding:9,cursor:"pointer"}}><Pencil size={18}/></button><button type="button" onClick={()=>removeOpportunity(item.id)} title={uk?"Видалити":"Delete"} style={{border:"1px solid #e1e9e3",background:"white",borderRadius:10,padding:9,cursor:"pointer"}}><Trash2 size={18}/></button></div>
+              </div>}
+            </div>;
+          })}
         </div>
       </div>
 
