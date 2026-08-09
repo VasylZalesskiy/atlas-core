@@ -37,7 +37,7 @@ export default function Profile({t,lang="uk"}){
   const [passport,setPassport]=useState(null);
   const [opportunities,setOpportunities]=useState([]);
   const [incomingRequests,setIncomingRequests]=useState([]);
-  const [form,setForm]=useState({displayName:"",city:"",contact:""});
+  const [form,setForm]=useState({displayName:"",profession:"",skills:"",city:"",contact:""});
   const [entry,setEntry]=useState({kind:"help",text:""});
 
   const shareUrl=useMemo(()=>passport?.slug?`${window.location.origin}/p/${passport.slug}`:"",[passport?.slug]);
@@ -50,7 +50,13 @@ export default function Profile({t,lang="uk"}){
       if(!alive)return;
       setPassport(data.passport);
       setOpportunities(data.opportunities||[]);
-      setForm({displayName:data.passport?.display_name||"",city:data.passport?.city||"",contact:data.contact||""});
+      setForm({
+        displayName:data.passport?.display_name||"",
+        profession:data.passport?.profession||"",
+        skills:data.passport?.skills||"",
+        city:data.passport?.city||"",
+        contact:data.contact||""
+      });
       if(data.passport?.id){
         try{const requests=await loadIncomingRequests();if(alive)setIncomingRequests(requests||[])}
         catch(e){if(alive)setRequestError(friendlyError(e,uk))}
@@ -75,8 +81,11 @@ export default function Profile({t,lang="uk"}){
   async function savePassport(e){
     e.preventDefault();if(saving)return;
     setError("");setNotice("");setSaving(true);
-    try{const saved=await saveMyPassport(form);setPassport(saved);setNotice(uk?"✓ Паспорт збережено. Тепер додавайте свої можливості.":"✓ Passport saved. Now add your opportunities.")}
-    catch(e){setError(friendlyError(e,uk))}finally{setSaving(false)}
+    try{
+      const saved=await saveMyPassport(form);
+      setPassport(saved);
+      setNotice(uk?"✓ Паспорт збережено. Професія, навички та можливості доступні Atlas для пошуку.":"✓ Passport saved. Your profession, skills and opportunities are searchable by Atlas.");
+    }catch(e){setError(friendlyError(e,uk))}finally{setSaving(false)}
   }
 
   async function addOpportunity(e){
@@ -131,19 +140,21 @@ export default function Profile({t,lang="uk"}){
     <Link className="back" to="/"><ArrowLeft size={18}/>{uk?"Назад до Atlas":"Back to Atlas"}</Link>
     <span className="kicker">ATLAS · {uk?"ПАСПОРТ МОЖЛИВОСТЕЙ":"OPPORTUNITY PASSPORT"}</span>
     <h1 style={{marginBottom:8}}>{passport?(uk?"Ваш Паспорт можливостей":"Your Opportunity Passport"):(uk?"Створіть Паспорт можливостей":"Create an Opportunity Passport")}</h1>
-    <p style={{margin:"0 0 24px",color:"#66746c",fontSize:17,lineHeight:1.55}}>{uk?"Додавайте скільки завгодно окремих можливостей — кожна одразу стає доступною Atlas для пошуку.":"Add as many separate opportunities as you want — each becomes searchable by Atlas immediately."}</p>
+    <p style={{margin:"0 0 24px",color:"#66746c",fontSize:17,lineHeight:1.55}}>{uk?"Розкажіть, хто ви за професією, що ще вмієте і які можливості можете запропонувати. Atlas використовує все це, щоб знаходити вас для відповідних задач.":"Tell Atlas your profession, other skills and what you can offer. Atlas uses all of it to match you with relevant tasks."}</p>
 
     <form className="profileForm" onSubmit={savePassport} style={{gridTemplateColumns:"1fr",marginBottom:passport?28:0}}>
       <label><span>{uk?"Ім’я або псевдонім":"Name or nickname"}</span><input required disabled={saving} value={form.displayName} onChange={e=>setForm({...form,displayName:e.target.value})}/></label>
-      <label><span>{uk?"Контакт — публічно не показується":"Contact — never shown publicly"}</span><input required disabled={saving} value={form.contact} onChange={e=>setForm({...form,contact:e.target.value})}/></label>
+      <label><span>{uk?"Хто я за професією / основна діяльність":"My profession / main occupation"}</span><input disabled={saving} value={form.profession} onChange={e=>setForm({...form,profession:e.target.value})} placeholder={uk?"Наприклад: електрик, бухгалтер, менеджер із закупівель":"For example: electrician, accountant, procurement manager"}/></label>
+      <label><span>{uk?"Мої навички та досвід":"My skills and experience"}</span><textarea disabled={saving} value={form.skills} onChange={e=>setForm({...form,skills:e.target.value})} maxLength={2000} placeholder={uk?"Наприклад: переговори, логістика, Excel, ремонт генераторів, водіння, зварювання…":"For example: negotiations, logistics, Excel, generator repair, driving, welding…"} style={{minHeight:110}}/></label>
       <label><span>{uk?"Місто / район":"City / area"}</span><input disabled={saving} value={form.city} onChange={e=>setForm({...form,city:e.target.value})}/></label>
+      <label><span>{uk?"Контакт — публічно не показується":"Contact — never shown publicly"}</span><input required disabled={saving} value={form.contact} onChange={e=>setForm({...form,contact:e.target.value})}/></label>
       <button className="primary" disabled={saving}>{saving?(t?.saving||"Зберігаю…"):(passport?(uk?"Зберегти Паспорт":"Save Passport"):(uk?"Створити Паспорт":"Create Passport"))}</button>
     </form>
 
     {passport&&<>
       <div id="add-opportunity" ref={addRef} style={{borderTop:"1px solid #e4ebe6",paddingTop:26,scrollMarginTop:100}}>
         <h2 style={{margin:"0 0 6px",fontSize:25}}>{uk?"+ Додати можливість":"+ Add an opportunity"}</h2>
-        <p style={{margin:"0 0 16px",color:"#66746c"}}>{uk?"Одне поле — одна конкретна можливість. Після додавання поле одразу готове для наступної.":"One field — one concrete opportunity. After adding it, the field is ready for the next one."}</p>
+        <p style={{margin:"0 0 16px",color:"#66746c"}}>{uk?"Тут додавайте конкретні речі, ресурси або допомогу понад вашу професію та навички. Одне поле — одна можливість.":"Add specific things, resources or help here in addition to your profession and skills. One field — one opportunity."}</p>
         <form onSubmit={addOpportunity} style={{display:"grid",gap:12}}>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{kinds.map(item=><button key={item.value} type="button" onClick={()=>setEntry({...entry,kind:item.value})} style={{border:entry.kind===item.value?"2px solid #11934b":"1px solid #d8e1da",background:entry.kind===item.value?"#eef9f2":"white",borderRadius:999,padding:"9px 13px",fontWeight:700,cursor:"pointer"}}>{uk?item.uk:item.en}</button>)}</div>
           <textarea ref={textareaRef} value={entry.text} onChange={e=>setEntry({...entry,text:e.target.value})} placeholder={uk?"Наприклад: маю причіп, можу позичити на день":"For example: I have a trailer I can lend for a day"} style={{minHeight:110,fontSize:17,padding:14,border:"1px solid #d8e1da",borderRadius:12}}/>
@@ -160,7 +171,7 @@ export default function Profile({t,lang="uk"}){
           </div>
         </div>
         <div style={{display:"grid",gap:10,marginTop:16}}>
-          {opportunities.length===0&&<div style={{padding:18,border:"1px dashed #cbd8ce",borderRadius:12,color:"#66746c"}}>{uk?"Поки немає можливостей. Додайте першу вище.":"No opportunities yet. Add the first one above."}</div>}
+          {opportunities.length===0&&<div style={{padding:18,border:"1px dashed #cbd8ce",borderRadius:12,color:"#66746c"}}>{uk?"Додаткових можливостей поки немає. Професія та навички вже можуть використовуватися Atlas для пошуку.":"No additional opportunities yet. Your profession and skills can already be used by Atlas for search."}</div>}
           {opportunities.map(item=>{
             const kind=kinds.find(k=>k.value===item.kind);
             const isEditing=editing?.id===item.id;
