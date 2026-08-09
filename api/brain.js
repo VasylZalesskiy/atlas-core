@@ -74,18 +74,67 @@ function extractText(data){
   return "";
 }
 
-export default async function handler(req,res){
-  if(req.method==="GET"){
-    return send(res,200,{
-      status:"atlas-brain-endpoint-online",
-      openai_key_configured:Boolean(process.env.OPENAI_API_KEY),
-      model:process.env.OPENAI_MODEL||"gpt-5-mini"
+async function runDiagnostic(apiKey,model){
+  try{
+    const response=await fetch(OPENAI_URL,{
+      method:"POST",
+      headers:{
+        "Authorization":`Bearer ${apiKey}`,
+        "Content-Type":"application/json"
+      },
+      body:JSON.stringify({
+        model,
+        store:false,
+        input:"Reply exactly with OK.",
+        max_output_tokens:32
+      })
     });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok){
+      return {
+        api_call_ok:false,
+        openai_status:response.status,
+        error_type:data?.error?.type||"unknown",
+        error_code:data?.error?.code||"unknown",
+        message:data?.error?.message||"OpenAI request failed"
+      };
+    }
+    return {
+      api_call_ok:true,
+      openai_status:response.status,
+      model:data?.model||model,
+      response_status:data?.status||"completed"
+    };
+  }catch(error){
+    return {
+      api_call_ok:false,
+      openai_status:0,
+      error_type:"network_or_runtime_error",
+      error_code:"request_failed",
+      message:error?.message||"Request failed"
+    };
+  }
+}
+
+export default async function handler(req,res){
+  const apiKey=process.env.OPENAI_API_KEY;
+  const model=process.env.OPENAI_MODEL||"gpt-5-mini";
+
+  if(req.method==="GET"){
+    const base={
+      status:"atlas-brain-endpoint-online",
+      openai_key_configured:Boolean(apiKey),
+      model
+    };
+    if(String(req.query?.test||"")==="1"){
+      if(!apiKey)return send(res,200,{...base,api_call_ok:false,error_code:"openai-key-missing"});
+      const diagnostic=await runDiagnostic(apiKey,model);
+      return send(res,200,{...base,...diagnostic});
+    }
+    return send(res,200,base);
   }
 
   if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
-
-  const apiKey=process.env.OPENAI_API_KEY;
   if(!apiKey)return send(res,503,{error:"openai-key-missing"});
 
   const body=typeof req.body==="string"?JSON.parse(req.body||"{}"):req.body||{};
@@ -110,7 +159,7 @@ export default async function handler(req,res){
         "Content-Type":"application/json"
       },
       body:JSON.stringify({
-        model:process.env.OPENAI_MODEL||"gpt-5-mini",
+        model,
         store:false,
         instructions,
         input:JSON.stringify(context),
@@ -127,7 +176,7 @@ export default async function handler(req,res){
     });
 
     const data=await response.json();
-    if(!response.ok)return send(res,502,{error:"brain-request-failed",status:response.status,details:data?.error?.message||"OpenAI request failed"});
+    if(!response.ok)return send(res,502,{error:"brain-request-failed",status:response.status,details:data?.error?.message||"OpenAI request failed",code:data?.error?.code||"",type:data?.error?.type||""});
 
     const text=extractText(data);
     if(!text)return send(res,502,{error:"brain-empty-response"});
