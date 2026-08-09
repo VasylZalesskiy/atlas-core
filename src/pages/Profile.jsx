@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useState} from "react";
-import {ArrowLeft,Copy,PlusCircle,Share2,Trash2} from "lucide-react";
+import {ArrowLeft,CheckCircle2,Copy,Inbox,PlusCircle,Share2,Trash2,XCircle} from "lucide-react";
 import {Link} from "react-router-dom";
-import {addMyOpportunity,deleteMyOpportunity,loadMyPassport,saveMyPassport} from "../services/passportStore";
+import {addMyOpportunity,deleteMyOpportunity,loadIncomingRequests,loadMyPassport,respondToPassportRequest,saveMyPassport} from "../services/passportStore";
 
 const kinds=[
   {value:"help",uk:"Можу допомогти",en:"I can help"},
@@ -18,6 +18,9 @@ function friendlyError(error,uk){
   if(/anonymous|signups|disabled/i.test(text))return uk
     ?"У Supabase потрібно один раз увімкнути Anonymous Sign-Ins для пілотної версії Atlas."
     :"Anonymous Sign-Ins must be enabled once in Supabase for the Atlas pilot.";
+  if(/atlas_requests|relation .*atlas_requests.*does not exist/i.test(text))return uk
+    ?"Запити між користувачами ще не активовані в Supabase. Виконайте файл supabase-requests-v1.sql."
+    :"User requests are not active in Supabase yet. Run supabase-requests-v1.sql.";
   if(/atlas_passports|atlas_opportunities|atlas_private_contacts|relation .* does not exist/i.test(text))return uk
     ?"Нова база Паспортів ще не активована в Supabase. Виконайте файл supabase-passports-v1.sql."
     :"The new Passport database is not active in Supabase yet. Run supabase-passports-v1.sql.";
@@ -29,20 +32,24 @@ export default function Profile({t,lang="uk"}){
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [adding,setAdding]=useState(false);
+  const [requestBusy,setRequestBusy]=useState("");
   const [error,setError]=useState("");
+  const [requestError,setRequestError]=useState("");
   const [notice,setNotice]=useState("");
   const [passport,setPassport]=useState(null);
   const [opportunities,setOpportunities]=useState([]);
+  const [incomingRequests,setIncomingRequests]=useState([]);
   const [form,setForm]=useState({displayName:"",city:"",contact:""});
   const [entry,setEntry]=useState({kind:"help",text:""});
 
   const shareUrl=useMemo(()=>passport?.slug?`${window.location.origin}/p/${passport.slug}`:"",[passport?.slug]);
+  const pendingCount=incomingRequests.filter(item=>item.status==="pending").length;
 
   useEffect(()=>{
     let alive=true;
     setLoading(true);
     loadMyPassport()
-      .then(data=>{
+      .then(async data=>{
         if(!alive)return;
         setPassport(data.passport);
         setOpportunities(data.opportunities||[]);
@@ -51,6 +58,14 @@ export default function Profile({t,lang="uk"}){
           city:data.passport?.city||"",
           contact:data.contact||""
         });
+        if(data.passport?.id){
+          try{
+            const requests=await loadIncomingRequests();
+            if(alive)setIncomingRequests(requests||[]);
+          }catch(e){
+            if(alive)setRequestError(friendlyError(e,uk));
+          }
+        }
       })
       .catch(e=>{if(alive)setError(friendlyError(e,uk))})
       .finally(()=>{if(alive)setLoading(false)});
@@ -89,6 +104,19 @@ export default function Profile({t,lang="uk"}){
       setOpportunities(items=>items.filter(item=>item.id!==id));
       setNotice(uk?"Можливість видалено.":"Opportunity removed.");
     }catch(e){setError(friendlyError(e,uk))}
+  }
+
+  async function answerRequest(id,status){
+    if(requestBusy)return;
+    setRequestBusy(id);setRequestError("");setNotice("");
+    try{
+      const updated=await respondToPassportRequest(id,status);
+      setIncomingRequests(items=>items.map(item=>item.id===id?{...item,...updated}:item));
+      setNotice(status==="accepted"
+        ?(uk?"✓ Запит прийнято. Ваш контакт відкрито тільки цьому користувачу.":"✓ Request accepted. Your contact is visible only to this requester.")
+        :(uk?"Запит відхилено.":"Request declined."));
+    }catch(e){setRequestError(friendlyError(e,uk))}
+    finally{setRequestBusy("")}
   }
 
   async function copyLink(){
@@ -154,6 +182,30 @@ export default function Profile({t,lang="uk"}){
                 <button type="button" onClick={()=>removeOpportunity(item.id)} title={uk?"Видалити":"Delete"} style={{border:"1px solid #e1e9e3",background:"white",borderRadius:10,padding:9,cursor:"pointer",flex:"0 0 auto"}}><Trash2 size={18}/></button>
               </div>;
             })}
+          </div>
+        </div>
+
+        <div style={{marginTop:34,paddingTop:28,borderTop:"1px solid #e4ebe6"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:5}}><Inbox size={24}/><h2 style={{margin:0,fontSize:25}}>{uk?"Вхідні запити":"Incoming requests"}{pendingCount?` · ${pendingCount}`:""}</h2></div>
+          <p style={{margin:"0 0 16px",color:"#66746c"}}>{uk?"Люди, яким Atlas показав ваші можливості, можуть написати сюди. Контакт відкривається тільки після вашої згоди.":"People matched to your opportunities can write here. Your contact is revealed only after you accept."}</p>
+          {requestError&&<div className="error" style={{marginBottom:14}}>{requestError}</div>}
+          <div style={{display:"grid",gap:10}}>
+            {!requestError&&incomingRequests.length===0&&<div style={{padding:18,border:"1px dashed #cbd8ce",borderRadius:12,color:"#66746c"}}>{uk?"Поки немає запитів.":"No requests yet."}</div>}
+            {incomingRequests.map(item=><article key={item.id} style={{padding:16,border:"1px solid #e1e9e3",borderRadius:14,background:"#fff"}}>
+              <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start",flexWrap:"wrap"}}>
+                <div style={{flex:"1 1 360px"}}>
+                  <strong style={{display:"block",color:"#0b8d46",marginBottom:5}}>{item.requester_name||(uk?"Користувач Atlas":"Atlas user")}</strong>
+                  {item.opportunity?.text&&<div style={{fontWeight:700,marginBottom:7}}>{item.opportunity.text}</div>}
+                  <div style={{lineHeight:1.5}}>{item.message}</div>
+                  <small style={{display:"block",marginTop:8,color:"#7a867f"}}>{new Date(item.created_at).toLocaleString(uk?"uk-UA":"en-US")}</small>
+                </div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {item.status==="pending"&&<><button className="primary" type="button" disabled={requestBusy===item.id} onClick={()=>answerRequest(item.id,"accepted")}><CheckCircle2 size={17}/>{uk?"Прийняти":"Accept"}</button><button className="secondary" type="button" disabled={requestBusy===item.id} onClick={()=>answerRequest(item.id,"declined")}><XCircle size={17}/>{uk?"Відхилити":"Decline"}</button></>}
+                  {item.status==="accepted"&&<span style={{padding:"9px 12px",borderRadius:10,background:"#edf9f1",color:"#08783c",fontWeight:700}}>{uk?"Прийнято":"Accepted"}</span>}
+                  {item.status==="declined"&&<span style={{padding:"9px 12px",borderRadius:10,background:"#f7f3f2",color:"#765d57",fontWeight:700}}>{uk?"Відхилено":"Declined"}</span>}
+                </div>
+              </div>
+            </article>)}
           </div>
         </div>
 
