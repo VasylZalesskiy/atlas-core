@@ -1,10 +1,11 @@
 import {useEffect,useMemo,useState} from "react";
 import {Link,useLocation} from "react-router-dom";
-import {ArrowLeft,Clock3,Hospital,MapPin,MessageCircle,Navigation,Phone,Pill,RefreshCw,Search,ShoppingCart,UserRound,Utensils} from "lucide-react";
+import {ArrowLeft,Car,Clock3,Hospital,MapPin,MessageCircle,Navigation,Phone,Pill,RefreshCw,Search,ShoppingCart,UserRound,Utensils} from "lucide-react";
 import {parseGoal} from "../brain/GoalParser";
 import {searchPassportProfiles} from "../services/passportSearch";
 import {findNearbyFood} from "../services/foodPlaces";
 import {findNearbyMedical,getDrivingRoute,openOsmDirections} from "../services/medicalPlaces";
+import {findNearbyVehicleDealers} from "../services/vehiclePlaces";
 import useGeolocation from "../hooks/useGeolocation";
 import "../styles/simpleSolution.css";
 
@@ -25,6 +26,7 @@ function iconFor(kind){
   if(kind==="grocery")return <ShoppingCart size={25}/>;
   if(kind==="hospital")return <Hospital size={25}/>;
   if(kind==="pharmacy")return <Pill size={25}/>;
+  if(kind==="dealer")return <Car size={25}/>;
   return <MapPin size={25}/>;
 }
 
@@ -62,7 +64,7 @@ function ResultCard({item,origin,lang}){
 
 function placeCard(place,kind,eyebrow,route=null){
   if(!place)return null;
-  return {...place,kind,eyebrow,title:place.name,route};
+  return {...place,kind,eyebrow,title:place.name,distanceKm:place.straightDistanceKm,route};
 }
 
 function passportCard(profile,lang){
@@ -85,16 +87,18 @@ export default function Solution({t,lang}){
   const [showMore,setShowMore]=useState(false);
   const [passportMatches,setPassportMatches]=useState([]);
   const [passportLoading,setPassportLoading]=useState(true);
-  const [nearby,setNearby]=useState({meals:[],groceries:[],hospitals:[],pharmacies:[]});
+  const [nearby,setNearby]=useState({meals:[],groceries:[],hospitals:[],pharmacies:[],dealers:[]});
   const [nearbyLoading,setNearbyLoading]=useState(false);
   const [nearbyError,setNearbyError]=useState("");
-  const [routes,setRoutes]=useState({meal:null,grocery:null,hospital:null,pharmacy:null});
+  const [routes,setRoutes]=useState({meal:null,grocery:null,hospital:null,pharmacy:null,dealer:null});
   const geo=useGeolocation(state?.geoLocation||null);
 
   const goal=useMemo(()=>parseGoal(activeTask,lang),[activeTask,lang]);
   const medical=["health-symptom","medical-emergency","pharmacy"].includes(goal.scenario);
   const food=goal.scenario==="food";
-  const needsNearby=medical||food;
+  const vehicleBuy=goal.scenario==="vehicle-buy";
+  const needsNearby=medical||food||vehicleBuy;
+  const vehicleNeedsClarification=vehicleBuy&&!/(\$|дол|грн|тис|бюджет|нова|нову|вжив|б\/у|bmw|audi|toyota|volkswagen|skoda|renault|tesla|mercedes|ford|kia|hyundai|nissan|mazda|honda|lexus)/i.test(activeTask);
 
   useEffect(()=>{
     let alive=true;
@@ -115,8 +119,8 @@ export default function Solution({t,lang}){
     let alive=true;
     const origin=geo.location;
     if(!origin||!needsNearby){
-      setNearby({meals:[],groceries:[],hospitals:[],pharmacies:[]});
-      setRoutes({meal:null,grocery:null,hospital:null,pharmacy:null});
+      setNearby({meals:[],groceries:[],hospitals:[],pharmacies:[],dealers:[]});
+      setRoutes({meal:null,grocery:null,hospital:null,pharmacy:null,dealer:null});
       setNearbyLoading(false);
       return()=>{alive=false};
     }
@@ -135,8 +139,8 @@ export default function Solution({t,lang}){
             grocery?getDrivingRoute(origin,grocery).catch(()=>null):Promise.resolve(null)
           ]);
           if(!alive)return;
-          setNearby({meals:result.meals||[],groceries:result.groceries||[],hospitals:[],pharmacies:[]});
-          setRoutes({meal:mealRoute,grocery:groceryRoute,hospital:null,pharmacy:null});
+          setNearby({meals:result.meals||[],groceries:result.groceries||[],hospitals:[],pharmacies:[],dealers:[]});
+          setRoutes({meal:mealRoute,grocery:groceryRoute,hospital:null,pharmacy:null,dealer:null});
         }else if(medical){
           const result=await findNearbyMedical(origin,{lang});
           if(!alive)return;
@@ -147,8 +151,16 @@ export default function Solution({t,lang}){
             pharmacy?getDrivingRoute(origin,pharmacy).catch(()=>null):Promise.resolve(null)
           ]);
           if(!alive)return;
-          setNearby({meals:[],groceries:[],hospitals:result.hospitals||[],pharmacies:result.pharmacies||[]});
-          setRoutes({meal:null,grocery:null,hospital:hospitalRoute,pharmacy:pharmacyRoute});
+          setNearby({meals:[],groceries:[],hospitals:result.hospitals||[],pharmacies:result.pharmacies||[],dealers:[]});
+          setRoutes({meal:null,grocery:null,hospital:hospitalRoute,pharmacy:pharmacyRoute,dealer:null});
+        }else if(vehicleBuy){
+          const dealers=await findNearbyVehicleDealers(origin,{lang});
+          if(!alive)return;
+          const dealer=dealers?.[0]||null;
+          const dealerRoute=dealer?await getDrivingRoute(origin,dealer).catch(()=>null):null;
+          if(!alive)return;
+          setNearby({meals:[],groceries:[],hospitals:[],pharmacies:[],dealers:dealers||[]});
+          setRoutes({meal:null,grocery:null,hospital:null,pharmacy:null,dealer:dealerRoute});
         }
       }catch(error){
         if(alive)setNearbyError(error?.message||"nearby-search-failed");
@@ -167,6 +179,14 @@ export default function Solution({t,lang}){
     if(!value)return;
     setShowMore(false);
     setActiveTask(value);
+  }
+
+  function refineVehicle(label){
+    const base=activeTask.trim().replace(/[,.]+$/g,"");
+    const value=`${base}, ${label}`;
+    setTask(value);
+    setActiveTask(value);
+    setShowMore(false);
   }
 
   async function locate(){
@@ -199,6 +219,16 @@ export default function Solution({t,lang}){
       ...nearby.hospitals.slice(1,3).map(item=>placeCard(item,"hospital",lang==="uk"?"Ще медична допомога":"More medical care")),
       ...nearby.pharmacies.slice(1,3).map(item=>placeCard(item,"pharmacy",lang==="uk"?"Ще аптека":"Another pharmacy"))
     ].filter(Boolean);
+  }else if(vehicleBuy){
+    firstCards=[
+      passportCards[0]||null,
+      placeCard(nearby.dealers[0],"dealer",lang==="uk"?"Авто поруч":"Vehicle dealer nearby",routes.dealer),
+      passportCards[1]||null
+    ].filter(Boolean);
+    moreCards=[
+      ...passportCards.slice(2,5),
+      ...nearby.dealers.slice(1,4).map(item=>placeCard(item,"dealer",lang==="uk"?"Ще авто поруч":"Another vehicle dealer nearby"))
+    ].filter(Boolean);
   }else{
     firstCards=passportCards.slice(0,3);
     moreCards=passportCards.slice(3,5);
@@ -207,7 +237,7 @@ export default function Solution({t,lang}){
   const visibleCards=showMore?[...firstCards,...moreCards]:firstCards;
   const time=new Date().toLocaleTimeString(lang==="uk"?"uk-UA":"en-US",{hour:"2-digit",minute:"2-digit"});
   const locationText=geo.location?(initialWhere|| (lang==="uk"?"поточна локація":"current location")):(initialWhere|| (lang==="uk"?"не визначена":"not set"));
-  const nothingFound=!passportLoading&&!nearbyLoading&&visibleCards.length===0;
+  const nothingFound=!passportLoading&&!nearbyLoading&&visibleCards.length===0&&!vehicleNeedsClarification;
 
   return <main className="simpleSolutionPage">
     <section className="simpleSolutionShell">
@@ -227,8 +257,8 @@ export default function Solution({t,lang}){
 
       <div className="simpleResultsHeader">
         <div>
-          <h1>{lang==="uk"?"Ось найкращі варіанти":"Here are the best options"}{needsNearby&&geo.location?(lang==="uk"?" поруч":" nearby"):""}</h1>
-          <p>{lang==="uk"?`Знайдено зараз о ${time}`:`Found at ${time}`}</p>
+          <h1>{vehicleNeedsClarification?(lang==="uk"?"Уточнимо — і Atlas знайде":"One detail — then Atlas can search"):(lang==="uk"?"Ось найкращі варіанти":"Here are the best options")}{needsNearby&&geo.location&&!vehicleNeedsClarification?(lang==="uk"?" поруч":" nearby"):""}</h1>
+          <p>{lang==="uk"?`Пошук зараз о ${time}`:`Search at ${time}`}</p>
         </div>
         {medical&&<div className="simpleSafety">
           {goal.scenario==="medical-emergency"?
@@ -237,10 +267,18 @@ export default function Solution({t,lang}){
         </div>}
       </div>
 
+      {vehicleNeedsClarification&&<div className="simpleClarifier">
+        <strong>{lang==="uk"?"Який варіант вам ближчий?":"Which option is closer to what you want?"}</strong>
+        <span>{lang==="uk"?"Одного уточнення достатньо, щоб звузити пошук. Паралельно Atlas уже перевіряє Паспорти можливостей.":"One detail is enough to narrow the search. Atlas is already checking Opportunity Passports."}</span>
+        <div className="simpleClarifierChips">
+          {(lang==="uk"?["бюджет до $5 000","бюджет до $10 000","бюджет до $20 000","вживана","нова"]:["budget up to $5,000","budget up to $10,000","budget up to $20,000","used","new"]).map(option=><button key={option} type="button" onClick={()=>refineVehicle(option)}>{option}</button>)}
+        </div>
+      </div>}
+
       {needsNearby&&!geo.location&&<div className="simpleGeoPrompt">
         <div>
-          <strong>{lang==="uk"?"Потрібна ваша локація":"Your location is needed"}</strong>
-          <span>{lang==="uk"?"Atlas сам знайде найближчі реальні місця та побудує маршрут.":"Atlas will find real nearby places and build the route."}</span>
+          <strong>{lang==="uk"?"Можна врахувати вашу локацію":"Atlas can use your location"}</strong>
+          <span>{vehicleBuy?(lang==="uk"?"Тоді Atlas додасть реальні автосалони та майданчики поруч.":"Atlas will also add real nearby vehicle dealers."):(lang==="uk"?"Atlas сам знайде найближчі реальні місця та побудує маршрут.":"Atlas will find real nearby places and build the route.")}</span>
         </div>
         <button className="primary" type="button" onClick={locate} disabled={geo.loading}><MapPin size={18}/>{lang==="uk"?"Використати мою локацію":"Use my location"}</button>
       </div>}
@@ -251,7 +289,7 @@ export default function Solution({t,lang}){
         {visibleCards.map((item,index)=><ResultCard key={`${item.kind}-${item.id||item.profile?.slug||index}`} item={item} origin={geo.location} lang={lang}/>) }
       </div>
 
-      {nothingFound&&<div className="simpleEmpty">{lang==="uk"?"Поки не знайшов готового варіанта. Спробуйте уточнити запит кількома словами.":"No ready option found yet. Try making the request a little more specific."}</div>}
+      {nothingFound&&<div className="simpleEmpty">{lang==="uk"?"У Паспортах поки немає готового збігу. Atlas має продовжити пошук у зовнішніх джерелах, а не зупинятися тут.":"No Passport match yet. Atlas should continue to external sources instead of stopping here."}</div>}
 
       {!showMore&&moreCards.length>0&&<button className="simpleShowMore" type="button" onClick={()=>setShowMore(true)}>{lang==="uk"?"Показати ще варіанти ↓":"Show more options ↓"}</button>}
       {showMore&&moreCards.length>0&&<button className="simpleShowMore" type="button" onClick={()=>setShowMore(false)}>{lang==="uk"?"Згорнути ↑":"Show less ↑"}</button>}
