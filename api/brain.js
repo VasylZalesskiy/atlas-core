@@ -74,6 +74,42 @@ function extractText(data){
   return "";
 }
 
+async function resolveLocationContext(location,language){
+  if(!location)return null;
+  const base={latitude:location.latitude,longitude:location.longitude,resolved:false};
+  try{
+    const params=new URLSearchParams({
+      format:"jsonv2",
+      lat:String(location.latitude),
+      lon:String(location.longitude),
+      zoom:"10",
+      addressdetails:"1",
+      "accept-language":language==="en"?"en":"uk"
+    });
+    const response=await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`,{
+      headers:{Accept:"application/json","User-Agent":"Atlas-MVP/2.5"}
+    });
+    if(!response.ok)return base;
+    const data=await response.json();
+    const address=data?.address||{};
+    const city=address.city||address.town||address.village||address.municipality||address.county||"";
+    const region=address.state||address.region||address.county||"";
+    const country=address.country||"";
+    const countryCode=String(address.country_code||"").toUpperCase();
+    return {
+      ...base,
+      resolved:Boolean(city||region||country),
+      city,
+      region,
+      country,
+      country_code:countryCode,
+      display_name:String(data?.display_name||"").slice(0,300)
+    };
+  }catch{
+    return base;
+  }
+}
+
 async function runDiagnostic(apiKey,model){
   try{
     const response=await fetch(OPENAI_URL,{
@@ -156,9 +192,16 @@ export default async function handler(req,res){
   if(!query)return send(res,400,{error:"query-required"});
   if(query.length>1200)return send(res,400,{error:"query-too-long"});
 
-  const instructions=`You are Atlas Brain, a universal intent and solution planner.\n\nCritical rule: never rely on a registry of predefined scenarios. Treat every user request semantically, including requests you have never seen before. Examples are tests, not categories.\n\nYour job is to convert the user's natural-language request into a compact search plan for Atlas. Atlas first searches Opportunity Passports (people, skills, things, help, items to lend/sell/give away), then uses external sources only when needed.\n\nDo not invent businesses, people, products, distances, availability, prices, diagnoses, or contacts. Do not claim a result exists; only define what should be searched. Ask at most ONE clarification question, and only if one missing detail materially blocks a useful search. If useful searching can start without clarification, set clarification.required=false.\n\nFor health/safety situations, do not diagnose. Mark safety caution/urgent only when appropriate and keep the message concise.\n\nUse the user's language (${language}). Keep search terms short and practical. result_strategy should say what Atlas should prioritize when ranking final results (for example proximity, availability, price, trust, or urgency).`;
+  const locationContext=await resolveLocationContext(location,language);
 
-  const context={query,language,location_available:Boolean(location)};
+  const instructions=`You are Atlas Brain, a universal intent and solution planner.\n\nCritical rule: never rely on a registry of predefined scenarios. Treat every user request semantically, including requests you have never seen before. Examples are tests, not categories.\n\nYour job is to convert the user's natural-language request into a compact search plan for Atlas. Atlas first searches Opportunity Passports (people, skills, things, help, items to lend/sell/give away), then uses external sources only when needed.\n\nDo not invent businesses, people, products, distances, availability, prices, diagnoses, contacts, programs, eligibility rules, or legal facts. Do not claim a result exists; only define what should be searched. Ask at most ONE clarification question, and only if one missing detail materially blocks a useful search. If useful searching can start without clarification, set clarification.required=false.\n\nLocation policy: if location_context is resolved, use its city/region/country in search queries whenever geography materially affects the answer. Do not ask for location again when the supplied context is sufficient. If geography is essential but location_context is unavailable, one location clarification is allowed.\n\nSource policy: when an answer depends on current official rules, public benefits, grants, regulated services, legal requirements, or government programs, include at least one external_searches item with source=official and a geography-specific query. For products, offers, rentals, vehicles, jobs or other listings, use marketplace/web as appropriate. For nearby physical places, use maps. These are retrieval policies, not predefined user scenarios.\n\nFor health/safety situations, do not diagnose. Mark safety caution/urgent only when appropriate and keep the message concise.\n\nUse the user's language (${language}). Keep search terms short and practical. result_strategy should say what Atlas should prioritize when ranking final results (for example proximity, availability, price, trust, authority, recency, or urgency).`;
+
+  const context={
+    query,
+    language,
+    location_available:Boolean(location),
+    location_context:locationContext
+  };
 
   try{
     const response=await fetch(OPENAI_URL,{
@@ -214,7 +257,7 @@ export default async function handler(req,res){
       return send(res,502,{error:"brain-invalid-json"});
     }
 
-    return send(res,200,{plan,model:data?.model||model});
+    return send(res,200,{plan,model:data?.model||model,location_context:locationContext});
   }catch(error){
     return send(res,500,{error:"brain-failed",details:error?.message||"Unknown error"});
   }
