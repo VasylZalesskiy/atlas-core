@@ -24,6 +24,10 @@ const scenarios=[
     ["people-food",{uk:"Можливості людей з їжею",en:"People offering food"},"food",["готую","домашні обіди","доставка їжі","cook","homemade food"]],
     ["grocery",{uk:"Продукти поруч",en:"Nearby groceries"},"food",["продукти","магазин","супермаркет","grocery","supermarket"]]
   ]},
+  {id:"vehicle-buy",category:"vehicle",intent:"buy",terms:["купити машину","купити авто","купити автомобіль","шукаю машину","шукаю авто","потрібна машина","потрібне авто","buy a car","buy car","looking for a car"],steps:[
+    ["vehicle-offer",{uk:"Авто на продаж",en:"Vehicle for sale"},"vehicle",["авто","автомобіль","машина","продам","продаю","car","vehicle","sell"]],
+    ["vehicle-help",{uk:"Допомога з підбором авто",en:"Help choosing a vehicle"},"consulting",["підбір авто","автоексперт","діагностика авто","car inspection","vehicle expert"]]
+  ]},
   {id:"roadside",category:"roadside",intent:"repair",terms:["пробило колесо","евакуатор","зламалась машина","зламалася машина","flat tire","tow truck","car broke"],steps:[
     ["roadside-help",{uk:"Допомога на дорозі",en:"Roadside assistance"},"service",["колесо","евакуатор","ремонт","roadside","tow"]]
   ]},
@@ -67,7 +71,7 @@ const scenarios=[
 function normalize(text){return text.toLowerCase().replace(/[.,!?;:()]/g," ").replace(/\s+/g," ").trim()}
 const emergencyTerms=["сильний біль","раптовий дуже сильний біль","ниркова колька","кровотеч","не можу дихати","втрата свідомості","дуже погано","severe pain","bleeding","can't breathe","cannot breathe","loss of consciousness"];
 const quickTerms=["пробило колесо","потрібна аптека","потрібен майстер","потрібен евакуатор","терміново перевезти","зламалась машина","зламалася машина","хочу їсти","хочу поїсти","голодний","голодна","flat tire","pharmacy","urgent transport","tow truck","car broke","hungry","eat"];
-const plannedTerms=["відкрити кав","побудувати теплиц","знайти робот","організувати виробництво","ремонт","перевез","open a coffee","build a greenhouse","find a job","renovat","transport"];
+const plannedTerms=["купити машину","купити авто","купити автомобіль","відкрити кав","побудувати теплиц","знайти робот","організувати виробництво","ремонт","перевез","buy a car","open a coffee","build a greenhouse","find a job","renovat","transport"];
 
 function detectUrgency(goal,scenario){
   if(emergencyTerms.some(term=>goal.includes(term)))return "emergency";
