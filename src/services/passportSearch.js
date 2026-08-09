@@ -9,10 +9,16 @@ const healthRoles=[
   "doctor","physician","nurse","paramedic","medic","therapist"
 ];
 
+const foodTerms=[
+  "готую","готує","кухар","кухарка","домашні обіди","домашня їжа","обіди","їжа","готова їжа","доставка їжі",
+  "продукти","овочі","зелень","випічка","пекар","cook","chef","homemade food","meals","food delivery","groceries"
+];
+
 function goalTerms(goal){
   const text=normalize(goal?.originalGoal||goal?.normalizedGoal||"");
   const words=text.split(" ").filter(word=>word.length>2);
   if(goal?.category==="health")return [...new Set([...healthRoles,...words])];
+  if(goal?.category==="food")return [...new Set([...foodTerms,...words])];
   return [...new Set(words)];
 }
 
@@ -24,13 +30,15 @@ function scoreProfile(profile,goal){
 
   for(const term of terms){
     if(text.includes(term)){
-      const roleMatch=healthRoles.includes(term);
-      score+=roleMatch?12:3;
+      const healthRole=healthRoles.includes(term);
+      const foodRole=foodTerms.includes(term);
+      score+=healthRole||foodRole?12:3;
       matched.push(term);
     }
   }
 
   if(goal?.category==="health"&&healthRoles.some(role=>text.includes(role)))score+=25;
+  if(goal?.category==="food"&&foodTerms.some(term=>text.includes(term)))score+=25;
   if(profile.city)score+=1;
   return {score,matched:[...new Set(matched)]};
 }
