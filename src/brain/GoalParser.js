@@ -13,11 +13,16 @@ const scenarios=[
   ]},
   {id:"health-symptom",category:"health",intent:"get-help",terms:["болить","біль","голов","живіт","температур","нудот","кашель","запамороч","тиск","headache","stomach ache","stomach pain","fever","nausea","dizzy","dizziness","cough"],steps:[
     ["symptom-check",{uk:"Оцінити симптоми та небезпечні ознаки",en:"Assess symptoms and warning signs"},"medical",["симптом","огляд","assessment"]],
-    ["medical-consult",{uk:"Знайти відповідну медичну консультацію",en:"Find an appropriate medical consultation"},"medical",["лікар","консультація","doctor","consultation"]],
+    ["medical-consult",{uk:"Знайти відповідну медичну консультацію",en:"Find an appropriate medical consultation"},"medical",["лікар","фельдшер","медик","doctor","paramedic","consultation"]],
     ["next-action",{uk:"Визначити наступну дію",en:"Choose the next action"},"medical",["допомога","лікування","care"]]
   ]},
   {id:"pharmacy",category:"health",intent:"find",terms:["аптек","pharmacy","medicine"],steps:[
     ["pharmacy",{uk:"Найближча аптека",en:"Nearest pharmacy"},"pharmacy",["аптека","ліки","pharmacy"]]
+  ]},
+  {id:"food",category:"food",intent:"eat",terms:["хочу їсти","хочу поїсти","поїсти","їсти","голодний","голодна","де поїсти","обід","вечеря","сніданок","їжа","food","hungry","eat","lunch","dinner","breakfast"],steps:[
+    ["food-place",{uk:"Місце поїсти поруч",en:"Nearby place to eat"},"food",["їжа","обід","кафе","ресторан","food","meal","restaurant"]],
+    ["people-food",{uk:"Можливості людей з їжею",en:"People offering food"},"food",["готую","домашні обіди","доставка їжі","cook","homemade food"]],
+    ["grocery",{uk:"Продукти поруч",en:"Nearby groceries"},"food",["продукти","магазин","супермаркет","grocery","supermarket"]]
   ]},
   {id:"roadside",category:"roadside",intent:"repair",terms:["пробило колесо","евакуатор","зламалась машина","зламалася машина","flat tire","tow truck","car broke"],steps:[
     ["roadside-help",{uk:"Допомога на дорозі",en:"Roadside assistance"},"service",["колесо","евакуатор","ремонт","roadside","tow"]]
@@ -61,12 +66,12 @@ const scenarios=[
 
 function normalize(text){return text.toLowerCase().replace(/[.,!?;:()]/g," ").replace(/\s+/g," ").trim()}
 const emergencyTerms=["сильний біль","раптовий дуже сильний біль","ниркова колька","кровотеч","не можу дихати","втрата свідомості","дуже погано","severe pain","bleeding","can't breathe","cannot breathe","loss of consciousness"];
-const quickTerms=["пробило колесо","потрібна аптека","потрібен майстер","потрібен евакуатор","терміново перевезти","зламалась машина","зламалася машина","flat tire","pharmacy","urgent transport","tow truck","car broke"];
+const quickTerms=["пробило колесо","потрібна аптека","потрібен майстер","потрібен евакуатор","терміново перевезти","зламалась машина","зламалася машина","хочу їсти","хочу поїсти","голодний","голодна","flat tire","pharmacy","urgent transport","tow truck","car broke","hungry","eat"];
 const plannedTerms=["відкрити кав","побудувати теплиц","знайти робот","організувати виробництво","ремонт","перевез","open a coffee","build a greenhouse","find a job","renovat","transport"];
 
 function detectUrgency(goal,scenario){
   if(emergencyTerms.some(term=>goal.includes(term)))return "emergency";
-  if(scenario==="health-symptom")return "quick";
+  if(["health-symptom","food"].includes(scenario))return "quick";
   if(quickTerms.some(term=>goal.includes(term))||["pharmacy","roadside"].includes(scenario))return "quick";
   if(plannedTerms.some(term=>goal.includes(term)))return "planned";
   return "planned";
