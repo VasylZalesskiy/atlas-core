@@ -130,4 +130,14 @@ grant select, insert, update, delete on public.atlas_opportunities to authentica
 revoke all on public.atlas_private_contacts from anon;
 grant select, insert, update, delete on public.atlas_private_contacts to authenticated;
 
+-- Transitional safety: the old demo table may still contain a `contact` column.
+-- Keep legacy search fields readable, but remove public access to the contact itself.
+do $$
+begin
+  if to_regclass('public.profiles') is not null then
+    execute 'revoke select on table public.profiles from anon, authenticated';
+    execute 'grant select (slug,name,city,headline,can_help,can_share,needs) on public.profiles to anon, authenticated';
+  end if;
+end $$;
+
 commit;
