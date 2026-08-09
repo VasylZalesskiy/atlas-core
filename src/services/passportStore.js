@@ -52,7 +52,7 @@ export async function loadMyPassport(){
 
   const {data:passport,error:passportError}=await supabase
     .from("atlas_passports")
-    .select("id,slug,display_name,city,created_at,updated_at")
+    .select("id,slug,display_name,profession,skills,city,created_at,updated_at")
     .eq("owner_id",user.id)
     .maybeSingle();
   if(passportError)throw passportError;
@@ -79,9 +79,11 @@ export async function loadMyPassport(){
   return {user,passport:passport||null,contact:privateRow?.contact||"",opportunities};
 }
 
-export async function saveMyPassport({displayName,city,contact}){
+export async function saveMyPassport({displayName,profession,skills,city,contact}){
   const user=await ensureAtlasSession();
   const cleanName=String(displayName||"").trim();
+  const cleanProfession=String(profession||"").trim().slice(0,240);
+  const cleanSkills=String(skills||"").trim().slice(0,2000);
   const cleanCity=String(city||"").trim();
   const cleanContact=String(contact||"").trim();
   if(!cleanName)throw fail("display-name-required");
@@ -98,10 +100,10 @@ export async function saveMyPassport({displayName,city,contact}){
   if(existing?.id){
     const {data,error}=await supabase
       .from("atlas_passports")
-      .update({display_name:cleanName,city:cleanCity,updated_at:new Date().toISOString()})
+      .update({display_name:cleanName,profession:cleanProfession,skills:cleanSkills,city:cleanCity,updated_at:new Date().toISOString()})
       .eq("id",existing.id)
       .eq("owner_id",user.id)
-      .select("id,slug,display_name,city,created_at,updated_at")
+      .select("id,slug,display_name,profession,skills,city,created_at,updated_at")
       .single();
     if(error)throw error;
     passport=data;
@@ -112,9 +114,11 @@ export async function saveMyPassport({displayName,city,contact}){
         owner_id:user.id,
         slug:createSlug(cleanName,user.id),
         display_name:cleanName,
+        profession:cleanProfession,
+        skills:cleanSkills,
         city:cleanCity
       })
-      .select("id,slug,display_name,city,created_at,updated_at")
+      .select("id,slug,display_name,profession,skills,city,created_at,updated_at")
       .single();
     if(error)throw error;
     passport=data;
@@ -180,7 +184,7 @@ export async function loadPublicPassport(slug){
   if(!supabase)throw fail("supabase-unavailable");
   const {data:passport,error:passportError}=await supabase
     .from("atlas_passports")
-    .select("id,owner_id,slug,display_name,city,created_at")
+    .select("id,owner_id,slug,display_name,profession,skills,city,created_at")
     .eq("slug",slug)
     .maybeSingle();
   if(passportError)throw passportError;
