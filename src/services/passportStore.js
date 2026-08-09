@@ -149,6 +149,23 @@ export async function addMyOpportunity(passportId,{kind,text}){
   return data;
 }
 
+export async function updateMyOpportunity(id,{kind,text}){
+  const user=await ensureAtlasSession();
+  const cleanText=String(text||"").trim();
+  if(!id)throw fail("opportunity-required");
+  if(!cleanText)throw fail("opportunity-required");
+
+  const {data,error}=await supabase
+    .from("atlas_opportunities")
+    .update({kind:String(kind||"other"),text:cleanText})
+    .eq("id",id)
+    .eq("owner_id",user.id)
+    .select("id,kind,text,is_active,created_at")
+    .single();
+  if(error)throw error;
+  return data;
+}
+
 export async function deleteMyOpportunity(id){
   const user=await ensureAtlasSession();
   const {error}=await supabase
