@@ -14,11 +14,23 @@ function hostname(url){
   try{return new URL(url).hostname.replace(/^www\./,"")}catch{return ""}
 }
 
-function inferSourceType(url,allowed){
-  const host=hostname(url);
-  if(/(^|\.)gov\.|(^|\.)gov$|diia\.gov\.ua|kmu\.gov\.ua|msp\.gov\.ua/i.test(host))return "official";
-  if(allowed.some(item=>item.source==="marketplace"))return "marketplace";
-  if(allowed.some(item=>item.source==="official"))return "official";
+function cleanSnippet(value){
+  return cleanText(value)
+    .replace(/https?:\/\/[^\s)\]}>,]+/gi,"")
+    .replace(/\([^)]*utm_[^)]*\)/gi,"")
+    .replace(/\[[^\]]*\]\([^)]*\)/g,"")
+    .replace(/\butm_[a-z_]+=[^\s]+/gi,"")
+    .replace(/\s+([,.;:!?])/g,"$1")
+    .replace(/\(\s*\)/g,"")
+    .replace(/\s{2,}/g," ")
+    .trim()
+    .slice(0,300);
+}
+
+function inferSourceType(url){
+  const host=hostname(url).toLowerCase();
+  if(/(^|\.)gov\.|(^|\.)gov$|\.gov\.ua$|diia\.gov\.ua$|kmu\.gov\.ua$|msp\.gov\.ua$/i.test(host))return "official";
+  if(/(^|\.)(upwork\.com|freelancehunt\.com|work\.ua|robota\.ua|linkedin\.com|indeed\.com|olx\.ua|auto\.ria\.com|dom\.ria\.com|prom\.ua|etsy\.com|fiverr\.com)$/i.test(host))return "marketplace";
   return "web";
 }
 
@@ -27,13 +39,23 @@ function snippetAround(text,annotation){
   if(!raw)return "";
   const start=Number(annotation?.start_index);
   const end=Number(annotation?.end_index);
-  if(!Number.isFinite(start)||!Number.isFinite(end))return raw.slice(0,260);
-  const from=Math.max(0,start-110);
-  const to=Math.min(raw.length,end+170);
-  return cleanText(raw.slice(from,to)).slice(0,320);
+  if(!Number.isFinite(start)||!Number.isFinite(end))return cleanSnippet(raw.slice(0,320));
+  const from=Math.max(0,start-120);
+  const to=Math.min(raw.length,end+190);
+  return cleanSnippet(raw.slice(from,to));
 }
 
-function extractVerifiedResults(data,allowed){
+function actionabilityScore(result){
+  const hay=`${result.title} ${result.url}`.toLowerCase();
+  let score=0;
+  if(/jobs?|vacanc|find-work|find_work|search\/jobs|freelance|projects?|gigs?|marketplace|apply|remote/.test(hay))score+=5;
+  if(/official/.test(result.source_type))score+=2;
+  if(/how[- ]?to|beginner|guide|blog|academy|learn|resources?|help\/|article|tips/.test(hay))score-=5;
+  if(/login|signup|register/.test(hay))score-=1;
+  return score;
+}
+
+function extractVerifiedResults(data){
   const results=[];
   const seen=new Set();
 
@@ -51,9 +73,9 @@ function extractVerifiedResults(data,allowed){
           title:cleanText(annotation.title)||hostname(url)||"Знайдене джерело",
           snippet:snippetAround(text,annotation),
           url,
-          source_type:inferSourceType(url,allowed),
+          source_type:inferSourceType(url),
           price_text:"",
-          location_text:""
+          location_text:hostname(url)
         });
       }
     }
@@ -69,15 +91,19 @@ function extractVerifiedResults(data,allowed){
           title:hostname(source.url)||"Знайдене джерело",
           snippet:"",
           url:source.url,
-          source_type:inferSourceType(source.url,allowed),
+          source_type:inferSourceType(source.url),
           price_text:"",
-          location_text:""
+          location_text:hostname(source.url)
         });
       }
     }
   }
 
-  return results.slice(0,8);
+  return results
+    .map((result,index)=>({...result,_index:index,_score:actionabilityScore(result)}))
+    .sort((a,b)=>b._score-a._score||a._index-b._index)
+    .map(({_score,_index,...result})=>result)
+    .slice(0,8);
 }
 
 function diagnosticSummary(data){
@@ -193,10 +219,10 @@ export default async function handler(req,res){
 
   if(!allowed.length)return send(res,200,{results:[]});
 
-  const instructions=`You are Atlas external-search executor. Search the public web for REAL, currently accessible, actionable sources that can help solve the user's goal.\n\nCritical rules:\n- You MUST use web search.\n- Recommend only sources you actually found.\n- Cite every recommended source using web citations.\n- Never invent a URL, organization, program, listing, price, availability, person, benefit, or eligibility rule.\n- If source intent is official, prioritize authoritative government or official organization pages.\n- If source intent is marketplace, prioritize concrete offer/listing pages when possible.\n- Prefer specific actionable pages over generic home pages.\n- Give at most 6 useful sources total.\n- If reliable results are not found, say so briefly instead of inventing.\n- Write the short explanation in ${language==="uk"?"Ukrainian":"English"}.`;
+  const instructions=`You are Atlas external-search executor. Search the public web for REAL, currently accessible, actionable sources that can help solve the user's goal.\n\nCritical rules:\n- You MUST use web search.\n- Recommend only sources you actually found.\n- Cite every recommended source using web citations.\n- Never invent a URL, organization, program, listing, price, availability, person, benefit, or eligibility rule.\n- Prefer pages where the user can take the next action NOW: current job/project listings, search/result pages, application pages, concrete offers, official application/service pages, or a platform's find-work/marketplace page.\n- Deprioritize tutorials, beginner guides, blogs, generic educational articles and marketing pages unless no actionable source exists.\n- If source intent is official, prioritize authoritative government or official organization pages.\n- If source intent is marketplace, prioritize concrete offer/listing/search pages when possible.\n- Prefer specific actionable pages over generic home pages.\n- Give at most 6 useful sources total, ordered from most actionable to least actionable.\n- For each cited source, describe in one short sentence what the user can DO there; do not print raw URLs in the prose.\n- If reliable results are not found, say so briefly instead of inventing.\n- Write the short explanation in ${language==="uk"?"Ukrainian":"English"}.`;
 
   const searchPlan=allowed.map((item,index)=>`${index+1}. [${item.source}] ${item.query}${item.reason?` — ${item.reason}`:""}`).join("\n");
-  const input=`Goal: ${goal}\n\nSearch tasks:\n${searchPlan}\n\nPerform the web searches and return a concise set of the best actionable sources. Cite each source.`;
+  const input=`Goal: ${goal}\n\nSearch tasks:\n${searchPlan}\n\nPerform the web searches and return the best ACTIONABLE sources, not general reading material. Cite each source.`;
 
   try{
     const first=await executeWebSearch({apiKey,model,instructions,input,searchContextSize:"medium",maxOutputTokens:3200});
@@ -209,15 +235,13 @@ export default async function handler(req,res){
       });
     }
 
-    let results=extractVerifiedResults(first.data,allowed);
+    let results=extractVerifiedResults(first.data);
     if(results.length){
       return send(res,200,{results,search_status:first.data?.status||"completed",attempts:1});
     }
 
-    // Universal one-time recovery: if the tool call completed but yielded no verified URL,
-    // force a simpler second web search using the exact queries from the Brain plan.
     const exactQueries=allowed.map(item=>item.query).join("\n- ");
-    const retryInput=`The first search returned no verified URLs. Search the public web again using these exact queries:\n- ${exactQueries}\n\nGoal: ${goal}\nReturn 3-6 real actionable sources when available and cite every source. Do not answer from memory.`;
+    const retryInput=`The first search returned no verified URLs. Search the public web again using these exact queries:\n- ${exactQueries}\n\nGoal: ${goal}\nReturn 3-6 real actionable sources when available. Prioritize pages where the user can apply, browse current offers, find work, contact a provider, buy/sell, register, or complete the needed action. Cite every source. Do not answer from memory.`;
     const retry=await executeWebSearch({apiKey,model,instructions,input:retryInput,searchContextSize:"high",maxOutputTokens:3600});
 
     if(!retry.response.ok){
@@ -229,7 +253,7 @@ export default async function handler(req,res){
       });
     }
 
-    results=extractVerifiedResults(retry.data,allowed);
+    results=extractVerifiedResults(retry.data);
     return send(res,200,{
       results,
       search_status:retry.data?.status||"completed",
