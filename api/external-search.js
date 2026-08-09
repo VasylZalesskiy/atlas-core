@@ -38,24 +38,23 @@ function extractVerifiedResults(data,allowed){
   const seen=new Set();
 
   for(const item of data?.output||[]){
-    if(item?.type==="message"){
-      for(const content of item?.content||[]){
-        if(content?.type!=="output_text")continue;
-        const text=String(content.text||"");
-        for(const annotation of content.annotations||[]){
-          if(annotation?.type!=="url_citation"||!annotation.url)continue;
-          const url=String(annotation.url);
-          if(seen.has(url))continue;
-          seen.add(url);
-          results.push({
-            title:cleanText(annotation.title)||hostname(url)||"Знайдене джерело",
-            snippet:snippetAround(text,annotation),
-            url,
-            source_type:inferSourceType(url,allowed),
-            price_text:"",
-            location_text:""
-          });
-        }
+    if(item?.type!=="message")continue;
+    for(const content of item?.content||[]){
+      if(content?.type!=="output_text")continue;
+      const text=String(content.text||"");
+      for(const annotation of content.annotations||[]){
+        if(annotation?.type!=="url_citation"||!annotation.url)continue;
+        const url=String(annotation.url);
+        if(seen.has(url))continue;
+        seen.add(url);
+        results.push({
+          title:cleanText(annotation.title)||hostname(url)||"Знайдене джерело",
+          snippet:snippetAround(text,annotation),
+          url,
+          source_type:inferSourceType(url,allowed),
+          price_text:"",
+          location_text:""
+        });
       }
     }
   }
@@ -110,20 +109,37 @@ function diagnosticSummary(data){
   };
 }
 
+async function executeWebSearch({apiKey,model,instructions,input,searchContextSize="medium",userLocation=null,maxOutputTokens=3200}){
+  const webTool={type:"web_search",search_context_size:searchContextSize};
+  if(userLocation)webTool.user_location=userLocation;
+
+  const response=await fetch(OPENAI_URL,{
+    method:"POST",
+    headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},
+    body:JSON.stringify({
+      model,
+      store:false,
+      instructions,
+      input,
+      tools:[webTool],
+      tool_choice:"required",
+      max_output_tokens:maxOutputTokens
+    })
+  });
+  const data=await response.json().catch(()=>({}));
+  return {response,data};
+}
+
 async function runWebDiagnostic(apiKey,model){
   try{
-    const response=await fetch(OPENAI_URL,{
-      method:"POST",
-      headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},
-      body:JSON.stringify({
-        model,
-        store:false,
-        input:"Find one current official Ukrainian government page about social assistance. Use web search and cite the source.",
-        tools:[{type:"web_search",search_context_size:"low",user_location:{type:"approximate",country:"UA",region:"Ternopil"}}],
-        max_output_tokens:1200
-      })
+    const {response,data}=await executeWebSearch({
+      apiKey,
+      model,
+      input:"Find one current official Ukrainian government page about social assistance. Use web search and cite the source.",
+      searchContextSize:"low",
+      userLocation:{type:"approximate",country:"UA",region:"Ternopil"},
+      maxOutputTokens:1200
     });
-    const data=await response.json().catch(()=>({}));
     if(!response.ok){
       return {
         api_call_ok:false,
@@ -180,40 +196,45 @@ export default async function handler(req,res){
   const instructions=`You are Atlas external-search executor. Search the public web for REAL, currently accessible, actionable sources that can help solve the user's goal.\n\nCritical rules:\n- You MUST use web search.\n- Recommend only sources you actually found.\n- Cite every recommended source using web citations.\n- Never invent a URL, organization, program, listing, price, availability, person, benefit, or eligibility rule.\n- If source intent is official, prioritize authoritative government or official organization pages.\n- If source intent is marketplace, prioritize concrete offer/listing pages when possible.\n- Prefer specific actionable pages over generic home pages.\n- Give at most 6 useful sources total.\n- If reliable results are not found, say so briefly instead of inventing.\n- Write the short explanation in ${language==="uk"?"Ukrainian":"English"}.`;
 
   const searchPlan=allowed.map((item,index)=>`${index+1}. [${item.source}] ${item.query}${item.reason?` — ${item.reason}`:""}`).join("\n");
-  const input=`Goal: ${goal}\n\nSearch tasks:\n${searchPlan}\n\nReturn a concise set of the best actionable sources. Cite each one.`;
+  const input=`Goal: ${goal}\n\nSearch tasks:\n${searchPlan}\n\nPerform the web searches and return a concise set of the best actionable sources. Cite each source.`;
 
   try{
-    const response=await fetch(OPENAI_URL,{
-      method:"POST",
-      headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},
-      body:JSON.stringify({
-        model,
-        store:false,
-        instructions,
-        input,
-        tools:[{type:"web_search",search_context_size:"medium"}],
-        max_output_tokens:3200
-      })
-    });
-
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok){
+    const first=await executeWebSearch({apiKey,model,instructions,input,searchContextSize:"medium",maxOutputTokens:3200});
+    if(!first.response.ok){
       return send(res,502,{
         error:"external-search-failed",
-        status:response.status,
-        details:data?.error?.message||"OpenAI web search failed",
-        code:data?.error?.code||""
+        status:first.response.status,
+        details:first.data?.error?.message||"OpenAI web search failed",
+        code:first.data?.error?.code||""
       });
     }
 
-    const results=extractVerifiedResults(data,allowed);
-    if(results.length)return send(res,200,{results,search_status:data?.status||"completed"});
+    let results=extractVerifiedResults(first.data,allowed);
+    if(results.length){
+      return send(res,200,{results,search_status:first.data?.status||"completed",attempts:1});
+    }
 
+    // Universal one-time recovery: if the tool call completed but yielded no verified URL,
+    // force a simpler second web search using the exact queries from the Brain plan.
+    const exactQueries=allowed.map(item=>item.query).join("\n- ");
+    const retryInput=`The first search returned no verified URLs. Search the public web again using these exact queries:\n- ${exactQueries}\n\nGoal: ${goal}\nReturn 3-6 real actionable sources when available and cite every source. Do not answer from memory.`;
+    const retry=await executeWebSearch({apiKey,model,instructions,input:retryInput,searchContextSize:"high",maxOutputTokens:3600});
+
+    if(!retry.response.ok){
+      return send(res,200,{
+        results:[],
+        search_status:first.data?.status||"unknown",
+        retry_status:"failed",
+        diagnostic:{first:diagnosticSummary(first.data),retry_error:retry.data?.error?.message||"retry failed"}
+      });
+    }
+
+    results=extractVerifiedResults(retry.data,allowed);
     return send(res,200,{
-      results:[],
-      search_status:data?.status||"unknown",
-      incomplete_reason:data?.incomplete_details?.reason||null,
-      diagnostic:diagnosticSummary(data)
+      results,
+      search_status:retry.data?.status||"completed",
+      attempts:2,
+      diagnostic:results.length?undefined:{first:diagnosticSummary(first.data),retry:diagnosticSummary(retry.data)}
     });
   }catch(error){
     return send(res,500,{error:"external-search-failed",details:error?.message||"Unknown error"});
