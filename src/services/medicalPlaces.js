@@ -88,7 +88,7 @@ async function fetchOverpass(query){
   throw lastError||new Error("overpass-unavailable");
 }
 
-export async function findNearbyMedical(location,{radius=12000,lang="uk"}={}){
+export async function findNearbyMedical(location,{radius=25000,lang="uk"}={}){
   if(!location)throw new Error("location-required");
   const lat=Number(location.latitude);
   const lon=Number(location.longitude);
@@ -104,9 +104,10 @@ export async function findNearbyMedical(location,{radius=12000,lang="uk"}={}){
     .filter(item=>{if(seen.has(item.id))return false;seen.add(item.id);return true})
     .sort((a,b)=>a.straightDistanceKm-b.straightDistanceKm);
 
-  const hospitals=places.filter(item=>["hospital","clinic","doctors","health_post"].includes(item.type));
+  const hospitals=places.filter(item=>item.type==="hospital");
+  const otherCare=places.filter(item=>["clinic","doctors","health_post"].includes(item.type));
   const pharmacies=places.filter(item=>item.type==="pharmacy");
-  return {hospitals,pharmacies,all:places};
+  return {hospitals,otherCare,pharmacies,all:places};
 }
 
 export async function getDrivingRoute(origin,destination){
