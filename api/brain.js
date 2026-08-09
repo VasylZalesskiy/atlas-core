@@ -86,7 +86,8 @@ async function runDiagnostic(apiKey,model){
         model,
         store:false,
         input:"Reply exactly with OK.",
-        max_output_tokens:32
+        reasoning:{effort:"minimal"},
+        max_output_tokens:256
       })
     });
     const data=await response.json().catch(()=>({}));
@@ -103,7 +104,9 @@ async function runDiagnostic(apiKey,model){
       api_call_ok:true,
       openai_status:response.status,
       model:data?.model||model,
-      response_status:data?.status||"completed"
+      response_status:data?.status||"completed",
+      incomplete_reason:data?.incomplete_details?.reason||null,
+      output_text:extractText(data).slice(0,20)||null
     };
   }catch(error){
     return {
@@ -137,7 +140,13 @@ export default async function handler(req,res){
   if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
   if(!apiKey)return send(res,503,{error:"openai-key-missing"});
 
-  const body=typeof req.body==="string"?JSON.parse(req.body||"{}"):req.body||{};
+  let body={};
+  try{
+    body=typeof req.body==="string"?JSON.parse(req.body||"{}"):req.body||{};
+  }catch{
+    return send(res,400,{error:"invalid-json"});
+  }
+
   const query=String(body.query||"").trim();
   const language=body.language==="en"?"en":"uk";
   const location=body.location&&Number.isFinite(Number(body.location.latitude))&&Number.isFinite(Number(body.location.longitude))
@@ -161,9 +170,10 @@ export default async function handler(req,res){
       body:JSON.stringify({
         model,
         store:false,
+        reasoning:{effort:"minimal"},
         instructions,
         input:JSON.stringify(context),
-        max_output_tokens:1400,
+        max_output_tokens:2400,
         text:{
           format:{
             type:"json_schema",
@@ -175,14 +185,36 @@ export default async function handler(req,res){
       })
     });
 
-    const data=await response.json();
-    if(!response.ok)return send(res,502,{error:"brain-request-failed",status:response.status,details:data?.error?.message||"OpenAI request failed",code:data?.error?.code||"",type:data?.error?.type||""});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok){
+      return send(res,502,{
+        error:"brain-request-failed",
+        status:response.status,
+        details:data?.error?.message||"OpenAI request failed",
+        code:data?.error?.code||"",
+        type:data?.error?.type||""
+      });
+    }
+
+    if(data?.status==="incomplete"){
+      return send(res,502,{
+        error:"brain-incomplete-response",
+        reason:data?.incomplete_details?.reason||"unknown",
+        model:data?.model||model
+      });
+    }
 
     const text=extractText(data);
-    if(!text)return send(res,502,{error:"brain-empty-response"});
+    if(!text)return send(res,502,{error:"brain-empty-response",status:data?.status||"unknown"});
 
-    const plan=JSON.parse(text);
-    return send(res,200,{plan});
+    let plan;
+    try{
+      plan=JSON.parse(text);
+    }catch{
+      return send(res,502,{error:"brain-invalid-json"});
+    }
+
+    return send(res,200,{plan,model:data?.model||model});
   }catch(error){
     return send(res,500,{error:"brain-failed",details:error?.message||"Unknown error"});
   }
