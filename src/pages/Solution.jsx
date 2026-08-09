@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from "react";
 import {useLocation,useNavigate} from "react-router-dom";
-import {ArrowLeft,Clock3,ExternalLink,MapPin,MessageCircle,Navigation,Phone,RefreshCw,Search,UserRound} from "lucide-react";
+import {ArrowLeft,Clock3,ExternalLink,MapPin,Navigation,Phone,RefreshCw,Search,UserRound} from "lucide-react";
 import {analyzeAtlasQuery,createFallbackPlan} from "../services/atlasBrain";
 import {searchPassportProfiles} from "../services/passportSearch";
 import {searchExternalSources} from "../services/externalSearch";
@@ -23,6 +23,7 @@ function passportCard(profile,lang){
     title:profile.headline||profile.name||(lang==="uk"?"Можливість користувача Atlas":"Atlas opportunity"),
     subtitle:profile.can_help||profile.can_share||"",
     city:profile.city||"",
+    passportUrl:profile.slug?`/p/${profile.slug}`:"",
     profile
   };
 }
@@ -75,7 +76,7 @@ function ResultCard({item,origin,lang}){
       </div>
     </div>
     <div className="simpleResultActions">
-      {item.kind==="passport"&&<button className="simpleRequestButton" type="button" disabled title={lang==="uk"?"Приватний запит підключимо наступним кроком":"Private request will be connected next"}><MessageCircle size={17}/>{lang==="uk"?"Запросити через Atlas":"Request via Atlas"}</button>}
+      {item.kind==="passport"&&item.passportUrl&&<a className="primary" href={item.passportUrl}><UserRound size={17}/>{lang==="uk"?"Відкрити Паспорт":"Open Passport"}</a>}
       {item.kind==="place"&&<>
         {origin&&<button className="primary" type="button" onClick={()=>openOsmDirections(origin,item)}><Navigation size={17}/>{lang==="uk"?"Маршрут":"Route"}</button>}
         {item.phone&&<a className="secondary" href={`tel:${item.phone}`}><Phone size={17}/>{lang==="uk"?"Подзвонити":"Call"}</a>}
