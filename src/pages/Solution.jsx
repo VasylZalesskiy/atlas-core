@@ -64,7 +64,7 @@ export default function Solution({t,lang}){
         {solution.warning&&<div className={`safetyWarning ${solution.mode}`}>{solution.warning}</div>}
         <BestActionCard solution={solution} t={t} onShowDetails={()=>setShowDetails(true)} geo={geo} onSearch={openSearch} onRoute={openRoute}/>
         <SolutionPath solution={solution} t={t}/>
-        <SolutionMetrics metrics={solution.metrics} t={t} mode={solution.mode}/>
+        {!medical&&<SolutionMetrics metrics={solution.metrics} t={t} mode={solution.mode}/>} 
       </section>
 
       <aside className="decisionRight">
