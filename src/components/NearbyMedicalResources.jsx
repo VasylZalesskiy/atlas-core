@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useState} from "react";
 import {Building2,Clock3,MapPin,Navigation,Phone,RefreshCw,Stethoscope} from "lucide-react";
 import {findNearbyMedical,getDrivingRoute,openOsmDirections} from "../services/medicalPlaces";
+import "./nearbyMedical.css";
 
 function formatDistance(value){return Number.isFinite(value)?`${value<10?value.toFixed(1):Math.round(value)} км`:"—"}
 function formatMinutes(value){return Number.isFinite(value)?`${Math.max(1,Math.round(value))} хв`:"—"}
