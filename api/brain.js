@@ -75,6 +75,14 @@ function extractText(data){
 }
 
 export default async function handler(req,res){
+  if(req.method==="GET"){
+    return send(res,200,{
+      status:"atlas-brain-endpoint-online",
+      openai_key_configured:Boolean(process.env.OPENAI_API_KEY),
+      model:process.env.OPENAI_MODEL||"gpt-5-mini"
+    });
+  }
+
   if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
 
   const apiKey=process.env.OPENAI_API_KEY;
