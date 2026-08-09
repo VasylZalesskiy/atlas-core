@@ -120,7 +120,6 @@ async function runWebDiagnostic(apiKey,model){
         store:false,
         input:"Find one current official Ukrainian government page about social assistance. Use web search and cite the source.",
         tools:[{type:"web_search",search_context_size:"low",user_location:{type:"approximate",country:"UA",region:"Ternopil"}}],
-        reasoning:{effort:"minimal"},
         max_output_tokens:1200
       })
     });
@@ -193,7 +192,6 @@ export default async function handler(req,res){
         instructions,
         input,
         tools:[{type:"web_search",search_context_size:"medium"}],
-        reasoning:{effort:"minimal"},
         max_output_tokens:3200
       })
     });
