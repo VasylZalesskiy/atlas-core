@@ -1,0 +1,58 @@
+ATLAS — TEST VERSION
+
+WHAT IS ATLAS?
+
+Atlas is a system designed to connect one person's need with another person's capability.
+
+The core idea is simple:
+Your capabilities can be part of someone else's solution.
+
+For example, one person may need a generator, repair help, transport, work, advice, or a specialist. Another person may already have the generator, vehicle, knowledge, experience, or simply be willing to help. Atlas tries to find that connection and suggest the shortest practical path to a solution.
+
+HOW DOES IT WORK?
+
+1. Describe what you need in simple words.
+2. Atlas first checks Opportunity Passports created by other users.
+3. If no suitable capability is found, Atlas may search additional available external sources, places, and services.
+4. If Atlas finds another person's capability, you can send them a request through Atlas.
+5. The Passport owner's contact details are revealed only after they agree.
+
+WHAT IS AN OPPORTUNITY PASSPORT?
+
+It is your personal list of things you can offer to other people.
+
+You can add, for example:
+— skills and things you can do;
+— ways you can help;
+— things you can lend;
+— things you can sell;
+— things you can give away;
+— things you can rent out;
+— equipment, transport, tools, or other resources;
+— professional experience or useful connections.
+
+You can add, edit, and remove opportunities at any time.
+
+PRIVACY
+
+Your contact details are not shown publicly in your Opportunity Passport. Another person sends a request through Atlas, and you decide whether to accept it. Your contact is revealed only after your approval.
+
+WHY IS THIS A TEST VERSION?
+
+Atlas is currently being tested with real users. Some features may still work imperfectly, search results may be incomplete, and the interface will continue to change based on feedback.
+
+We want to learn:
+— whether Atlas finds useful solutions;
+— whether creating an Opportunity Passport is easy;
+— whether contacting another person is clear;
+— which capabilities or features are still missing.
+
+HOW CAN YOU HELP?
+
+Try Atlas with a real need.
+Create your Opportunity Passport and add several real capabilities.
+If something is unclear, does not work, or you see a better way to do it, leave feedback on the home page.
+
+Atlas is not meant to be just another listings directory. Its goal is to help people reach real solutions faster by using the capabilities of people around them.
+
+Thank you for helping us test Atlas.
