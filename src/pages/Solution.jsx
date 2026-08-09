@@ -196,7 +196,7 @@ export default function Solution({lang}){
 
   const passportCards=passportMatches.map(profile=>passportCard(profile,lang));
   const webCards=externalResults.map((item,index)=>externalCard(item,index,lang));
-  const orderedCards=plan?.urgency==="immediate"
+  const orderedCards=(needsLocation||plan?.urgency==="immediate")
     ?[...mapResults,...passportCards,...webCards]
     :[...passportCards,...webCards,...mapResults];
   const seenCards=new Set();
