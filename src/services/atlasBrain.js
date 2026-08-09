@@ -9,6 +9,7 @@ export function createFallbackPlan(query,{lang="uk"}={}){
     goal:String(query||"").trim(),
     intent:"solve",
     domain:"general",
+    solution_scope:"mixed",
     urgency:"planned",
     needs_location:false,
     clarification:{required:false,question:"",options:[]},
@@ -18,7 +19,7 @@ export function createFallbackPlan(query,{lang="uk"}={}){
     },
     external_searches:[],
     safety:{level:"none",message:""},
-    result_strategy:lang==="uk"?"Показати найбільш релевантні доступні можливості":"Show the most relevant available opportunities",
+    result_strategy:lang==="uk"?"Спочатку Паспорти можливостей, потім найкращі додаткові варіанти":"Opportunity Passports first, then the best additional options",
     fallback:true
   };
 }
@@ -49,6 +50,12 @@ function hasSearch(plan,source){
     :false;
 }
 
+function hasMapMode(plan,mode){
+  return Array.isArray(plan?.external_searches)
+    ?plan.external_searches.some(item=>item&&item.source==="maps"&&item.mode===mode&&String(item.query||"").trim())
+    :false;
+}
+
 function hasAnyRetrieval(plan){
   const searches=Array.isArray(plan?.external_searches)
     ?plan.external_searches.some(item=>item&&item.source&&item.source!=="none"&&String(item.query||"").trim())
@@ -60,8 +67,13 @@ function hasAnyRetrieval(plan){
 function planNeedsRecovery(plan){
   if(plan?.clarification?.required&&plan?.clarification?.question)return false;
 
-  // Universal quality gate: when Brain says location is materially required,
-  // Atlas must actually retrieve nearby real-world options rather than only articles/pages.
+  // A destination route is not a nearby-place lookup. Atlas must resolve the
+  // named destination globally and route to it from the user's current point.
+  if(plan?.solution_scope==="destination_route"&&!hasMapMode(plan,"destination"))return true;
+
+  // If location is materially required for a local action, Atlas must actually
+  // retrieve a nearby real-world option rather than only return articles/pages.
+  if(plan?.solution_scope==="local_action"&&plan?.needs_location&&!hasMapMode(plan,"nearby"))return true;
   if(plan?.needs_location&&!hasSearch(plan,"maps"))return true;
 
   // Atlas must not stop after merely understanding the request.
@@ -73,15 +85,20 @@ export async function analyzeAtlasQuery(query,{lang="uk",location=null,signal}={
   const firstPlan=await requestBrainPlan(original,{lang,location,signal});
   if(!planNeedsRecovery(firstPlan))return firstPlan;
 
-  const locationRule=firstPlan?.needs_location
+  const routeRule=firstPlan?.solution_scope==="destination_route"
     ?(lang==="uk"
-      ?"Перший план сам визначив, що локація важлива, але не створив maps-пошук. Це недопустимо: додай щонайменше один source=maps запит для реальної найближчої людини/місця/сервісу, який може допомогти. Інформаційні статті не можуть замінити локальну дію."
-      :"The first plan itself marked location as important but produced no maps search. This is invalid: add at least one source=maps query for a real nearby person/place/service that can help. Informational pages cannot replace local action.")
+      ?"Це маршрут до названого пункту призначення. План зобов'язаний містити source=maps, mode=destination, а query має бути лише назвою/адресою пункту призначення без слів про маршрут."
+      :"This is a route to a named destination. The plan must contain source=maps, mode=destination, and query must be only the destination name/address without route wording.")
+    :"";
+  const localRule=firstPlan?.solution_scope==="local_action"&&firstPlan?.needs_location
+    ?(lang==="uk"
+      ?"Це локальна фізична дія. План зобов'язаний містити source=maps, mode=nearby для реальної людини/місця/сервісу поруч."
+      :"This is a local physical action. The plan must contain source=maps, mode=nearby for a real nearby person/place/service.")
     :"";
 
   const recoveryQuery=lang==="uk"
-    ?`Оригінальний запит користувача: «${original}». Перший план не пройшов контроль якості. ${locationRule} Якщо одного відсутнього параметра справді бракує для корисного результату — постав одне коротке конкретне уточнення. Інакше сформуй практичні пошуки, які ведуть до конкретної дії. Паспорти можливостей мають шукати реальних людей/ресурси. Не вигадуй результатів і не створюй сценарій під цей приклад.`
-    :`Original user request: “${original}”. The first plan failed the quality gate. ${locationRule} If one missing parameter truly blocks a useful result, ask one short specific clarification. Otherwise produce practical retrieval actions that lead to a concrete next step. Opportunity Passports should search for real people/resources. Do not invent results or create a scenario for this example.`;
+    ?`Оригінальний запит користувача: «${original}». Перший план не пройшов контроль якості. ${routeRule} ${localRule} Паспорти можливостей завжди перевіряються першими, але їх відсутність не може зупинити виконання задачі. Якщо одного відсутнього параметра справді бракує — постав одне коротке уточнення. Інакше сформуй практичні пошуки, які ведуть до конкретної дії. Не вигадуй результатів і не створюй сценарій під цей приклад.`
+    :`Original user request: “${original}”. The first plan failed the quality gate. ${routeRule} ${localRule} Opportunity Passports are always checked first, but a Passport miss must not stop execution. If one missing parameter truly blocks progress, ask one short clarification. Otherwise produce practical retrieval actions that lead to a concrete next step. Do not invent results or create a scenario for this example.`;
 
   try{
     const recoveryPlan=await requestBrainPlan(recoveryQuery,{lang,location,signal});
