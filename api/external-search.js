@@ -60,7 +60,6 @@ function extractVerifiedResults(data,allowed){
     }
   }
 
-  // Fallback: use URLs returned directly by completed web-search calls.
   if(results.length<3){
     for(const item of data?.output||[]){
       if(item?.type!=="web_search_call")continue;
@@ -82,10 +81,80 @@ function extractVerifiedResults(data,allowed){
   return results.slice(0,8);
 }
 
-export default async function handler(req,res){
-  if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
+function diagnosticSummary(data){
+  const toolCalls=(data?.output||[]).filter(item=>item?.type==="web_search_call");
+  const cited=[];
+  for(const item of data?.output||[]){
+    if(item?.type!=="message")continue;
+    for(const content of item?.content||[]){
+      if(content?.type!=="output_text")continue;
+      for(const annotation of content.annotations||[]){
+        if(annotation?.type==="url_citation"&&annotation.url)cited.push(annotation.url);
+      }
+    }
+  }
+  const sourceUrls=[];
+  for(const call of toolCalls){
+    for(const source of call?.action?.sources||[]){
+      if(source?.type==="url"&&source.url)sourceUrls.push(source.url);
+    }
+  }
+  return {
+    response_status:data?.status||"unknown",
+    incomplete_reason:data?.incomplete_details?.reason||null,
+    web_search_calls:toolCalls.length,
+    web_search_statuses:toolCalls.map(call=>call.status||"unknown"),
+    citation_count:[...new Set(cited)].length,
+    source_count:[...new Set(sourceUrls)].length,
+    sample_hosts:[...new Set([...cited,...sourceUrls].map(hostname).filter(Boolean))].slice(0,5)
+  };
+}
 
+async function runWebDiagnostic(apiKey,model){
+  try{
+    const response=await fetch(OPENAI_URL,{
+      method:"POST",
+      headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model,
+        store:false,
+        input:"Find one current official Ukrainian government page about social assistance. Use web search and cite the source.",
+        tools:[{type:"web_search",search_context_size:"low",user_location:{type:"approximate",country:"UA",region:"Ternopil"}}],
+        reasoning:{effort:"minimal"},
+        max_output_tokens:1200
+      })
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok){
+      return {
+        api_call_ok:false,
+        openai_status:response.status,
+        error_type:data?.error?.type||"unknown",
+        error_code:data?.error?.code||"unknown",
+        message:data?.error?.message||"OpenAI web search failed"
+      };
+    }
+    return {api_call_ok:true,openai_status:response.status,model:data?.model||model,...diagnosticSummary(data)};
+  }catch(error){
+    return {api_call_ok:false,openai_status:0,error_type:"network_or_runtime_error",error_code:"request_failed",message:error?.message||"Request failed"};
+  }
+}
+
+export default async function handler(req,res){
   const apiKey=process.env.OPENAI_API_KEY;
+  const model=process.env.OPENAI_SEARCH_MODEL||process.env.OPENAI_MODEL||"gpt-5-mini";
+
+  if(req.method==="GET"){
+    const base={status:"atlas-external-search-endpoint-online",openai_key_configured:Boolean(apiKey),model};
+    if(String(req.query?.test||"")==="1"){
+      if(!apiKey)return send(res,200,{...base,api_call_ok:false,error_code:"openai-key-missing"});
+      const diagnostic=await runWebDiagnostic(apiKey,model);
+      return send(res,200,{...base,...diagnostic});
+    }
+    return send(res,200,base);
+  }
+
+  if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
   if(!apiKey)return send(res,503,{error:"openai-key-missing"});
 
   let body={};
@@ -119,11 +188,11 @@ export default async function handler(req,res){
       method:"POST",
       headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},
       body:JSON.stringify({
-        model:process.env.OPENAI_SEARCH_MODEL||process.env.OPENAI_MODEL||"gpt-5-mini",
+        model,
         store:false,
         instructions,
         input,
-        tools:[{type:"web_search"}],
+        tools:[{type:"web_search",search_context_size:"medium"}],
         reasoning:{effort:"minimal"},
         max_output_tokens:3200
       })
@@ -145,7 +214,8 @@ export default async function handler(req,res){
     return send(res,200,{
       results:[],
       search_status:data?.status||"unknown",
-      incomplete_reason:data?.incomplete_details?.reason||null
+      incomplete_reason:data?.incomplete_details?.reason||null,
+      diagnostic:diagnosticSummary(data)
     });
   }catch(error){
     return send(res,500,{error:"external-search-failed",details:error?.message||"Unknown error"});
