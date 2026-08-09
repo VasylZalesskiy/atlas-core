@@ -62,15 +62,27 @@ function hasWebRetrieval(plan){
     :false;
 }
 
-function hasAnyRetrieval(plan){
-  const searches=Array.isArray(plan?.external_searches)
+function hasExternalRetrieval(plan){
+  return Array.isArray(plan?.external_searches)
     ?plan.external_searches.some(item=>item&&item.source&&item.source!=="none"&&String(item.query||"").trim())
     :false;
+}
+
+function hasAnyRetrieval(plan){
+  const searches=hasExternalRetrieval(plan);
   const passportTerms=Array.isArray(plan?.passport_search?.terms)&&plan.passport_search.terms.some(term=>String(term||"").trim());
   return searches||passportTerms;
 }
 
+function hasContradictoryClarification(plan){
+  return Boolean(plan?.clarification?.required&&plan?.clarification?.question&&hasExternalRetrieval(plan));
+}
+
 function planNeedsRecovery(plan,{locationAvailable=false}={}){
+  // A clarification is allowed to block only when Atlas genuinely cannot start
+  // a useful external action yet. If Brain already produced executable searches,
+  // saying “clarification required” is contradictory and must be rebuilt.
+  if(hasContradictoryClarification(plan))return true;
   if(plan?.clarification?.required&&plan?.clarification?.question)return false;
 
   // A destination route is not a nearby-place lookup. Atlas must resolve the
@@ -92,6 +104,12 @@ function planNeedsRecovery(plan,{locationAvailable=false}={}){
 }
 
 function recoveryInstruction(plan,{lang="uk",locationAvailable=false}={}){
+  const clarificationRule=hasContradictoryClarification(plan)
+    ?(lang==="uk"
+      ?"План суперечливий: він одночасно каже, що уточнення обов'язкове, і вже містить виконувані зовнішні пошуки. Якщо корисний пошук уже можна почати, встанови clarification.required=false і продовжуй виконання. Уточнення допустиме лише коли без нього справді неможливо почати корисний пошук."
+      :"The plan is contradictory: it marks clarification as required while already containing executable external searches. If useful retrieval can already begin, set clarification.required=false and continue execution. Clarification is allowed only when useful searching truly cannot start without it.")
+    :"";
+
   const routeRule=plan?.solution_scope==="destination_route"
     ?(lang==="uk"
       ?"Це маршрут до названого пункту призначення. План зобов'язаний містити source=maps, mode=destination, а query має бути лише назвою/адресою пункту призначення без слів про маршрут."
@@ -110,7 +128,7 @@ function recoveryInstruction(plan,{lang="uk",locationAvailable=false}={}){
       :"This is a mixed task with known location, but the plan collapsed fulfillment into web/delivery. This violates channel neutrality: add source=maps, mode=nearby for real local options. Web/delivery may remain only as an additional channel after Passports and local options.")
     :"";
 
-  return [routeRule,localRule,mixedRule].filter(Boolean).join(" ");
+  return [clarificationRule,routeRule,localRule,mixedRule].filter(Boolean).join(" ");
 }
 
 export async function analyzeAtlasQuery(query,{lang="uk",location=null,signal}={}){
@@ -124,8 +142,8 @@ export async function analyzeAtlasQuery(query,{lang="uk",location=null,signal}={
   for(let attempt=0;attempt<2;attempt+=1){
     const violation=recoveryInstruction(candidate,{lang,...qualityContext});
     const recoveryQuery=lang==="uk"
-      ?`Оригінальний запит користувача: «${original}». Поточний план не пройшов контроль якості. ${violation} Паспорти можливостей завжди перевіряються першими, але їх відсутність не може зупинити виконання задачі. Не нав'язуй канал, якого користувач не просив. Якщо одного відсутнього параметра справді бракує — постав одне коротке уточнення. Інакше сформуй практичні пошуки, які ведуть до конкретної дії. Не вигадуй результатів і не створюй сценарій під цей приклад.`
-      :`Original user request: “${original}”. The current plan failed the quality gate. ${violation} Opportunity Passports are always checked first, but a Passport miss must not stop execution. Do not impose a fulfillment channel the user did not request. If one missing parameter truly blocks progress, ask one short clarification. Otherwise produce practical retrieval actions that lead to a concrete next step. Do not invent results or create a scenario for this example.`;
+      ?`Оригінальний запит користувача: «${original}». Поточний план не пройшов контроль якості. ${violation} Паспорти можливостей завжди перевіряються першими, але їх відсутність не може зупинити виконання задачі. Не нав'язуй канал, якого користувач не просив. Не став уточнення, якщо вже можна почати корисний пошук. Якщо одного відсутнього параметра справді бракує для будь-якого корисного пошуку — постав одне коротке уточнення. Інакше сформуй практичні пошуки, які ведуть до конкретної дії. Не вигадуй результатів і не створюй сценарій під цей приклад.`
+      :`Original user request: “${original}”. The current plan failed the quality gate. ${violation} Opportunity Passports are always checked first, but a Passport miss must not stop execution. Do not impose a fulfillment channel the user did not request. Do not ask for clarification when useful searching can already begin. If one missing parameter truly blocks all useful retrieval, ask one short clarification. Otherwise produce practical retrieval actions that lead to a concrete next step. Do not invent results or create a scenario for this example.`;
 
     try{
       candidate=await requestBrainPlan(recoveryQuery,{lang,location,signal});
@@ -136,16 +154,26 @@ export async function analyzeAtlasQuery(query,{lang="uk",location=null,signal}={
     }
   }
 
-  // If Brain still cannot produce a quality-valid plan, suppress web-only
-  // fulfillment rather than presenting a misleading single-channel answer.
+  // If Brain still returns a contradictory clarification together with runnable
+  // searches, do not block the user with the question: keep the searches and
+  // let Atlas execute them. Structural map/channel checks above still apply.
+  if(hasContradictoryClarification(candidate)){
+    candidate={
+      ...candidate,
+      clarification:{required:false,question:"",options:[]}
+    };
+  }
+
+  // If Brain still cannot produce a quality-valid channel-neutral plan, suppress
+  // misleading web-only fulfillment instead of pretending it is the full answer.
   if(candidate?.solution_scope==="mixed"&&qualityContext.locationAvailable&&hasWebRetrieval(candidate)&&!hasMapMode(candidate,"nearby")){
     return {
       ...candidate,
       external_searches:(candidate.external_searches||[]).filter(item=>!["web","marketplace","official"].includes(item?.source)),
       clarification:{
         required:true,
-        question:lang==="uk"?"Що для вас зручніше: варіант поруч чи онлайн/доставка?":"Which is more convenient: a nearby option or online/delivery?",
-        options:lang==="uk"?["Поруч","Онлайн / доставка"]:["Nearby","Online / delivery"]
+        question:lang==="uk"?"Не вдалося надійно знайти локальні варіанти. Хочете, щоб Atlas поки показав онлайн/доставку?":"Local options could not be retrieved reliably. Should Atlas show online/delivery options for now?",
+        options:lang==="uk"?["Так, показати онлайн / доставку"]:["Yes, show online / delivery"]
       }
     };
   }
