@@ -55,7 +55,7 @@ export default function Home({t,lang}){
 
   if(thinking)return <ThinkingState steps={t.thinkingSteps} activeStep={activeStep}/>;
 
-  const title=lang==="uk"?"Що вам потрібно?":"What do you need?";
+  const title=lang==="uk"?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task";
   const subtitle=lang==="uk"
     ?"Напишіть задачу простими словами. Atlas спробує знайти найкоротший шлях до рішення."
     :"Describe the task in simple words. Atlas will try to find the shortest path to a solution.";
