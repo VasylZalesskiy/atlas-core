@@ -102,7 +102,7 @@ export default function Solution({lang}){
   const [brainLoading,setBrainLoading]=useState(Boolean(initialTask));
   const [brainError,setBrainError]=useState("");
   const [passportMatches,setPassportMatches]=useState([]);
-  const [passportLoading,setPassportLoading]=useState(false);
+  const [passportLoading,setPassportLoading]=useState(Boolean(initialTask));
   const [passportCheckedGoal,setPassportCheckedGoal]=useState("");
   const [mapResults,setMapResults]=useState([]);
   const [mapLoading,setMapLoading]=useState(false);
@@ -116,14 +116,14 @@ export default function Solution({lang}){
     if(!activeTask){
       setPlan(createFallbackPlan("",{lang}));
       setBrainLoading(false);
-      setPassportCheckedGoal("");
+      setMapResults([]);
+      setExternalResults([]);
       return;
     }
     const controller=new AbortController();
+    setPlan(createFallbackPlan(activeTask,{lang}));
     setBrainLoading(true);
     setBrainError("");
-    setPassportCheckedGoal("");
-    setPassportMatches([]);
     setMapResults([]);
     setExternalResults([]);
     analyzeAtlasQuery(activeTask,{lang,location:geo.location,signal:controller.signal})
@@ -137,36 +137,41 @@ export default function Solution({lang}){
     return()=>controller.abort();
   },[activeTask,lang,geo.location?.latitude,geo.location?.longitude]);
 
+  // Fast first stage: search Passports immediately from the raw user request.
+  // This does not wait for Atlas Brain or any external service.
   useEffect(()=>{
     let alive=true;
-    if(!plan?.goal){
+    if(!activeTask){
       setPassportMatches([]);
       setPassportCheckedGoal("");
       setPassportLoading(false);
       return()=>{alive=false};
     }
+    const quickPlan=createFallbackPlan(activeTask,{lang});
     setPassportCheckedGoal("");
     setPassportLoading(true);
-    searchPassportProfiles(plan,{limit:6})
+    setPassportMatches([]);
+    searchPassportProfiles(quickPlan,{limit:6})
       .then(({matches})=>{if(alive)setPassportMatches(matches||[])})
       .catch(()=>{if(alive)setPassportMatches([])})
       .finally(()=>{
         if(alive){
           setPassportLoading(false);
-          setPassportCheckedGoal(plan.goal);
+          setPassportCheckedGoal(activeTask);
         }
       });
     return()=>{alive=false};
-  },[plan]);
+  },[activeTask,lang]);
 
   const mapSearches=useMemo(()=>Array.isArray(plan?.external_searches)?plan.external_searches.filter(item=>item?.source==="maps"&&item.query).slice(0,3):[],[plan]);
   const webSearches=useMemo(()=>Array.isArray(plan?.external_searches)?plan.external_searches.filter(item=>["web","marketplace","official"].includes(item?.source)&&item.query).slice(0,4):[],[plan]);
   const needsLocation=Boolean(plan?.needs_location||mapSearches.length);
-  const passportsChecked=Boolean(plan?.goal&&!passportLoading&&passportCheckedGoal===plan.goal);
+  const passportsChecked=Boolean(activeTask&&!passportLoading&&passportCheckedGoal===activeTask);
+  const externalReady=passportsChecked&&!brainLoading;
 
   useEffect(()=>{
     const controller=new AbortController();
-    if(!passportsChecked){
+    if(!externalReady){
       setMapResults([]);setMapLoading(false);setMapError("");
       return()=>controller.abort();
     }
@@ -195,11 +200,11 @@ export default function Solution({lang}){
       .catch(error=>{if(error?.name!=="AbortError"&&!controller.signal.aborted){setMapResults([]);setMapError(error?.message||"map-search-unavailable")}})
       .finally(()=>{if(!controller.signal.aborted)setMapLoading(false)});
     return()=>controller.abort();
-  },[passportsChecked,geo.location?.latitude,geo.location?.longitude,mapSearches,lang]);
+  },[externalReady,geo.location?.latitude,geo.location?.longitude,mapSearches,lang]);
 
   useEffect(()=>{
     const controller=new AbortController();
-    if(!passportsChecked){
+    if(!externalReady){
       setExternalResults([]);setExternalLoading(false);setExternalError("");
       return()=>controller.abort();
     }
@@ -210,7 +215,7 @@ export default function Solution({lang}){
       .catch(error=>{if(error?.name!=="AbortError"&&!controller.signal.aborted){setExternalResults([]);setExternalError(error?.message||"external-search-unavailable")}})
       .finally(()=>{if(!controller.signal.aborted)setExternalLoading(false)});
     return()=>controller.abort();
-  },[passportsChecked,plan,webSearches,lang]);
+  },[externalReady,plan,webSearches,lang]);
 
   function submit(e){
     e.preventDefault();
@@ -236,15 +241,15 @@ export default function Solution({lang}){
   const seenCards=new Set();
   const cards=orderedCards.filter(item=>{const key=item.url||`${item.kind}-${item.id}`;if(seenCards.has(key))return false;seenCards.add(key);return true});
   const visibleCards=showMore?cards:cards.slice(0,3);
-  const busy=brainLoading||passportLoading||mapLoading||externalLoading;
+  const busy=cards.length===0&&(passportLoading||brainLoading||mapLoading||externalLoading);
   const nothingFound=!busy&&!plan?.clarification?.required&&cards.length===0;
   const locationText=geo.location?(initialWhere||(lang==="uk"?"поточна локація":"current location")):(initialWhere||(lang==="uk"?"не визначена":"not set"));
-  const searchStage=brainLoading
-    ?(lang==="uk"?"Atlas розуміє задачу…":"Atlas is understanding the task…")
-    :(!passportsChecked&&plan?.goal)
-      ?(lang==="uk"?"Перевіряю Паспорти можливостей…":"Checking Opportunity Passports…")
+  const searchStage=passportLoading
+    ?(lang==="uk"?"Перевіряю Паспорти можливостей…":"Checking Opportunity Passports…")
+    :brainLoading
+      ?(lang==="uk"?"Шукаю найкращий шлях до рішення…":"Finding the best path to a solution…")
       :(mapLoading||externalLoading)
-        ?(lang==="uk"?"Паспорти перевірено. Шукаю додаткові варіанти…":"Passports checked. Searching additional options…")
+        ?(lang==="uk"?"Шукаю додаткові реальні варіанти…":"Searching additional real options…")
         :"";
 
   return <main className="simpleSolutionPage">
@@ -264,7 +269,7 @@ export default function Solution({lang}){
       <div className="simpleResultsHeader">
         <div>
           <h1>{plan?.clarification?.required?(lang==="uk"?"Потрібне одне уточнення":"One quick question"):(lang==="uk"?"Ось найкращі варіанти":"Here are the best options")}</h1>
-          {!brainLoading&&plan?.goal&&<p>{plan.goal}</p>}
+          {plan?.goal&&<p>{plan.goal}</p>}
         </div>
         {plan?.safety?.level&&plan.safety.level!=="none"&&plan.safety.message&&<div className={`simpleSafety ${plan.safety.level}`}>{plan.safety.message}</div>}
       </div>
