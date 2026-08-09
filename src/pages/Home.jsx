@@ -1,6 +1,6 @@
 import {useEffect,useState} from "react";
 import {Link,useNavigate} from "react-router-dom";
-import {MapPin,MessageSquare,PlusCircle,Search} from "lucide-react";
+import {FileText,MapPin,MessageSquare,PlusCircle,Search} from "lucide-react";
 import ThinkingState from "../components/ThinkingState";
 import {saveAtlasFeedback} from "../services/feedbackStore";
 
@@ -68,11 +68,19 @@ export default function Home({t,lang}){
     ?"Додайте те, що маєте, вмієте, можете позичити, продати, подарувати або зробити безкоштовно."
     :"Add what you have, can do, lend, sell, give away, or help with for free.";
   const capabilityButton=lang==="uk"?"+ Додати можливість":"+ Add an opportunity";
+  const aboutUrl=lang==="uk"?"/atlas-about-uk.txt":"/atlas-about-en.txt";
 
   return <main className="home">
-    <section className="hero" style={{paddingTop:46}}>
-      <div style={{display:"inline-flex",alignItems:"center",gap:7,marginBottom:14,padding:"6px 10px",borderRadius:999,background:"#fff7df",border:"1px solid #ead79b",color:"#765f20",fontSize:11,fontWeight:900,letterSpacing:".08em"}}>
+    <section className="hero" style={{paddingTop:40}}>
+      <div style={{display:"inline-flex",alignItems:"center",gap:7,marginBottom:10,padding:"6px 10px",borderRadius:999,background:"#fff7df",border:"1px solid #ead79b",color:"#765f20",fontSize:11,fontWeight:900,letterSpacing:".08em"}}>
         ATLAS · {lang==="uk"?"ТЕСТОВА ВЕРСІЯ":"TEST VERSION"}
+      </div>
+
+      <div style={{marginBottom:18}}>
+        <a href={aboutUrl} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,color:"#0d7a41",fontSize:13,fontWeight:800,textDecoration:"underline",textUnderlineOffset:3}}>
+          <FileText size={16}/>
+          {lang==="uk"?"Вперше тут? Прочитайте за 1 хвилину, що робить Atlas →":"New here? Read in 1 minute what Atlas does →"}
+        </a>
       </div>
 
       <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,letterSpacing:"-.035em",marginBottom:28}}>
