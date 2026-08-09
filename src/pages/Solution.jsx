@@ -19,7 +19,7 @@ function passportCard(profile,lang){
   return {
     kind:"passport",
     id:profile.slug||profile.name,
-    eyebrow:lang==="uk"?"Можливість людини в Atlas":"Person in Atlas",
+    eyebrow:lang==="uk"?"Знайдено в Паспорті можливостей":"Found in Opportunity Passports",
     title:profile.headline||profile.name||(lang==="uk"?"Можливість користувача Atlas":"Atlas opportunity"),
     subtitle:profile.can_help||profile.can_share||"",
     city:profile.city||"",
@@ -95,6 +95,7 @@ export default function Solution({lang}){
   const [brainError,setBrainError]=useState("");
   const [passportMatches,setPassportMatches]=useState([]);
   const [passportLoading,setPassportLoading]=useState(false);
+  const [passportCheckedGoal,setPassportCheckedGoal]=useState("");
   const [mapResults,setMapResults]=useState([]);
   const [mapLoading,setMapLoading]=useState(false);
   const [mapError,setMapError]=useState("");
@@ -107,11 +108,16 @@ export default function Solution({lang}){
     if(!activeTask){
       setPlan(createFallbackPlan("",{lang}));
       setBrainLoading(false);
+      setPassportCheckedGoal("");
       return;
     }
     const controller=new AbortController();
     setBrainLoading(true);
     setBrainError("");
+    setPassportCheckedGoal("");
+    setPassportMatches([]);
+    setMapResults([]);
+    setExternalResults([]);
     analyzeAtlasQuery(activeTask,{lang,location:geo.location,signal:controller.signal})
       .then(nextPlan=>setPlan(nextPlan))
       .catch(error=>{
@@ -125,21 +131,37 @@ export default function Solution({lang}){
 
   useEffect(()=>{
     let alive=true;
-    if(!plan?.goal){setPassportMatches([]);return()=>{alive=false}}
+    if(!plan?.goal){
+      setPassportMatches([]);
+      setPassportCheckedGoal("");
+      setPassportLoading(false);
+      return()=>{alive=false};
+    }
+    setPassportCheckedGoal("");
     setPassportLoading(true);
     searchPassportProfiles(plan,{limit:6})
       .then(({matches})=>{if(alive)setPassportMatches(matches||[])})
       .catch(()=>{if(alive)setPassportMatches([])})
-      .finally(()=>{if(alive)setPassportLoading(false)});
+      .finally(()=>{
+        if(alive){
+          setPassportLoading(false);
+          setPassportCheckedGoal(plan.goal);
+        }
+      });
     return()=>{alive=false};
   },[plan]);
 
   const mapSearches=useMemo(()=>Array.isArray(plan?.external_searches)?plan.external_searches.filter(item=>item?.source==="maps"&&item.query).slice(0,3):[],[plan]);
   const webSearches=useMemo(()=>Array.isArray(plan?.external_searches)?plan.external_searches.filter(item=>["web","marketplace","official"].includes(item?.source)&&item.query).slice(0,4):[],[plan]);
   const needsLocation=Boolean(plan?.needs_location||mapSearches.length);
+  const passportsChecked=Boolean(plan?.goal&&!passportLoading&&passportCheckedGoal===plan.goal);
 
   useEffect(()=>{
     const controller=new AbortController();
+    if(!passportsChecked){
+      setMapResults([]);setMapLoading(false);setMapError("");
+      return()=>controller.abort();
+    }
     if(!geo.location||!mapSearches.length){
       setMapResults([]);setMapLoading(false);setMapError("");
       return()=>controller.abort();
@@ -163,10 +185,14 @@ export default function Solution({lang}){
       .catch(error=>{if(error?.name!=="AbortError"&&!controller.signal.aborted){setMapResults([]);setMapError(error?.message||"map-search-unavailable")}})
       .finally(()=>{if(!controller.signal.aborted)setMapLoading(false)});
     return()=>controller.abort();
-  },[geo.location?.latitude,geo.location?.longitude,mapSearches,lang]);
+  },[passportsChecked,geo.location?.latitude,geo.location?.longitude,mapSearches,lang]);
 
   useEffect(()=>{
     const controller=new AbortController();
+    if(!passportsChecked){
+      setExternalResults([]);setExternalLoading(false);setExternalError("");
+      return()=>controller.abort();
+    }
     if(!webSearches.length){setExternalResults([]);setExternalLoading(false);setExternalError("");return()=>controller.abort()}
     setExternalLoading(true);setExternalError("");
     searchExternalSources({...plan,external_searches:webSearches},{lang,signal:controller.signal})
@@ -174,7 +200,7 @@ export default function Solution({lang}){
       .catch(error=>{if(error?.name!=="AbortError"&&!controller.signal.aborted){setExternalResults([]);setExternalError(error?.message||"external-search-unavailable")}})
       .finally(()=>{if(!controller.signal.aborted)setExternalLoading(false)});
     return()=>controller.abort();
-  },[plan,webSearches,lang]);
+  },[passportsChecked,plan,webSearches,lang]);
 
   function submit(e){
     e.preventDefault();
@@ -196,15 +222,20 @@ export default function Solution({lang}){
 
   const passportCards=passportMatches.map(profile=>passportCard(profile,lang));
   const webCards=externalResults.map((item,index)=>externalCard(item,index,lang));
-  const orderedCards=(needsLocation||plan?.urgency==="immediate")
-    ?[...mapResults,...passportCards,...webCards]
-    :[...passportCards,...webCards,...mapResults];
+  const orderedCards=[...passportCards,...mapResults,...webCards];
   const seenCards=new Set();
   const cards=orderedCards.filter(item=>{const key=item.url||`${item.kind}-${item.id}`;if(seenCards.has(key))return false;seenCards.add(key);return true});
   const visibleCards=showMore?cards:cards.slice(0,3);
   const busy=brainLoading||passportLoading||mapLoading||externalLoading;
   const nothingFound=!busy&&!plan?.clarification?.required&&cards.length===0;
   const locationText=geo.location?(initialWhere||(lang==="uk"?"поточна локація":"current location")):(initialWhere||(lang==="uk"?"не визначена":"not set"));
+  const searchStage=brainLoading
+    ?(lang==="uk"?"Atlas розуміє задачу…":"Atlas is understanding the task…")
+    :(!passportsChecked&&plan?.goal)
+      ?(lang==="uk"?"Перевіряю Паспорти можливостей…":"Checking Opportunity Passports…")
+      :(mapLoading||externalLoading)
+        ?(lang==="uk"?"Паспорти перевірено. Шукаю додаткові варіанти…":"Passports checked. Searching additional options…")
+        :"";
 
   return <main className="simpleSolutionPage">
     <section className="simpleSolutionShell">
@@ -238,7 +269,7 @@ export default function Solution({lang}){
         <button className="primary" type="button" onClick={locate} disabled={geo.loading}><MapPin size={18}/>{lang==="uk"?"Використати мою локацію":"Use my location"}</button>
       </div>}
 
-      {busy&&<div className="simpleStateLine"><RefreshCw className="spin" size={16}/>{lang==="uk"?"Atlas шукає рішення…":"Atlas is finding a solution…"}</div>}
+      {busy&&searchStage&&<div className="simpleStateLine"><RefreshCw className="spin" size={16}/>{searchStage}</div>}
 
       <div className="simpleResultList">{visibleCards.map((item,index)=><ResultCard key={item.url||`${item.kind}-${item.id||index}`} item={item} origin={geo.location} lang={lang}/>)}</div>
 
