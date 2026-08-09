@@ -89,7 +89,12 @@ export default function PublicPassport({lang="uk"}){
 
     {passport&&<>
       <h1 style={{marginBottom:8}}>{passport.display_name}</h1>
-      {passport.city&&<div style={{display:"flex",alignItems:"center",gap:7,color:"#66746c",marginBottom:20}}><MapPin size={17}/>{passport.city}</div>}
+      {passport.city&&<div style={{display:"flex",alignItems:"center",gap:7,color:"#66746c",marginBottom:16}}><MapPin size={17}/>{passport.city}</div>}
+
+      {(passport.profession||passport.skills)&&<section style={{margin:"0 0 22px",padding:18,border:"1px solid #dfe8e2",borderRadius:15,background:"#f8fbf9"}}>
+        {passport.profession&&<div style={{marginBottom:passport.skills?13:0}}><span style={{display:"block",fontSize:12,fontWeight:800,color:"#6a776f",textTransform:"uppercase",letterSpacing:".05em",marginBottom:4}}>{uk?"Професія / основна діяльність":"Profession / main occupation"}</span><strong style={{fontSize:20,lineHeight:1.4}}>{passport.profession}</strong></div>}
+        {passport.skills&&<div><span style={{display:"block",fontSize:12,fontWeight:800,color:"#6a776f",textTransform:"uppercase",letterSpacing:".05em",marginBottom:5}}>{uk?"Навички та досвід":"Skills and experience"}</span><div style={{fontSize:16,lineHeight:1.55,whiteSpace:"pre-wrap"}}>{passport.skills}</div></div>}
+      </section>}
 
       {isOwner?<div style={{margin:"0 0 24px",padding:16,border:"1px solid #cfe6d7",borderRadius:14,background:"#f2fbf5"}}>
         <strong style={{display:"block",marginBottom:9}}>{uk?"Це ваш Паспорт":"This is your Passport"}</strong>
@@ -114,7 +119,7 @@ export default function PublicPassport({lang="uk"}){
             </>}
           </article>;
         })}
-        {opportunities.length===0&&<div style={{padding:18,border:"1px dashed #cbd8ce",borderRadius:12,color:"#66746c"}}>{uk?"У цьому Паспорті поки немає активних можливостей.":"This Passport has no active opportunities yet."}</div>}
+        {opportunities.length===0&&<div style={{padding:18,border:"1px dashed #cbd8ce",borderRadius:12,color:"#66746c"}}>{uk?"Додаткових можливостей поки немає. Професія та навички цієї людини вже можуть знаходитися через Atlas.":"No additional opportunities yet. This person's profession and skills can already be found through Atlas."}</div>}
       </div>
 
       {!isOwner&&selected&&<form id="atlas-request-form" onSubmit={sendRequest} style={{display:"grid",gap:12,marginTop:22,padding:18,border:"1px solid #dbe6de",borderRadius:16,background:"#fff"}}>
