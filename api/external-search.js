@@ -6,40 +6,80 @@ function send(res,status,body){
   res.end(JSON.stringify(body));
 }
 
-const resultSchema={
-  type:"object",
-  additionalProperties:false,
-  required:["results"],
-  properties:{
-    results:{
-      type:"array",
-      maxItems:8,
-      items:{
-        type:"object",
-        additionalProperties:false,
-        required:["title","snippet","url","source_type","price_text","location_text"],
-        properties:{
-          title:{type:"string"},
-          snippet:{type:"string"},
-          url:{type:"string"},
-          source_type:{type:"string"},
-          price_text:{type:"string"},
-          location_text:{type:"string"}
+function cleanText(value){
+  return String(value||"").replace(/\s+/g," ").trim();
+}
+
+function hostname(url){
+  try{return new URL(url).hostname.replace(/^www\./,"")}catch{return ""}
+}
+
+function inferSourceType(url,allowed){
+  const host=hostname(url);
+  if(/(^|\.)gov\.|(^|\.)gov$|diia\.gov\.ua|kmu\.gov\.ua|msp\.gov\.ua/i.test(host))return "official";
+  if(allowed.some(item=>item.source==="marketplace"))return "marketplace";
+  if(allowed.some(item=>item.source==="official"))return "official";
+  return "web";
+}
+
+function snippetAround(text,annotation){
+  const raw=cleanText(text);
+  if(!raw)return "";
+  const start=Number(annotation?.start_index);
+  const end=Number(annotation?.end_index);
+  if(!Number.isFinite(start)||!Number.isFinite(end))return raw.slice(0,260);
+  const from=Math.max(0,start-110);
+  const to=Math.min(raw.length,end+170);
+  return cleanText(raw.slice(from,to)).slice(0,320);
+}
+
+function extractVerifiedResults(data,allowed){
+  const results=[];
+  const seen=new Set();
+
+  for(const item of data?.output||[]){
+    if(item?.type==="message"){
+      for(const content of item?.content||[]){
+        if(content?.type!=="output_text")continue;
+        const text=String(content.text||"");
+        for(const annotation of content.annotations||[]){
+          if(annotation?.type!=="url_citation"||!annotation.url)continue;
+          const url=String(annotation.url);
+          if(seen.has(url))continue;
+          seen.add(url);
+          results.push({
+            title:cleanText(annotation.title)||hostname(url)||"Знайдене джерело",
+            snippet:snippetAround(text,annotation),
+            url,
+            source_type:inferSourceType(url,allowed),
+            price_text:"",
+            location_text:""
+          });
         }
       }
     }
   }
-};
 
-function extractText(data){
-  if(typeof data?.output_text==="string"&&data.output_text.trim())return data.output_text;
-  for(const item of data?.output||[]){
-    if(item?.type!=="message")continue;
-    for(const content of item?.content||[]){
-      if(content?.type==="output_text"&&typeof content.text==="string")return content.text;
+  // Fallback: use URLs returned directly by completed web-search calls.
+  if(results.length<3){
+    for(const item of data?.output||[]){
+      if(item?.type!=="web_search_call")continue;
+      for(const source of item?.action?.sources||[]){
+        if(source?.type!=="url"||!source.url||seen.has(source.url))continue;
+        seen.add(source.url);
+        results.push({
+          title:hostname(source.url)||"Знайдене джерело",
+          snippet:"",
+          url:source.url,
+          source_type:inferSourceType(source.url,allowed),
+          price_text:"",
+          location_text:""
+        });
+      }
     }
   }
-  return "";
+
+  return results.slice(0,8);
 }
 
 export default async function handler(req,res){
@@ -48,21 +88,31 @@ export default async function handler(req,res){
   const apiKey=process.env.OPENAI_API_KEY;
   if(!apiKey)return send(res,503,{error:"openai-key-missing"});
 
-  const body=typeof req.body==="string"?JSON.parse(req.body||"{}"):req.body||{};
+  let body={};
+  try{body=typeof req.body==="string"?JSON.parse(req.body||"{}"):req.body||{}}
+  catch{return send(res,400,{error:"invalid-json"})}
+
   const searches=Array.isArray(body.searches)?body.searches.slice(0,4):[];
-  const goal=String(body.goal||"").trim();
+  const goal=cleanText(body.goal).slice(0,700);
   const language=body.language==="en"?"en":"uk";
 
   if(!goal||!searches.length)return send(res,200,{results:[]});
 
   const allowed=searches
     .filter(item=>item&&["web","marketplace","official"].includes(item.source))
-    .map(item=>({source:item.source,query:String(item.query||"").slice(0,400),reason:String(item.reason||"").slice(0,300)}))
+    .map(item=>({
+      source:item.source,
+      query:cleanText(item.query).slice(0,400),
+      reason:cleanText(item.reason).slice(0,300)
+    }))
     .filter(item=>item.query);
 
   if(!allowed.length)return send(res,200,{results:[]});
 
-  const instructions=`You are the external-search executor for Atlas, a universal solution finder. Use web search to find REAL, currently accessible, actionable results for the user's goal.\n\nRules:\n- Never invent a product, business, listing, price, availability, URL, person, or fact.\n- Return only URLs that you actually found through web search.\n- Prefer specific result/listing/detail pages over generic home pages when possible.\n- Respect the requested source intent: marketplace means real listings/offers; official means authoritative sources; web means the best practical public source.\n- Return at most 8 useful results total, deduplicated.\n- If nothing reliable is found, return an empty results array.\n- Use ${language==="uk"?"Ukrainian":"English"} for title/snippet text when practical; do not translate brand names or URLs.\n- price_text and location_text must be empty strings if the source does not clearly provide them.`;
+  const instructions=`You are Atlas external-search executor. Search the public web for REAL, currently accessible, actionable sources that can help solve the user's goal.\n\nCritical rules:\n- You MUST use web search.\n- Recommend only sources you actually found.\n- Cite every recommended source using web citations.\n- Never invent a URL, organization, program, listing, price, availability, person, benefit, or eligibility rule.\n- If source intent is official, prioritize authoritative government or official organization pages.\n- If source intent is marketplace, prioritize concrete offer/listing pages when possible.\n- Prefer specific actionable pages over generic home pages.\n- Give at most 6 useful sources total.\n- If reliable results are not found, say so briefly instead of inventing.\n- Write the short explanation in ${language==="uk"?"Ukrainian":"English"}.`;
+
+  const searchPlan=allowed.map((item,index)=>`${index+1}. [${item.source}] ${item.query}${item.reason?` — ${item.reason}`:""}`).join("\n");
+  const input=`Goal: ${goal}\n\nSearch tasks:\n${searchPlan}\n\nReturn a concise set of the best actionable sources. Cite each one.`;
 
   try{
     const response=await fetch(OPENAI_URL,{
@@ -72,20 +122,31 @@ export default async function handler(req,res){
         model:process.env.OPENAI_SEARCH_MODEL||process.env.OPENAI_MODEL||"gpt-5-mini",
         store:false,
         instructions,
-        input:JSON.stringify({goal,searches:allowed}),
+        input,
         tools:[{type:"web_search"}],
-        max_output_tokens:2200,
-        text:{format:{type:"json_schema",name:"atlas_external_results",strict:true,schema:resultSchema}}
+        reasoning:{effort:"minimal"},
+        max_output_tokens:3200
       })
     });
 
-    const data=await response.json();
-    if(!response.ok)return send(res,502,{error:"external-search-failed",status:response.status,details:data?.error?.message||"OpenAI web search failed"});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok){
+      return send(res,502,{
+        error:"external-search-failed",
+        status:response.status,
+        details:data?.error?.message||"OpenAI web search failed",
+        code:data?.error?.code||""
+      });
+    }
 
-    const text=extractText(data);
-    if(!text)return send(res,502,{error:"external-search-empty"});
-    const parsed=JSON.parse(text);
-    return send(res,200,{results:Array.isArray(parsed?.results)?parsed.results:[]});
+    const results=extractVerifiedResults(data,allowed);
+    if(results.length)return send(res,200,{results,search_status:data?.status||"completed"});
+
+    return send(res,200,{
+      results:[],
+      search_status:data?.status||"unknown",
+      incomplete_reason:data?.incomplete_details?.reason||null
+    });
   }catch(error){
     return send(res,500,{error:"external-search-failed",details:error?.message||"Unknown error"});
   }
