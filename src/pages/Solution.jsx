@@ -52,6 +52,8 @@ function passportCandidate(profile,lang){
     description:profile.can_help||profile.can_share||"",
     city:profile.city||"",
     passportUrl:profile.slug?`/p/${profile.slug}`:"",
+    matchScore:Number(profile.score)||0,
+    matchedTerms:Array.isArray(profile.matched)?profile.matched:[],
     resolved:true
   };
 }
@@ -121,8 +123,33 @@ function CandidateAction({candidate,origin,lang}){
   return null;
 }
 
-function candidatePriority(candidate){
-  if(candidate?.kind==="passport")return 500;
+const TASK_STOP_WORDS=new Set([
+  "потрібно","потрібен","потрібна","потрібні","треба","хочу","шукаю","знайти","купити","продати","орендувати",
+  "мені","для","або","та","що","коли","який","яка","яке","у","в","на","по","до","від","кг","кілограмів",
+  "need","needed","want","find","buy","sell","rent","for","with","the","and","or","kg"
+]);
+
+function subjectTokens(value){
+  return String(value||"").toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu," ")
+    .split(/\s+/)
+    .filter(word=>word.length>2&&!TASK_STOP_WORDS.has(word)&&!/^[0-9]+$/.test(word))
+    .map(word=>word.length>5?word.slice(0,5):word);
+}
+
+function passportMatchesTask(candidate,task){
+  const taskTokens=subjectTokens(task);
+  if(!taskTokens.length)return false;
+  const candidateTokens=new Set(subjectTokens([
+    candidate?.title,candidate?.description,candidate?.matchedTerms?.join(" ")
+  ].filter(Boolean).join(" ")));
+  return taskTokens.some(token=>candidateTokens.has(token));
+}
+
+function candidatePriority(candidate,task){
+  if(candidate?.kind==="passport")return passportMatchesTask(candidate,task)
+    ?500+Math.min(80,candidate.matchScore)
+    :140+Math.min(40,candidate.matchScore);
   if(candidate?.kind==="external"&&candidate.resultKind==="listing")return 450;
   if(candidate?.kind==="place")return 400;
   if(candidate?.kind==="external"&&candidate.resultKind==="search_page"){
@@ -494,8 +521,8 @@ export default function Solution({lang}){
     return candidates
       .filter(Boolean)
       .filter((candidate,index,array)=>array.findIndex(item=>(item.id||item.url||item.title)===(candidate.id||candidate.url||candidate.title))===index)
-      .sort((a,b)=>candidatePriority(b)-candidatePriority(a));
-  },[passportGroups,nearbyGroups,internetGroups,lang]);
+      .sort((a,b)=>candidatePriority(b,activeTask)-candidatePriority(a,activeTask));
+  },[passportGroups,nearbyGroups,internetGroups,lang,activeTask]);
   const recommendedCandidate=rankedCandidates[0]||null;
   const recommendedAlternatives=rankedCandidates.slice(1,5);
 
