@@ -50,6 +50,23 @@ test("Brain never uses a legacy OpenAI key and falls back with HTTP 200",async()
   }
 });
 
+test("Brain always uses deterministic safety triage for a bodily symptom",async()=>{
+  const originalFetch=globalThis.fetch;
+  globalThis.fetch=async()=>{throw new Error("unexpected-network-call")};
+  try{
+    const res=recorder();
+    await brainHandler({method:"POST",body:{query:"болить живіт",language:"uk"},headers:{}},res);
+    assert.equal(res.statusCode,200);
+    assert.equal(res.body.ai_status,"safety");
+    assert.equal(res.body.model,"deterministic/safety");
+    assert.equal(res.body.plan.domain,"health");
+    assert.equal(res.body.plan.clarification.required,true);
+    assert.equal(res.body.plan.external_searches.length,0);
+  }finally{
+    globalThis.fetch=originalFetch;
+  }
+});
+
 test("Brain uses only the dedicated Gemini free-tier key",async()=>{
   const originalFetch=globalThis.fetch;
   const previous=process.env.GEMINI_FREE_TIER_API_KEY;

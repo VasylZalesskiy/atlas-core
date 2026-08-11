@@ -91,6 +91,37 @@ function internetCandidate(item,index,lang){
   };
 }
 
+function directCandidate(action,locationText,lang){
+  if(!action)return null;
+  const mapsQuery=[clean(action.maps_query),clean(locationText)].filter(Boolean).join(" ");
+  return {
+    kind:"direct",
+    id:action.id||"direct-action",
+    source:action.source||(lang==="uk"?"Наступна дія":"Next action"),
+    title:action.title,
+    description:action.description||"",
+    recommendation:action.recommendation||"",
+    actionType:action.type||"direct",
+    url:action.primary_href||"",
+    actionLabel:action.primary_label||"",
+    secondaryUrl:action.secondary_href||"",
+    secondaryLabel:action.secondary_label||"",
+    googleMapsUrl:mapsQuery?`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`:"",
+    resolved:true
+  };
+}
+
+function automaticSearchScope(plan,steps){
+  if(plan?.direct_action?.type==="emergency")return "direct";
+  const searches=Array.isArray(plan?.external_searches)?plan.external_searches:[];
+  const hasNearby=searches.some(item=>item?.source==="maps")||steps.some(step=>step.nearby_relevant&&step.nearby_query);
+  const hasInternet=searches.some(item=>["web","marketplace","official"].includes(item?.source))||steps.some(step=>step.internet_relevant&&step.internet_query);
+  if(hasNearby&&hasInternet)return "both";
+  if(hasNearby)return "nearby";
+  if(hasInternet)return "internet";
+  return "direct";
+}
+
 function googlePlaceUrl(candidate){
   if(candidate.googleMapsUri)return candidate.googleMapsUri;
   if(candidate.latitude==null||candidate.longitude==null)return "";
@@ -100,6 +131,15 @@ function googlePlaceUrl(candidate){
 function CandidateAction({candidate,origin,lang}){
   if(candidate.kind==="passport"&&candidate.passportUrl){
     return <a className="chainAction" href={candidate.passportUrl}><UserRound size={16}/>{lang==="uk"?"Відкрити Паспорт":"Open Passport"}</a>;
+  }
+  if(candidate.kind==="direct"){
+    if(candidate.actionType==="emergency")return <div className="chainActions">
+      {candidate.url&&<a className="chainAction emergencyAction" href={candidate.url}><Phone size={16}/>{candidate.actionLabel}</a>}
+      {candidate.secondaryUrl&&<a className="chainAction secondaryAction" href={candidate.secondaryUrl}><Phone size={16}/>{candidate.secondaryLabel}</a>}
+    </div>;
+    if(candidate.googleMapsUrl)return <div className="chainActions">
+      <a className="chainAction" href={candidate.googleMapsUrl} target="_blank" rel="noreferrer"><Navigation size={16}/>{candidate.actionLabel||(lang==="uk"?"Знайти допомогу поруч":"Find nearby help")}</a>
+    </div>;
   }
   if(candidate.kind==="place"){
     const mapsUrl=googlePlaceUrl(candidate);
@@ -159,12 +199,14 @@ function candidateIdentity(candidate){
 }
 
 function candidatePriority(candidate,task){
+  if(candidate?.kind==="direct"&&candidate.actionType==="emergency")return 1000;
   if(candidate?.kind==="passport")return passportMatchesTask(candidate,task)
     ?500+Math.min(80,candidate.matchScore)
     :140+Math.min(40,candidate.matchScore);
   if(candidate?.kind==="external"&&candidate.resultKind==="store_option")return 480;
   if(candidate?.kind==="external"&&candidate.resultKind==="listing")return 450;
   if(candidate?.kind==="place")return 400;
+  if(candidate?.kind==="direct")return 360;
   if(candidate?.kind==="external"&&candidate.resultKind==="search_page"){
     const sourceBonus={OLX:30,Rozetka:25,"Prom.ua":20}[candidate.source]||0;
     return 300+sourceBonus;
@@ -174,6 +216,7 @@ function candidatePriority(candidate,task){
 }
 
 function recommendationReason(candidate,lang){
+  if(candidate?.kind==="direct")return candidate.recommendation||"";
   if(candidate?.kind==="passport")return lang==="uk"
     ?"Збіг знайдено серед можливостей людей Atlas."
     :"A match was found among Atlas people's capabilities.";
@@ -407,15 +450,17 @@ export default function Solution({lang}){
 
   useEffect(()=>{
     if(!passportsChecked||plan?.clarification?.required||searchScope)return;
-    setSearchScope("both");
+    const nextScope=automaticSearchScope(plan,steps);
+    setSearchScope(nextScope);
     setNearbyError("");
     setInternetError("");
     trackAtlas("Atlas Automatic Search Started",{
+      scope:nextScope,
       language:lang,
       location_provided:Boolean(initialWhere||origin)
     });
-    if(initialWhere&&!origin&&!originLoading)ensureOrigin();
-  },[passportsChecked,plan?.clarification?.required,searchScope,initialWhere]);
+    if((nextScope==="nearby"||nextScope==="both")&&initialWhere&&!origin&&!originLoading)ensureOrigin();
+  },[passportsChecked,plan,stepsKey,searchScope,initialWhere]);
 
   useEffect(()=>{
     const controller=new AbortController();
@@ -527,9 +572,11 @@ export default function Solution({lang}){
   ])),[passportGroups,lang]);
   const nearbyByStep=useMemo(()=>new Map(nearbyGroups.map(group=>[group.stepId,group.candidates||[]])),[nearbyGroups]);
   const internetByStep=useMemo(()=>new Map(internetGroups.map(group=>[group.stepId,group.candidates||[]])),[internetGroups]);
+  const plannedDirectCandidate=useMemo(()=>directCandidate(plan?.direct_action,initialWhere,lang),[plan?.direct_action,initialWhere,lang]);
 
   const rankedCandidates=useMemo(()=>{
     const candidates=[
+      plannedDirectCandidate,
       ...passportGroups.flatMap(group=>group.matches.slice(0,2).map(match=>passportCandidate(match,lang))),
       ...nearbyGroups.flatMap(group=>group.candidates||[]),
       ...internetGroups.flatMap(group=>group.candidates||[])
@@ -538,12 +585,12 @@ export default function Solution({lang}){
       .filter(Boolean)
       .filter((candidate,index,array)=>array.findIndex(item=>candidateIdentity(item)===candidateIdentity(candidate))===index)
       .sort((a,b)=>candidatePriority(b,activeTask)-candidatePriority(a,activeTask));
-  },[passportGroups,nearbyGroups,internetGroups,lang,activeTask]);
+  },[plannedDirectCandidate,passportGroups,nearbyGroups,internetGroups,lang,activeTask]);
   const recommendedCandidate=rankedCandidates[0]||null;
   const recommendedAlternatives=rankedCandidates.slice(1,5);
 
   const chains=useMemo(()=>{
-    if(!searchScope)return [];
+    if(!["nearby","internet","both"].includes(searchScope))return [];
     const build=(mode,{preferExternal=false}={})=>{
       const items=steps.map(step=>{
         const passport=passportByStep.get(step.id);
@@ -594,9 +641,10 @@ export default function Solution({lang}){
   }
 
   function refine(option){
-    const value=`${activeTask.replace(/[,.]+$/g,"")}, ${option}`;
+    const base=plan?.domain==="health"?clean(plan?.goal):activeTask.replace(/[,.]+$/g,"");
+    const value=`${base}, ${option}`;
     trackAtlas("Atlas Search Refined",{language:lang});
-    setTask(value);
+    setTask(base);
     setActiveTask(value);
   }
 
@@ -609,8 +657,10 @@ export default function Solution({lang}){
   }
 
   const externalBusy=nearbyLoading||internetLoading||originLoading;
-  const solutionBusy=brainLoading||passportLoading||externalBusy||Boolean(activeTask&&!searchScope&&!plan?.clarification?.required);
+  const solutionBusy=brainLoading||passportLoading||externalBusy||Boolean(activeTask&&!searchScope&&!plan?.clarification?.required&&!plan?.direct_action);
   const locationText=origin?(initialWhere||(lang==="uk"?"поточна локація":"current location")):(initialWhere||(lang==="uk"?"не визначена":"not set"));
+  const scopeChoiceAvailable=plan?.solution_scope==="transaction";
+  const healthTask=plan?.domain==="health";
 
   return <main className="simpleSolutionPage">
     <section className="simpleSolutionShell">
@@ -642,10 +692,11 @@ export default function Solution({lang}){
 
       {plan?.clarification?.required&&<div className="simpleClarifier">
         <strong>{plan.clarification.question}</strong>
+        {plan.clarification.helper_text&&<span>{plan.clarification.helper_text}</span>}
         {Array.isArray(plan.clarification.options)&&plan.clarification.options.length>0&&<div className="simpleClarifierChips">{plan.clarification.options.map(option=><button key={option} type="button" onClick={()=>refine(option)}>{option}</button>)}</div>}
       </div>}
 
-      {!plan?.clarification?.required&&activeTask&&<section className="searchScopePicker">
+      {!plan?.clarification?.required&&activeTask&&scopeChoiceAvailable&&<section className="searchScopePicker">
         <div className="scopeHeading">
           <span>{lang==="uk"?"ВАШ ВИБІР":"YOUR CHOICE"}</span>
           <h2>{lang==="uk"?"Де шукати?":"Where should Atlas search?"}</h2>
@@ -676,13 +727,15 @@ export default function Solution({lang}){
         <RefreshCw className="spin" size={20}/>
         <div>
           <strong>{lang==="uk"?"Шукаю конкретні варіанти":"Finding concrete options"}</strong>
-          <span>{lang==="uk"?"Atlas сам перевіряє Паспорти, пропозиції поруч і маркетплейси.":"Atlas is automatically checking Passports, nearby options and marketplaces."}</span>
+          <span>{healthTask
+            ?(lang==="uk"?"Atlas перевіряє медичні можливості та заклади поруч.":"Atlas is checking medical capabilities and nearby care.")
+            :(lang==="uk"?"Atlas сам перевіряє Паспорти, пропозиції поруч і маркетплейси.":"Atlas is automatically checking Passports, nearby options and marketplaces.")}</span>
         </div>
       </div>}
 
       {(searchScope==="nearby"||searchScope==="both")&&!origin&&!originLoading&&<div className="simpleGeoPrompt">
-        <div><strong>{lang==="uk"?"Додати найближчі магазини й маршрут":"Add nearby stores and a route"}</strong><span>{lang==="uk"?"Це доповнить уже автоматичний пошук. Координати не зберігаються.":"This adds to the automatic search. Coordinates are not stored."}</span></div>
-        <button className="primary" type="button" onClick={ensureOrigin}><MapPin size={18}/>{lang==="uk"?"Додати мою локацію":"Add my location"}</button>
+        <div><strong>{healthTask?(lang==="uk"?"Знайти конкретну медичну допомогу й маршрут":"Find concrete medical care and a route"):(lang==="uk"?"Додати найближчі магазини й маршрут":"Add nearby stores and a route")}</strong><span>{lang==="uk"?"Координати потрібні лише для пошуку поруч і не зберігаються.":"Coordinates are used only for nearby search and are not stored."}</span></div>
+        <button className="primary" type="button" onClick={ensureOrigin}><MapPin size={18}/>{healthTask?(lang==="uk"?"Знайти допомогу поруч":"Find nearby care"):(lang==="uk"?"Додати мою локацію":"Add my location")}</button>
       </div>}
 
       {originError&&<div className="simpleEmpty">{lang==="uk"?"Не вдалося визначити цю локацію. Вкажіть місто на головній сторінці або дозвольте геолокацію.":"Could not resolve this location. Enter a city on the home page or allow geolocation."}</div>}

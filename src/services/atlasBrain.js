@@ -13,6 +13,96 @@ function isAgricultureNeed(value){
   return /агро|сільськ|ферм|врожай|картоп|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|food|produce|peas?/i.test(String(value||""));
 }
 
+function isHealthNeed(value){
+  return /болить|біль|живіт|голов|груд|спин|температур|нудот|блюван|запамороч|не можу дих|важко дих|непритом|кров у|каш(ель|ля)|травм|поріз|опік|тиск|серц|stomach ache|stomach pain|headache|chest pain|fever|nausea|vomit|dizz|faint|bleed|cannot breathe|can't breathe/i.test(String(value||""));
+}
+
+function healthDecision(value){
+  const text=String(value||"");
+  if(/так\s*[,—-]?\s*є хоча б одна/i.test(text))return "emergency";
+  if(/ні\s*[,—-]?\s*біль легкий і не посилюється/i.test(text))return "mild";
+  if(/ні\s*[,—-]?\s*але біль сильний або посилюється/i.test(text))return "urgent";
+  return "triage";
+}
+
+function healthGoal(value){
+  return String(value||"").replace(/,\s*(?:так\s*[,—-]?\s*є хоча б одна|ні\s*[,—-]?\s*але біль сильний або посилюється|ні\s*[,—-]?\s*біль легкий і не посилюється).*$/i,"").trim();
+}
+
+function createHealthPlan(query,lang){
+  const decision=healthDecision(query);
+  const goal=healthGoal(query);
+  const uk=lang==="uk";
+  const passportTerms=uk?["лікар","сімейний лікар","медик","фельдшер"]:["doctor","family doctor","medic","paramedic"];
+  const base={
+    understood:Boolean(goal),goal,intent:"get_help",domain:"health",solution_scope:"local_action",
+    passport_search:{terms:passportTerms,capability_description:uk?"Перевірена медична допомога або консультація":"Verified medical help or consultation"},
+    result_strategy:uk?"Спочатку терміновість, потім одна найбезпечніша наступна дія":"Urgency first, then one safest next action",
+    fallback:true
+  };
+
+  if(decision==="triage")return {
+    ...base,urgency:"unknown",needs_location:false,
+    clarification:{
+      required:true,
+      question:uk?"Чи є хоча б одна небезпечна ознака?":"Is at least one warning sign present?",
+      helper_text:uk
+        ?"Раптовий або дуже сильний біль; живіт різко болить при дотику; кров у блюванні чи калі; непритомність; утруднене дихання або біль у грудях."
+        :"Sudden or severe pain; marked tenderness; blood in vomit or stool; collapse; trouble breathing or chest pain.",
+      options:uk
+        ?["Так, є хоча б одна","Ні, але біль сильний або посилюється","Ні, біль легкий і не посилюється"]
+        :["Yes, at least one","No, but pain is severe or worsening","No, pain is mild and not worsening"]
+    },
+    solution_steps:[{
+      id:"medical-triage",title:uk?"Визначити терміновість":"Determine urgency",purpose:goal,
+      passport_terms:passportTerms,nearby_query:"",internet_query:"",nearby_relevant:false,internet_relevant:false
+    }],
+    external_searches:[],
+    safety:{level:"caution",message:uk?"Atlas не ставить діагноз — спочатку потрібно визначити терміновість.":"Atlas does not diagnose — urgency must be determined first."}
+  };
+
+  if(decision==="emergency")return {
+    ...base,urgency:"emergency",needs_location:false,clarification:{required:false,question:"",options:[]},
+    direct_action:{
+      id:"call-emergency",type:"emergency",source:uk?"Екстрена медична допомога":"Emergency medical help",
+      title:uk?"Телефонуйте 103 або 112 зараз":"Call emergency services now",
+      description:uk?"Повідомте диспетчеру симптоми та точне місце перебування.":"Tell the dispatcher the symptoms and your exact location.",
+      primary_href:"tel:103",primary_label:uk?"Подзвонити 103":"Call 103",
+      secondary_href:"tel:112",secondary_label:uk?"Подзвонити 112":"Call 112",
+      recommendation:uk?"За небезпечних ознак наступна дія — виклик екстреної допомоги, а не пошук інформації.":"With warning signs, the next action is emergency help, not an information search."
+    },
+    solution_steps:[{
+      id:"call-emergency",title:uk?"Викликати екстрену допомогу":"Call emergency services",purpose:goal,
+      passport_terms:[],nearby_query:"",internet_query:"",nearby_relevant:false,internet_relevant:false
+    }],
+    external_searches:[],
+    safety:{level:"urgent",message:uk?"Не керуйте авто самі, якщо стан тяжкий.":"Do not drive yourself if the condition is severe."}
+  };
+
+  const urgent=decision==="urgent";
+  const mapsQuery=urgent
+    ?(uk?"невідкладна медична допомога лікарня клініка":"urgent medical care hospital clinic")
+    :(uk?"сімейний лікар амбулаторія":"family doctor medical clinic");
+  return {
+    ...base,urgency:urgent?"urgent":"soon",needs_location:true,clarification:{required:false,question:"",options:[]},
+    direct_action:{
+      id:urgent?"medical-care-today":"contact-family-doctor",type:"find_care",source:uk?"Медична допомога":"Medical help",
+      title:urgent?(uk?"Зверніться до лікаря сьогодні":"See a doctor today"):(uk?"Зв’яжіться із сімейним лікарем":"Contact a family doctor"),
+      description:urgent
+        ?(uk?"Сильний або наростаючий біль потребує медичної оцінки сьогодні.":"Severe or worsening pain needs medical assessment today.")
+        :(uk?"Якщо біль не минає, повторюється або посилюється — не відкладайте консультацію.":"If the pain persists, recurs or worsens, do not delay a consultation."),
+      maps_query:mapsQuery,primary_label:urgent?(uk?"Знайти допомогу поруч":"Find nearby care"):(uk?"Знайти сімейного лікаря":"Find a family doctor"),
+      recommendation:urgent?(uk?"Наступна дія — медична оцінка сьогодні.":"The next action is medical assessment today."):(uk?"Наступна дія — зв’язок із сімейним лікарем, а не веб-пошук.":"The next action is contacting a family doctor, not a web search.")
+    },
+    solution_steps:[{
+      id:urgent?"urgent-care":"family-doctor",title:urgent?(uk?"Медична оцінка сьогодні":"Medical assessment today"):(uk?"Консультація сімейного лікаря":"Family doctor consultation"),purpose:goal,
+      passport_terms:passportTerms,nearby_query:mapsQuery,internet_query:"",nearby_relevant:true,internet_relevant:false
+    }],
+    external_searches:[{source:"maps",mode:"nearby",query:mapsQuery,reason:uk?"Знайти конкретну медичну допомогу та маршрут":"Find concrete medical care and a route"}],
+    safety:{level:urgent?"urgent":"caution",message:urgent?(uk?"Якщо з’явиться небезпечна ознака — телефонуйте 103 або 112.":"If a warning sign appears, call emergency services."):(uk?"Якщо стан погіршується — перейдіть до невідкладної допомоги.":"If the condition worsens, seek urgent care.")}
+  };
+}
+
 function productSearchTerm(value){
   const ignored=new Set([
     "потрібно","потрібен","потрібна","потрібні","треба","хочу","шукаю","знайти","купити","придбати","замовити",
@@ -33,6 +123,7 @@ function productSearchTerm(value){
 export function createFallbackPlan(query,{lang="uk"}={}){
   const terms=cleanTerms(query);
   const goal=String(query||"").trim();
+  if(isHealthNeed(goal))return createHealthPlan(goal,lang);
   const productNeed=isProductNeed(goal);
   const agricultureNeed=isAgricultureNeed(goal);
   const product=productSearchTerm(goal)||goal;

@@ -87,6 +87,7 @@
 .chainActions{grid-column:2;display:flex;gap:7px;flex-wrap:wrap}
 .chainActions .chainAction{grid-column:auto}
 .chainAction.secondaryAction{background:#fff;color:#0b7540;border:1px solid #cbded2}
+.chainAction.emergencyAction{background:#c93131}
 .chainAlternatives{grid-column:2;display:grid;gap:8px;margin-top:12px;padding-top:11px;border-top:1px dashed #dfe7e2}
 .chainAlternatives>strong{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#68756d}
 .chainAlternative{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e4ebe7;background:#f9fbfa;border-radius:12px;padding:10px}
