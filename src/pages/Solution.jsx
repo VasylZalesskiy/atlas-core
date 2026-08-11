@@ -146,6 +146,13 @@ function passportMatchesTask(candidate,task){
   return taskTokens.some(token=>candidateTokens.has(token));
 }
 
+function candidateIdentity(candidate){
+  if(candidate?.kind==="external"&&["search_page","maps_search"].includes(candidate.resultKind)){
+    return `${candidate.resultKind}:${candidate.source}`;
+  }
+  return candidate?.id||candidate?.url||candidate?.title||"";
+}
+
 function candidatePriority(candidate,task){
   if(candidate?.kind==="passport")return passportMatchesTask(candidate,task)
     ?500+Math.min(80,candidate.matchScore)
@@ -520,7 +527,7 @@ export default function Solution({lang}){
     ];
     return candidates
       .filter(Boolean)
-      .filter((candidate,index,array)=>array.findIndex(item=>(item.id||item.url||item.title)===(candidate.id||candidate.url||candidate.title))===index)
+      .filter((candidate,index,array)=>array.findIndex(item=>candidateIdentity(item)===candidateIdentity(candidate))===index)
       .sort((a,b)=>candidatePriority(b,activeTask)-candidatePriority(a,activeTask));
   },[passportGroups,nearbyGroups,internetGroups,lang,activeTask]);
   const recommendedCandidate=rankedCandidates[0]||null;
