@@ -122,17 +122,24 @@ function diagnosticSummary(data){
   };
 }
 
-async function executeWebSearch({apiKey,model,instructions,input,searchContextSize="medium",userLocation=null,allowedDomains=[],maxOutputTokens=3200}){
+async function executeWebSearch({apiKey,model,instructions,input,searchContextSize="medium",userLocation=null,allowedDomains=[],maxOutputTokens=3200,timeoutMs=18000}){
   const webTool={type:"web_search",search_context_size:searchContextSize};
   if(userLocation)webTool.user_location=userLocation;
   if(allowedDomains.length)webTool.filters={allowed_domains:allowedDomains};
-  const response=await fetch(OPENAI_URL,{
-    method:"POST",
-    headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},
-    body:JSON.stringify({model,store:false,instructions,input,tools:[webTool],tool_choice:"required",max_output_tokens:maxOutputTokens})
-  });
-  const data=await response.json().catch(()=>({}));
-  return {response,data};
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),timeoutMs);
+  try{
+    const response=await fetch(OPENAI_URL,{
+      method:"POST",
+      headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},
+      body:JSON.stringify({model,store:false,instructions,input,tools:[webTool],tool_choice:"required",max_output_tokens:maxOutputTokens}),
+      signal:controller.signal
+    });
+    const data=await response.json().catch(()=>({}));
+    return {response,data};
+  }finally{
+    clearTimeout(timeout);
+  }
 }
 
 async function runWebDiagnostic(apiKey,model){
@@ -232,7 +239,8 @@ export default async function handler(req,res){
     let results=deduplicate(completed.flatMap(attempt=>attempt.results));
     const failed=attempts.filter(attempt=>attempt.status==="rejected");
 
-    if(!results.length){
+    const marketplaceTask=allowed.some(item=>item.source==="marketplace");
+    if(!results.length&&!marketplaceTask){
       const queryPlan=allowed.map(item=>`[${item.source}] ${item.query}`).join("\n");
       const fallback=await executeWebSearch({
         apiKey,model,instructions,searchContextSize:"high",maxOutputTokens:3400,
@@ -247,7 +255,6 @@ export default async function handler(req,res){
       }
     }
 
-    const marketplaceTask=allowed.some(item=>item.source==="marketplace");
     if(marketplaceTask){
       results=results.filter(isActionableCommerceResult);
       const marketplaceQuery=allowed.find(item=>item.source==="marketplace")?.query||allowed[0]?.query||goal;
