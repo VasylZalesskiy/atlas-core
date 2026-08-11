@@ -150,7 +150,9 @@ export function isActionableCommerceResult(result){
 const SEARCH_STOP_WORDS=new Set([
   "потрібно","потрібен","потрібна","потрібні","треба","шукаю","хочу","купити","куплю","продати","продам",
   "знайти","доставка","доставкою","оптом","гуртом","мені","для","або","та","і","у","в","на","по",
-  "need","want","find","buy","sell","with","delivery","wholesale","for","the","a","an"
+  "продаж","оголошення","пропозиція","пропозиції","маркетплейс","україна","україні","ua","olx","rozetka","prom",
+  "agroboard","agriaffaires","need","want","find","buy","sell","with","delivery","wholesale","marketplace","listing",
+  "ukraine","for","the","a","an"
 ]);
 
 export function marketplaceSearchTerm(text){
@@ -158,7 +160,13 @@ export function marketplaceSearchTerm(text){
     .toLowerCase()
     .replace(/\d+(?:[\s.]*\d)*(?:[.,]\d+)?\s*(?:тонн(?:а|и|у)?|тон(?!\p{L})|т(?!\p{L})|кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|tonnes?\b)/giu," ")
     .replace(/[^\p{L}\p{N}\s-]/gu," ");
-  const words=withoutQuantity.split(/\s+/).filter(Boolean).filter(word=>!SEARCH_STOP_WORDS.has(word));
+  const seen=new Set();
+  const words=withoutQuantity.split(/\s+/).filter(Boolean).filter(word=>!SEARCH_STOP_WORDS.has(word)).filter(word=>{
+    const key=word.length>5?word.slice(0,5):word;
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
   return words.slice(0,6).join(" ").trim();
 }
 
