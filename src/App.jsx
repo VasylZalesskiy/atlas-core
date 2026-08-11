@@ -1,5 +1,7 @@
 import {useMemo,useState} from "react";
 import {Routes,Route} from "react-router-dom";
+import {Analytics} from "@vercel/analytics/react";
+import {SpeedInsights} from "@vercel/speed-insights/react";
 import Header from "./components/Header";
 import Home from "./pages/Home";
 import Solution from "./pages/Solution";
@@ -18,6 +20,8 @@ export default function App(){
       <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
       <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
     </Routes>
-    <footer>Atlas 2.3 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
+    <footer>Atlas 2.4 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
+    <Analytics/>
+    <SpeedInsights/>
   </>;
 }

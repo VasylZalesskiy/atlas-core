@@ -5,7 +5,14 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
   const response=await fetch("/api/external-search",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({goal:plan.goal,searches,language:lang}),
+    body:JSON.stringify({
+      goal:plan.goal,
+      domain:plan.domain||"",
+      solution_scope:plan.solution_scope||"",
+      location_text:plan.location_text||"",
+      searches,
+      language:lang
+    }),
     signal
   });
   const data=await response.json().catch(()=>({}));

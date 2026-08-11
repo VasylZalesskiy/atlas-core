@@ -3,6 +3,7 @@ import {Link,useNavigate} from "react-router-dom";
 import {FileText,MapPin,MessageSquare,PlusCircle,Search} from "lucide-react";
 import ThinkingState from "../components/ThinkingState";
 import {saveAtlasFeedback} from "../services/feedbackStore";
+import {trackAtlas} from "../services/analytics";
 
 const examples={
   uk:["Болить живіт","Потрібен генератор","Хочу продати овочі","Пробило колесо"],
@@ -30,6 +31,11 @@ export default function Home({t,lang}){
     e.preventDefault();
     const cleanTask=task.trim();
     if(!cleanTask)return;
+    trackAtlas("Atlas Search Submitted",{
+      language:lang,
+      location_provided:Boolean(where.trim()),
+      source:"home"
+    });
     setActiveStep(0);
     setThinking(true);
   }
@@ -99,6 +105,11 @@ export default function Home({t,lang}){
         </div>
 
         <button className="primary" type="submit" style={{fontSize:14,padding:"13px 18px"}}><Search size={18}/>{t.build}</button>
+        <small style={{color:"#69756e",lineHeight:1.45}}>
+          {lang==="uk"
+            ?"Для покращення тестової версії Atlas зберігає текст задачі й технічні події. Координати та контакти не записуються. Не додавайте особисті дані."
+            :"To improve the test version, Atlas stores task text and technical events. Coordinates and contacts are not recorded. Do not include personal data."}
+        </small>
       </form>
 
       <div className="examples" style={{fontSize:12,marginTop:16}}>

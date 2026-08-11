@@ -4,9 +4,10 @@ function cleanTerms(query){
 
 export function createFallbackPlan(query,{lang="uk"}={}){
   const terms=cleanTerms(query);
+  const goal=String(query||"").trim();
   return {
-    understood:Boolean(String(query||"").trim()),
-    goal:String(query||"").trim(),
+    understood:Boolean(goal),
+    goal,
     intent:"solve",
     domain:"general",
     solution_scope:"mixed",
@@ -17,6 +18,16 @@ export function createFallbackPlan(query,{lang="uk"}={}){
       terms,
       capability_description:lang==="uk"?"Можливості людей, речі, навички або допомога, релевантні запиту":"People, items, skills or help relevant to the request"
     },
+    solution_steps:goal?[{
+      id:"main-result",
+      title:lang==="uk"?"Знайти основне рішення":"Find the main solution",
+      purpose:goal,
+      passport_terms:terms,
+      nearby_query:goal,
+      internet_query:goal,
+      nearby_relevant:true,
+      internet_relevant:true
+    }]:[],
     external_searches:[],
     safety:{level:"none",message:""},
     result_strategy:lang==="uk"?"Спочатку Паспорти можливостей, потім найкращі додаткові варіанти":"Opportunity Passports first, then the best additional options",
@@ -24,11 +35,11 @@ export function createFallbackPlan(query,{lang="uk"}={}){
   };
 }
 
-async function requestBrainPlan(query,{lang="uk",location=null,signal}={}){
+async function requestBrainPlan(query,{lang="uk",location=null,locationText="",signal}={}){
   const response=await fetch("/api/brain",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({query,language:lang,location}),
+    body:JSON.stringify({query,language:lang,location,location_text:locationText}),
     signal
   });
 
@@ -131,10 +142,10 @@ function recoveryInstruction(plan,{lang="uk",locationAvailable=false}={}){
   return [clarificationRule,routeRule,localRule,mixedRule].filter(Boolean).join(" ");
 }
 
-export async function analyzeAtlasQuery(query,{lang="uk",location=null,signal}={}){
+export async function analyzeAtlasQuery(query,{lang="uk",location=null,locationText="",signal}={}){
   const original=String(query||"").trim();
-  const qualityContext={locationAvailable:Boolean(location)};
-  let candidate=await requestBrainPlan(original,{lang,location,signal});
+  const qualityContext={locationAvailable:Boolean(location||String(locationText||"").trim())};
+  let candidate=await requestBrainPlan(original,{lang,location,locationText,signal});
   if(!planNeedsRecovery(candidate,qualityContext))return candidate;
 
   // Give Brain up to two chances to rebuild an invalid plan. Never return the
@@ -146,7 +157,7 @@ export async function analyzeAtlasQuery(query,{lang="uk",location=null,signal}={
       :`Original user request: “${original}”. The current plan failed the quality gate. ${violation} Opportunity Passports are always checked first, but a Passport miss must not stop execution. Do not impose a fulfillment channel the user did not request. Do not ask for clarification when useful searching can already begin. If one missing parameter truly blocks all useful retrieval, ask one short clarification. Otherwise produce practical retrieval actions that lead to a concrete next step. Do not invent results or create a scenario for this example.`;
 
     try{
-      candidate=await requestBrainPlan(recoveryQuery,{lang,location,signal});
+      candidate=await requestBrainPlan(recoveryQuery,{lang,location,locationText,signal});
       if(!planNeedsRecovery(candidate,qualityContext))return candidate;
     }catch(error){
       if(error?.name==="AbortError")throw error;

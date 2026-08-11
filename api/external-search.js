@@ -1,3 +1,9 @@
+import {
+  buildMarketplaceShortcuts,extractListingQuantityTonnes,extractPriceText,extractRequestedTonnes,
+  googleMapsSearchUrl,hostname,inferSourceType,isActionableCommerceResult,rankMarketplaceResults,
+  resultKind,sourceGroupsFor,sourceName
+} from "./_search-utils.js";
+
 const OPENAI_URL="https://api.openai.com/v1/responses";
 
 function send(res,status,body){
@@ -6,12 +12,10 @@ function send(res,status,body){
   res.end(JSON.stringify(body));
 }
 
-function cleanText(value){
-  return String(value||"").replace(/\s+/g," ").trim();
-}
-
-function hostname(url){
-  try{return new URL(url).hostname.replace(/^www\./,"")}catch{return ""}
+function cleanText(value){return String(value||"").replace(/\s+/g," ").trim()}
+function logAnalytics(event,data={}){console.log(JSON.stringify({level:"info",message:"atlas-analytics",event,...data}))}
+function logAnalyticsError(event,error,data={}){
+  console.error(JSON.stringify({level:"error",message:"atlas-analytics",event,error:String(error?.message||error||"unknown").slice(0,300),...data}));
 }
 
 function cleanSnippet(value){
@@ -24,14 +28,7 @@ function cleanSnippet(value){
     .replace(/\(\s*\)/g,"")
     .replace(/\s{2,}/g," ")
     .trim()
-    .slice(0,300);
-}
-
-function inferSourceType(url){
-  const host=hostname(url).toLowerCase();
-  if(/(^|\.)gov\.|(^|\.)gov$|\.gov\.ua$|diia\.gov\.ua$|kmu\.gov\.ua$|msp\.gov\.ua$/i.test(host))return "official";
-  if(/(^|\.)(upwork\.com|freelancehunt\.com|work\.ua|robota\.ua|linkedin\.com|indeed\.com|olx\.ua|auto\.ria\.com|dom\.ria\.com|prom\.ua|etsy\.com|fiverr\.com)$/i.test(host))return "marketplace";
-  return "web";
+    .slice(0,420);
 }
 
 function snippetAround(text,annotation){
@@ -39,26 +36,33 @@ function snippetAround(text,annotation){
   if(!raw)return "";
   const start=Number(annotation?.start_index);
   const end=Number(annotation?.end_index);
-  if(!Number.isFinite(start)||!Number.isFinite(end))return cleanSnippet(raw.slice(0,320));
-  const from=Math.max(0,start-120);
-  const to=Math.min(raw.length,end+190);
-  return cleanSnippet(raw.slice(from,to));
+  if(!Number.isFinite(start)||!Number.isFinite(end))return cleanSnippet(raw.slice(0,420));
+  return cleanSnippet(raw.slice(Math.max(0,start-180),Math.min(raw.length,end+260)));
 }
 
-function actionabilityScore(result){
-  const hay=`${result.title} ${result.url}`.toLowerCase();
-  let score=0;
-  if(/jobs?|vacanc|find-work|find_work|search\/jobs|freelance|projects?|gigs?|marketplace|apply|remote/.test(hay))score+=5;
-  if(/official/.test(result.source_type))score+=2;
-  if(/how[- ]?to|beginner|guide|blog|academy|learn|resources?|help\/|article|tips/.test(hay))score-=5;
-  if(/login|signup|register/.test(hay))score-=1;
-  return score;
+function enrichResult(result,sourceGroup,{locationText=""}={}){
+  const combined=`${result.title||""} ${result.snippet||""}`;
+  const quantity=extractListingQuantityTonnes(combined);
+  const host=hostname(result.url);
+  const retailer=["rozetka.com.ua","silpo.ua","metro.zakaz.ua","novus.zakaz.ua","auchan.zakaz.ua","zakaz.ua"].includes(host);
+  return {
+    ...result,
+    source_type:inferSourceType(result.url),
+    source_name:sourceName(result.url),
+    source_group:sourceGroup?.id||"open-web",
+    result_kind:resultKind(result.url),
+    price_text:extractPriceText(combined),
+    location_text:"",
+    quantity_tonnes:quantity,
+    quantity_text:Number.isFinite(quantity)?`${quantity} т`:"",
+    verification_text:"Дані з оголошення — підтвердьте наявність, кількість і ціну у продавця",
+    google_maps_url:retailer?googleMapsSearchUrl(sourceName(result.url),locationText):""
+  };
 }
 
-function extractVerifiedResults(data){
+function extractVerifiedResults(data,sourceGroup,context={}){
   const results=[];
   const seen=new Set();
-
   for(const item of data?.output||[]){
     if(item?.type!=="message")continue;
     for(const content of item?.content||[]){
@@ -69,41 +73,24 @@ function extractVerifiedResults(data){
         const url=String(annotation.url);
         if(seen.has(url))continue;
         seen.add(url);
-        results.push({
+        results.push(enrichResult({
           title:cleanText(annotation.title)||hostname(url)||"Знайдене джерело",
-          snippet:snippetAround(text,annotation),
-          url,
-          source_type:inferSourceType(url),
-          price_text:"",
-          location_text:hostname(url)
-        });
+          snippet:snippetAround(text,annotation),url
+        },sourceGroup,context));
       }
     }
   }
-
   if(results.length<3){
     for(const item of data?.output||[]){
       if(item?.type!=="web_search_call")continue;
       for(const source of item?.action?.sources||[]){
         if(source?.type!=="url"||!source.url||seen.has(source.url))continue;
         seen.add(source.url);
-        results.push({
-          title:hostname(source.url)||"Знайдене джерело",
-          snippet:"",
-          url:source.url,
-          source_type:inferSourceType(source.url),
-          price_text:"",
-          location_text:hostname(source.url)
-        });
+        results.push(enrichResult({title:hostname(source.url)||"Знайдене джерело",snippet:"",url:source.url},sourceGroup,context));
       }
     }
   }
-
-  return results
-    .map((result,index)=>({...result,_index:index,_score:actionabilityScore(result)}))
-    .sort((a,b)=>b._score-a._score||a._index-b._index)
-    .map(({_score,_index,...result})=>result)
-    .slice(0,8);
+  return results;
 }
 
 function diagnosticSummary(data){
@@ -135,22 +122,14 @@ function diagnosticSummary(data){
   };
 }
 
-async function executeWebSearch({apiKey,model,instructions,input,searchContextSize="medium",userLocation=null,maxOutputTokens=3200}){
+async function executeWebSearch({apiKey,model,instructions,input,searchContextSize="medium",userLocation=null,allowedDomains=[],maxOutputTokens=3200}){
   const webTool={type:"web_search",search_context_size:searchContextSize};
   if(userLocation)webTool.user_location=userLocation;
-
+  if(allowedDomains.length)webTool.filters={allowed_domains:allowedDomains};
   const response=await fetch(OPENAI_URL,{
     method:"POST",
     headers:{Authorization:`Bearer ${apiKey}`,"Content-Type":"application/json"},
-    body:JSON.stringify({
-      model,
-      store:false,
-      instructions,
-      input,
-      tools:[webTool],
-      tool_choice:"required",
-      max_output_tokens:maxOutputTokens
-    })
+    body:JSON.stringify({model,store:false,instructions,input,tools:[webTool],tool_choice:"required",max_output_tokens:maxOutputTokens})
   });
   const data=await response.json().catch(()=>({}));
   return {response,data};
@@ -159,108 +138,136 @@ async function executeWebSearch({apiKey,model,instructions,input,searchContextSi
 async function runWebDiagnostic(apiKey,model){
   try{
     const {response,data}=await executeWebSearch({
-      apiKey,
-      model,
-      input:"Find one current official Ukrainian government page about social assistance. Use web search and cite the source.",
-      searchContextSize:"low",
-      userLocation:{type:"approximate",country:"UA",region:"Ternopil"},
-      maxOutputTokens:1200
+      apiKey,model,input:"Find one current official Ukrainian government page about social assistance. Use web search and cite the source.",
+      searchContextSize:"low",userLocation:{type:"approximate",country:"UA",region:"Ternopil"},maxOutputTokens:1200
     });
-    if(!response.ok){
-      return {
-        api_call_ok:false,
-        openai_status:response.status,
-        error_type:data?.error?.type||"unknown",
-        error_code:data?.error?.code||"unknown",
-        message:data?.error?.message||"OpenAI web search failed"
-      };
-    }
+    if(!response.ok)return {api_call_ok:false,openai_status:response.status,error_type:data?.error?.type||"unknown",error_code:data?.error?.code||"unknown",message:data?.error?.message||"OpenAI web search failed"};
     return {api_call_ok:true,openai_status:response.status,model:data?.model||model,...diagnosticSummary(data)};
   }catch(error){
     return {api_call_ok:false,openai_status:0,error_type:"network_or_runtime_error",error_code:"request_failed",message:error?.message||"Request failed"};
   }
 }
 
+function searchInstructions(language){
+  return `You are Atlas external-search executor. Find REAL, current, actionable sources that solve the user's goal.
+
+Rules:
+- You MUST use web search and cite every recommendation.
+- Search only the domains made available by the web-search tool when domain filters are present.
+- For marketplace tasks, search several wording variants and prefer individual current listings over category, home, article or advice pages.
+- For bulk purchases, preserve the requested product, quantity and geography. Look for a supplier whose DECLARED quantity covers the request; if unavailable, return several smaller concrete offers that could be combined.
+- For every cited listing, state in the same sentence any declared quantity, unit price or total price, location, date and delivery option visible in the source. Omit facts the source does not show.
+- Listing facts are seller claims, not verified availability. Never claim Atlas confirmed stock.
+- Never invent a URL, seller, listing, quantity, price, date, location, delivery, availability, eligibility or contact.
+- Prefer sources where the user can contact a provider, buy, sell, apply, book or complete the next action now.
+- Deprioritize guides, blogs, news, generic marketing pages and old category pages.
+- Return up to 6 useful sources, best first. If none are reliable, say so instead of guessing.
+- Write in ${language==="uk"?"Ukrainian":"English"}.`;
+}
+
+function deduplicate(results){
+  const seen=new Set();
+  return results.filter(result=>{
+    let key=result.url;
+    try{const url=new URL(result.url);url.hash="";[...url.searchParams.keys()].filter(name=>/^utm_|gclid|fbclid/i.test(name)).forEach(name=>url.searchParams.delete(name));key=url.toString()}catch{}
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export default async function handler(req,res){
+  const startedAt=Date.now();
   const apiKey=process.env.OPENAI_API_KEY;
   const model=process.env.OPENAI_SEARCH_MODEL||process.env.OPENAI_MODEL||"gpt-5-mini";
-
   if(req.method==="GET"){
     const base={status:"atlas-external-search-endpoint-online",openai_key_configured:Boolean(apiKey),model};
     if(String(req.query?.test||"")==="1"){
       if(!apiKey)return send(res,200,{...base,api_call_ok:false,error_code:"openai-key-missing"});
-      const diagnostic=await runWebDiagnostic(apiKey,model);
-      return send(res,200,{...base,...diagnostic});
+      return send(res,200,{...base,...await runWebDiagnostic(apiKey,model)});
     }
     return send(res,200,base);
   }
-
   if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
   if(!apiKey)return send(res,503,{error:"openai-key-missing"});
 
   let body={};
-  try{body=typeof req.body==="string"?JSON.parse(req.body||"{}"):req.body||{}}
-  catch{return send(res,400,{error:"invalid-json"})}
-
+  try{body=typeof req.body==="string"?JSON.parse(req.body||"{}"):req.body||{}}catch{return send(res,400,{error:"invalid-json"})}
   const searches=Array.isArray(body.searches)?body.searches.slice(0,4):[];
   const goal=cleanText(body.goal).slice(0,700);
+  const domain=cleanText(body.domain).slice(0,160);
+  const locationText=cleanText(body.location_text).slice(0,200);
   const language=body.language==="en"?"en":"uk";
+  if(!goal||!searches.length)return send(res,200,{results:[],sources_checked:[]});
 
-  if(!goal||!searches.length)return send(res,200,{results:[]});
+  const allowed=searches.filter(item=>item&&["web","marketplace","official"].includes(item.source)).map(item=>({
+    source:item.source,query:cleanText(item.query).slice(0,400),reason:cleanText(item.reason).slice(0,300)
+  })).filter(item=>item.query);
+  if(!allowed.length)return send(res,200,{results:[],sources_checked:[]});
 
-  const allowed=searches
-    .filter(item=>item&&["web","marketplace","official"].includes(item.source))
-    .map(item=>({
-      source:item.source,
-      query:cleanText(item.query).slice(0,400),
-      reason:cleanText(item.reason).slice(0,300)
-    }))
-    .filter(item=>item.query);
+  const requestedTonnes=extractRequestedTonnes(`${goal} ${allowed.map(item=>item.query).join(" ")}`);
+  const tasks=allowed.flatMap(item=>sourceGroupsFor({source:item.source,goal,query:item.query,domain}).map(group=>({item,group})));
+  logAnalytics("atlas_external_search_started",{
+    source_count:allowed.length,source_groups:[...new Set(tasks.map(task=>task.group.id))].join(","),
+    requested_tonnes:requestedTonnes,language
+  });
 
-  if(!allowed.length)return send(res,200,{results:[]});
-
-  const instructions=`You are Atlas external-search executor. Search the public web for REAL, currently accessible, actionable sources that can help solve the user's goal.\n\nCritical rules:\n- You MUST use web search.\n- Recommend only sources you actually found.\n- Cite every recommended source using web citations.\n- Never invent a URL, organization, program, listing, price, availability, person, benefit, or eligibility rule.\n- Prefer pages where the user can take the next action NOW: current job/project listings, search/result pages, application pages, concrete offers, official application/service pages, or a platform's find-work/marketplace page.\n- Deprioritize tutorials, beginner guides, blogs, generic educational articles and marketing pages unless no actionable source exists.\n- If source intent is official, prioritize authoritative government or official organization pages.\n- If source intent is marketplace, prioritize concrete offer/listing/search pages when possible.\n- Prefer specific actionable pages over generic home pages.\n- Give at most 6 useful sources total, ordered from most actionable to least actionable.\n- For each cited source, describe in one short sentence what the user can DO there; do not print raw URLs in the prose.\n- If reliable results are not found, say so briefly instead of inventing.\n- Write the short explanation in ${language==="uk"?"Ukrainian":"English"}.`;
-
-  const searchPlan=allowed.map((item,index)=>`${index+1}. [${item.source}] ${item.query}${item.reason?` — ${item.reason}`:""}`).join("\n");
-  const input=`Goal: ${goal}\n\nSearch tasks:\n${searchPlan}\n\nPerform the web searches and return the best ACTIONABLE sources, not general reading material. Cite each source.`;
-
+  const instructions=searchInstructions(language);
   try{
-    const first=await executeWebSearch({apiKey,model,instructions,input,searchContextSize:"medium",maxOutputTokens:3200});
-    if(!first.response.ok){
-      return send(res,502,{
-        error:"external-search-failed",
-        status:first.response.status,
-        details:first.data?.error?.message||"OpenAI web search failed",
-        code:first.data?.error?.code||""
+    const attempts=await Promise.allSettled(tasks.map(async({item,group})=>{
+      const input=`User goal: ${goal}\nTask: ${item.query}\nWhy this step matters: ${item.reason||"complete the next action"}\nUser location context: ${locationText||"not provided"}\nSource group: ${group.label}.\nFind current concrete results for this task. Keep the requested quantity and location in the search. Cite every result.`;
+      const attempt=await executeWebSearch({
+        apiKey,model,instructions,input,searchContextSize:group.domains.length?"high":"medium",
+        allowedDomains:group.domains,maxOutputTokens:2600
       });
-    }
+      if(!attempt.response.ok){
+        const error=new Error(attempt.data?.error?.message||"OpenAI web search failed");
+        error.status=attempt.response.status;
+        throw error;
+      }
+      return {group,data:attempt.data,results:extractVerifiedResults(attempt.data,group,{locationText})};
+    }));
 
-    let results=extractVerifiedResults(first.data);
-    if(results.length){
-      return send(res,200,{results,search_status:first.data?.status||"completed",attempts:1});
-    }
+    const completed=attempts.filter(attempt=>attempt.status==="fulfilled").map(attempt=>attempt.value);
+    let results=deduplicate(completed.flatMap(attempt=>attempt.results));
+    const failed=attempts.filter(attempt=>attempt.status==="rejected");
 
-    const exactQueries=allowed.map(item=>item.query).join("\n- ");
-    const retryInput=`The first search returned no verified URLs. Search the public web again using these exact queries:\n- ${exactQueries}\n\nGoal: ${goal}\nReturn 3-6 real actionable sources when available. Prioritize pages where the user can apply, browse current offers, find work, contact a provider, buy/sell, register, or complete the needed action. Cite every source. Do not answer from memory.`;
-    const retry=await executeWebSearch({apiKey,model,instructions,input:retryInput,searchContextSize:"high",maxOutputTokens:3600});
-
-    if(!retry.response.ok){
-      return send(res,200,{
-        results:[],
-        search_status:first.data?.status||"unknown",
-        retry_status:"failed",
-        diagnostic:{first:diagnosticSummary(first.data),retry_error:retry.data?.error?.message||"retry failed"}
+    if(!results.length){
+      const queryPlan=allowed.map(item=>`[${item.source}] ${item.query}`).join("\n");
+      const fallback=await executeWebSearch({
+        apiKey,model,instructions,searchContextSize:"high",maxOutputTokens:3400,
+        input:`Filtered source searches returned no cited URLs. Search the wider public web for current concrete offers.\nGoal: ${goal}\nLocation: ${locationText||"not provided"}\nQueries:\n${queryPlan}\nCite every result and do not answer from memory.`
       });
+      if(fallback.response.ok){
+        const group={id:"open-web",label:"відкритий інтернет",domains:[]};
+        results=extractVerifiedResults(fallback.data,group,{locationText});
+        completed.push({group,data:fallback.data,results});
+      }else if(!completed.length){
+        return send(res,502,{error:"external-search-failed",status:fallback.response.status,details:fallback.data?.error?.message||failed[0]?.reason?.message||"OpenAI web search failed"});
+      }
     }
 
-    results=extractVerifiedResults(retry.data);
+    const marketplaceTask=allowed.some(item=>item.source==="marketplace");
+    if(marketplaceTask){
+      results=results.filter(isActionableCommerceResult);
+      const marketplaceQuery=allowed.find(item=>item.source==="marketplace")?.query||allowed[0]?.query||goal;
+      const shortcuts=buildMarketplaceShortcuts({goal,query:marketplaceQuery,locationText,language});
+      const representedHosts=new Set(results.map(result=>hostname(result.url)).filter(Boolean));
+      const missingSourceShortcuts=shortcuts.filter(shortcut=>shortcut.result_kind==="maps_search"||!representedHosts.has(hostname(shortcut.url)));
+      results=deduplicate([...results,...missingSourceShortcuts]);
+    }
+    results=rankMarketplaceResults(results,{requestedTonnes,limit:12});
+    const sourcesChecked=[...new Set(tasks.flatMap(task=>task.group.domains).concat(results.map(result=>hostname(result.url))).filter(Boolean))];
+    logAnalytics("atlas_external_search_completed",{
+      result_count:results.length,source_groups:completed.map(item=>item.group.id).join(","),
+      failed_groups:failed.length,requested_tonnes:requestedTonnes,duration_ms:Date.now()-startedAt
+    });
     return send(res,200,{
-      results,
-      search_status:retry.data?.status||"completed",
-      attempts:2,
-      diagnostic:results.length?undefined:{first:diagnosticSummary(first.data),retry:diagnosticSummary(retry.data)}
+      results,sources_checked:sourcesChecked,requested_quantity_tonnes:requestedTonnes,
+      search_status:results.length?"completed":"no-results",attempts:attempts.length+(results.length?0:1)
     });
   }catch(error){
+    logAnalyticsError("atlas_external_search_failed",error,{duration_ms:Date.now()-startedAt});
     return send(res,500,{error:"external-search-failed",details:error?.message||"Unknown error"});
   }
 }

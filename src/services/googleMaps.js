@@ -1,6 +1,17 @@
 import {searchDestination as searchOsmDestination,searchNearbyPlaces as searchOsmNearby} from "./genericPlaces";
 import {getDrivingRoute as getOsmDrivingRoute} from "./medicalPlaces";
 
+let googleMapsConfiguredPromise;
+
+async function googleMapsConfigured(){
+  if(!googleMapsConfiguredPromise){
+    googleMapsConfiguredPromise=fetch("/api/google-maps",{headers:{Accept:"application/json"}})
+      .then(async response=>response.ok?Boolean((await response.json())?.google_maps_key_configured):false)
+      .catch(()=>false);
+  }
+  return googleMapsConfiguredPromise;
+}
+
 async function atlasMapsRequest(body,signal){
   const response=await fetch("/api/google-maps",{
     method:"POST",
@@ -23,6 +34,7 @@ function canFallback(error){
 }
 
 export async function searchNearbyPlaces(location,query,{lang="uk",radiusKm=30,limit=5,signal}={}){
+  if(!await googleMapsConfigured())return searchOsmNearby(location,query,{lang,radiusKm,limit,signal});
   try{
     const data=await atlasMapsRequest({action:"places",mode:"nearby",origin:location,query,lang,radiusKm,limit},signal);
     return data.results||[];
@@ -34,6 +46,7 @@ export async function searchNearbyPlaces(location,query,{lang="uk",radiusKm=30,l
 }
 
 export async function searchDestination(location,query,{lang="uk",limit=3,signal}={}){
+  if(!await googleMapsConfigured())return searchOsmDestination(location,query,{lang,limit,signal});
   try{
     const data=await atlasMapsRequest({action:"places",mode:"destination",origin:location,query,lang,limit},signal);
     return data.results||[];
@@ -45,6 +58,7 @@ export async function searchDestination(location,query,{lang="uk",limit=3,signal
 }
 
 export async function getDrivingRoute(origin,destination,{lang="uk",signal}={}){
+  if(!await googleMapsConfigured())return getOsmDrivingRoute(origin,destination);
   try{
     const data=await atlasMapsRequest({action:"route",origin,destination,lang},signal);
     return data.route||null;

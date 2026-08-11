@@ -8,6 +8,8 @@ function send(res,status,body){
 }
 
 function cleanText(value,max=500){return String(value||"").replace(/\s+/g," ").trim().slice(0,max)}
+function logAnalytics(event,data={}){console.log(JSON.stringify({level:"info",message:"atlas-analytics",event,...data}))}
+function logAnalyticsError(event,error,data={}){console.error(JSON.stringify({level:"error",message:"atlas-analytics",event,error:String(error?.message||error||"unknown").slice(0,300),...data}))}
 function number(value){const n=Number(value);return Number.isFinite(n)?n:null}
 function point(value){
   const latitude=number(value?.latitude);
@@ -136,6 +138,7 @@ async function computeRoute(apiKey,input){
 }
 
 export default async function handler(req,res){
+  const startedAt=Date.now();
   const apiKey=process.env.GOOGLE_MAPS_API_KEY;
 
   if(req.method==="GET"){
@@ -149,11 +152,20 @@ export default async function handler(req,res){
   catch{return send(res,400,{error:"invalid-json"})}
 
   try{
-    if(body.action==="places")return send(res,200,{results:await searchPlaces(apiKey,body)});
-    if(body.action==="route")return send(res,200,{route:await computeRoute(apiKey,body)});
+    if(body.action==="places"){
+      const results=await searchPlaces(apiKey,body);
+      logAnalytics("atlas_nearby_search_completed",{result_count:results.length,mode:body.mode==="destination"?"destination":"nearby",duration_ms:Date.now()-startedAt});
+      return send(res,200,{results});
+    }
+    if(body.action==="route"){
+      const route=await computeRoute(apiKey,body);
+      logAnalytics("atlas_route_completed",{route_found:Boolean(route),duration_ms:Date.now()-startedAt});
+      return send(res,200,{route});
+    }
     return send(res,400,{error:"unsupported-action"});
   }catch(error){
     const status=Number(error?.status)||502;
+    logAnalyticsError("atlas_maps_failed",error,{action:String(body.action||"unknown").slice(0,40),status,duration_ms:Date.now()-startedAt});
     return send(res,status,{error:error?.code||"google-maps-failed",details:error?.message||"Google Maps request failed"});
   }
 }

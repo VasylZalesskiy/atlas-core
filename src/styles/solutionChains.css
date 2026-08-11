@@ -1,0 +1,67 @@
+.solutionKicker,.stageHeading>div>span,.scopeHeading>span,.finalSolutionsHeading>span,.solutionChainHead>div>span{display:block;color:#0b7c41;font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.passportStage,.searchScopePicker,.finalSolutions{margin-top:18px}
+.passportStage,.searchScopePicker{border:1px solid #dce6df;border-radius:22px;background:#fff;padding:22px}
+.stageHeading{display:flex;align-items:flex-start;gap:14px}
+.stageIcon{width:44px;height:44px;flex:0 0 auto;border-radius:14px;background:#edf4ff;color:#2463bd;display:grid;place-items:center}
+.stageIcon.done{background:#e8f7ed;color:#0a8244}
+.stageHeading h2,.scopeHeading h2,.finalSolutionsHeading h2{margin:4px 0 6px;font-size:clamp(22px,2.7vw,30px);letter-spacing:-.025em}
+.stageHeading p,.scopeHeading p,.finalSolutionsHeading p{margin:0;color:#637168;line-height:1.5}
+.passportStepGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:18px}
+.passportStepGrid>div{border-radius:13px;padding:13px 14px;display:grid;gap:4px}
+.passportStepGrid>div>span{font-size:11px;font-weight:900;color:#66746c;text-transform:uppercase;letter-spacing:.05em}
+.passportStepGrid>div>strong{font-size:14px;line-height:1.35}
+.passportStepHit{background:#eef8f2;border:1px solid #d3e9da}
+.passportStepHit strong{color:#0c7040}
+.passportStepMiss{background:#faf8f3;border:1px solid #ebe2d1}
+.passportStepMiss strong{color:#78694f}
+.searchScopePicker{background:#f7faf8}
+.scopeButtons{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:17px}
+.scopeButtons button{border:1px solid #d7e2db;background:#fff;border-radius:16px;padding:16px;display:flex;align-items:flex-start;gap:11px;text-align:left;color:#425149;cursor:pointer;transition:.18s ease}
+.scopeButtons button:hover{border-color:#7dbc99;transform:translateY(-1px)}
+.scopeButtons button.active{border-color:#0b8847;background:#eaf7ef;box-shadow:0 0 0 2px rgba(11,136,71,.08)}
+.scopeButtons button:disabled{opacity:.62;cursor:wait;transform:none}
+.scopeButtons button>svg{color:#0c8144;flex:0 0 auto;margin-top:2px}
+.scopeButtons button>span{display:grid;gap:4px}
+.scopeButtons strong{font-size:16px}
+.scopeButtons small{color:#67756d;font-size:12px;line-height:1.35}
+.finalSolutions{border-top:1px solid #e2e9e5;padding-top:24px}
+.finalSolutionsHeading{margin-bottom:16px}
+.solutionChains{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+.solutionChains:has(.solutionChainCard:only-child){grid-template-columns:minmax(0,1fr)}
+.solutionChainCard{border:1px solid #dce5df;border-radius:22px;background:#fff;padding:20px;min-width:0}
+.solutionChainCard.primaryChain{border-color:#bddbc8;box-shadow:0 12px 34px rgba(20,83,49,.07)}
+.solutionChainHead{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding-bottom:16px;border-bottom:1px solid #e7ece9}
+.solutionChainHead h2{font-size:23px;letter-spacing:-.025em;margin:4px 0 5px}
+.solutionChainHead p{font-size:13px;color:#65736b;line-height:1.45;margin:0}
+.chainCompleteness{flex:0 0 auto;min-width:84px;border-radius:13px;background:#f5f7f6;padding:10px;text-align:center;display:grid;gap:2px}
+.chainCompleteness strong{font-size:20px}
+.chainCompleteness span{font-size:9px;color:#69766f;text-transform:uppercase;font-weight:900}
+.chainCompleteness.complete{background:#e8f7ed;color:#0a7640}
+.chainSteps{display:grid;margin-top:14px}
+.chainStep{position:relative;display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;padding:13px 0}
+.chainStep+.chainStep{border-top:1px solid #edf0ee}
+.chainStepNumber{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#e8f6ed;color:#0a7b41;font-weight:900}
+.chainStep.assisted .chainStepNumber{background:#fff4d8;color:#9a6a00}
+.chainStep.missing .chainStepNumber{background:#f3efe7;color:#887657}
+.chainStepBody{min-width:0}
+.chainStepLabel{display:block;color:#0b7b41;font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.chainStepBody h3{font-size:17px;line-height:1.25;margin:4px 0}
+.chainStepBody p{color:#68756d;font-size:12px;line-height:1.4;margin:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.chainVerification{display:block;color:#7a684a;font-size:10px;line-height:1.35;margin-top:8px}
+.chainMeta{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.chainMeta span{display:inline-flex;align-items:center;gap:4px;border-radius:999px;background:#f3f6f4;color:#536159;padding:5px 7px;font-size:10px;font-weight:800}
+.chainAction{grid-column:2;justify-self:start;margin-top:10px;border:0;border-radius:10px;background:#0b8747;color:#fff;padding:9px 11px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:11px;font-weight:900;cursor:pointer}
+.chainActions{grid-column:2;display:flex;gap:7px;flex-wrap:wrap}
+.chainActions .chainAction{grid-column:auto}
+.chainAction.secondaryAction{background:#fff;color:#0b7540;border:1px solid #cbded2}
+.chainAlternatives{grid-column:2;display:grid;gap:8px;margin-top:12px;padding-top:11px;border-top:1px dashed #dfe7e2}
+.chainAlternatives>strong{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#68756d}
+.chainAlternative{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid #e4ebe7;background:#f9fbfa;border-radius:12px;padding:10px}
+.chainAlternative>div{min-width:0}
+.chainAlternative>div>span{font-size:9px;font-weight:900;text-transform:uppercase;color:#0b7b41}
+.chainAlternative h4{font-size:13px;line-height:1.3;margin:3px 0 0}
+.chainAlternative .chainMeta{margin-top:6px}
+.chainAlternative .chainAction{grid-column:auto;flex:0 0 auto;margin:0;padding:8px;font-size:0}
+.chainAlternative .chainAction svg{width:15px;height:15px}
+@media(max-width:900px){.solutionChains{grid-template-columns:1fr}.scopeButtons{grid-template-columns:1fr}.scopeButtons button{align-items:center}.passportStepGrid{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.passportStage,.searchScopePicker,.solutionChainCard{padding:16px;border-radius:18px}.passportStepGrid{grid-template-columns:1fr}.solutionChainHead{display:grid}.chainCompleteness{justify-self:start;grid-template-columns:auto auto;align-items:center;gap:7px}.chainCompleteness span{text-align:left}.chainStep{grid-template-columns:30px minmax(0,1fr)}.chainStepNumber{width:28px;height:28px}.chainAction,.chainActions{grid-column:1/-1;width:100%}.chainActions .chainAction{flex:1}.chainAlternatives{grid-column:1/-1}.chainAlternative .chainAction{width:auto}.scopeButtons button{padding:14px}}
