@@ -1,6 +1,6 @@
 import {
   buildMarketplaceShortcuts,extractListingQuantityTonnes,extractPriceText,extractRequestedTonnes,
-  googleMapsSearchUrl,hostname,inferSourceType,isActionableCommerceResult,rankMarketplaceResults,
+  googleMapsSearchUrl,hostname,inferSourceType,isActionableCommerceResult,isProductTransaction,rankMarketplaceResults,
   resultKind,sourceGroupsFor,sourceName
 } from "./_search-utils.js";
 
@@ -196,7 +196,6 @@ export default async function handler(req,res){
     return send(res,200,base);
   }
   if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
-  if(!apiKey)return send(res,503,{error:"openai-key-missing"});
 
   let body={};
   try{body=typeof req.body==="string"?JSON.parse(req.body||"{}"):req.body||{}}catch{return send(res,400,{error:"invalid-json"})}
@@ -212,10 +211,21 @@ export default async function handler(req,res){
   })).filter(item=>item.query);
   if(!allowed.length)return send(res,200,{results:[],sources_checked:[]});
 
-  const requestedTonnes=extractRequestedTonnes(`${goal} ${allowed.map(item=>item.query).join(" ")}`);
-  const tasks=allowed.flatMap(item=>sourceGroupsFor({source:item.source,goal,query:item.query,domain}).map(group=>({item,group})));
+  const commerceTask=allowed.some(item=>item.source==="marketplace")||isProductTransaction(`${goal} ${domain} ${allowed.map(item=>item.query).join(" ")}`);
+  const normalizedAllowed=commerceTask
+    ?allowed.map(item=>item.source==="official"?item:{...item,source:"marketplace"})
+    :allowed;
+  const marketplaceQuery=normalizedAllowed.find(item=>item.source==="marketplace")?.query||normalizedAllowed[0]?.query||goal;
+  const preparedShortcuts=commerceTask?buildMarketplaceShortcuts({goal,query:marketplaceQuery,locationText,language}):[];
+  if(!apiKey){
+    if(preparedShortcuts.length)return send(res,200,{results:preparedShortcuts,sources_checked:preparedShortcuts.map(item=>hostname(item.url)).filter(Boolean),search_status:"prepared-actions",attempts:0});
+    return send(res,503,{error:"openai-key-missing"});
+  }
+
+  const requestedTonnes=extractRequestedTonnes(`${goal} ${normalizedAllowed.map(item=>item.query).join(" ")}`);
+  const tasks=normalizedAllowed.flatMap(item=>sourceGroupsFor({source:item.source,goal,query:item.query,domain}).map(group=>({item,group})));
   logAnalytics("atlas_external_search_started",{
-    source_count:allowed.length,source_groups:[...new Set(tasks.map(task=>task.group.id))].join(","),
+    source_count:normalizedAllowed.length,source_groups:[...new Set(tasks.map(task=>task.group.id))].join(","),
     requested_tonnes:requestedTonnes,language
   });
 
@@ -239,9 +249,8 @@ export default async function handler(req,res){
     let results=deduplicate(completed.flatMap(attempt=>attempt.results));
     const failed=attempts.filter(attempt=>attempt.status==="rejected");
 
-    const marketplaceTask=allowed.some(item=>item.source==="marketplace");
-    if(!results.length&&!marketplaceTask){
-      const queryPlan=allowed.map(item=>`[${item.source}] ${item.query}`).join("\n");
+    if(!results.length&&!commerceTask){
+      const queryPlan=normalizedAllowed.map(item=>`[${item.source}] ${item.query}`).join("\n");
       const fallback=await executeWebSearch({
         apiKey,model,instructions,searchContextSize:"high",maxOutputTokens:3400,
         input:`Filtered source searches returned no cited URLs. Search the wider public web for current concrete offers.\nGoal: ${goal}\nLocation: ${locationText||"not provided"}\nQueries:\n${queryPlan}\nCite every result and do not answer from memory.`
@@ -255,12 +264,10 @@ export default async function handler(req,res){
       }
     }
 
-    if(marketplaceTask){
+    if(commerceTask){
       results=results.filter(isActionableCommerceResult);
-      const marketplaceQuery=allowed.find(item=>item.source==="marketplace")?.query||allowed[0]?.query||goal;
-      const shortcuts=buildMarketplaceShortcuts({goal,query:marketplaceQuery,locationText,language});
       const representedHosts=new Set(results.map(result=>hostname(result.url)).filter(Boolean));
-      const missingSourceShortcuts=shortcuts.filter(shortcut=>shortcut.result_kind==="maps_search"||!representedHosts.has(hostname(shortcut.url)));
+      const missingSourceShortcuts=preparedShortcuts.filter(shortcut=>shortcut.result_kind==="maps_search"||!representedHosts.has(hostname(shortcut.url)));
       results=deduplicate([...results,...missingSourceShortcuts]);
     }
     results=rankMarketplaceResults(results,{requestedTonnes,limit:12});
@@ -275,6 +282,9 @@ export default async function handler(req,res){
     });
   }catch(error){
     logAnalyticsError("atlas_external_search_failed",error,{duration_ms:Date.now()-startedAt});
+    if(preparedShortcuts.length){
+      return send(res,200,{results:preparedShortcuts,sources_checked:preparedShortcuts.map(item=>hostname(item.url)).filter(Boolean),search_status:"prepared-actions",attempts:tasks.length});
+    }
     return send(res,500,{error:"external-search-failed",details:error?.message||"Unknown error"});
   }
 }

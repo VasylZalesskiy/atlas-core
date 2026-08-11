@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   buildMarketplaceShortcuts,extractListingQuantityTonnes,extractRequestedKilograms,extractRequestedTonnes,
-  inferSourceType,isActionableCommerceResult,marketplaceSearchTerm,rankMarketplaceResults,sourceGroupsFor
+  inferSourceType,isActionableCommerceResult,isProductTransaction,marketplaceSearchTerm,rankMarketplaceResults,sourceGroupsFor
 } from "../api/_search-utils.js";
 
 test("extracts requested bulk quantity in tonnes",()=>{
@@ -45,13 +45,17 @@ test("uses stores, Rozetka and OLX for a 100 kg pea request",()=>{
 });
 
 test("builds direct OLX, Rozetka, Prom and Google Maps actions",()=>{
-  assert.equal(marketplaceSearchTerm("Потрібно купити 100 кг гороху"),"гороху");
+  assert.equal(marketplaceSearchTerm("Потрібно купити 100 кг гороху"),"горох");
   assert.equal(marketplaceSearchTerm("горох україна горох продаж OLX Agroboard Prom.ua"),"горох");
   const shortcuts=buildMarketplaceShortcuts({query:"Потрібно купити 100 кг гороху",locationText:"Тернопіль"});
   assert.deepEqual(shortcuts.map(item=>item.source_name),["OLX","Rozetka","Prom.ua","Google Maps"]);
   assert.match(shortcuts.find(item=>item.source_name==="Rozetka").url,/rozetka\.com\.ua\/ua\/search/);
   assert.match(shortcuts.find(item=>item.source_name==="Google Maps").url,/google\.com\/maps\/search/);
-  assert.match(decodeURIComponent(shortcuts.find(item=>item.source_name==="Google Maps").url),/гороху магазин Тернопіль/);
+  assert.match(decodeURIComponent(shortcuts.find(item=>item.source_name==="Google Maps").url),/горох магазин Тернопіль/);
+});
+
+test("treats a bare quantity and product as a commerce request",()=>{
+  assert.equal(isProductTransaction("100 кг гороху"),true);
 });
 
 test("rejects generic prose pages as commerce solutions",()=>{

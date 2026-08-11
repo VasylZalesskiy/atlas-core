@@ -17,7 +17,8 @@ function clean(value){return String(value||"").replace(/\s+/g," ").trim()}
 
 function sourceForInternetStep(step,plannedSources,index){
   const text=`${step?.title||""} ${step?.purpose||""} ${step?.internet_query||""}`;
-  const commerce=/куп|прод|опт|гурт|товар|постач|маркетплейс|оголош|ціна|buy|sell|wholesale|supplier|marketplace|listing/i.test(text);
+  const commerce=/куп|прод|придба|замов|опт|гурт|товар|постач|маркетплейс|оголош|ціна|buy|sell|order|wholesale|supplier|marketplace|listing/i.test(text)
+    ||/\d+(?:[\s.]\d{3})*(?:[.,]\d+)?\s*(?:кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|т(?!\p{L})|тонн(?:а|и|у)?|tonnes?\b)/iu.test(text);
   if(commerce)return "marketplace";
   return plannedSources[index]?.source||plannedSources[0]?.source||"web";
 }

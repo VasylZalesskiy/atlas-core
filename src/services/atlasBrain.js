@@ -2,17 +2,54 @@ function cleanTerms(query){
   return [...new Set(String(query||"").toLowerCase().replace(/[.,!?;:()]/g," ").split(/\s+/).filter(word=>word.length>2))].slice(0,12);
 }
 
+function isProductNeed(value){
+  const text=String(value||"");
+  const quantity=/\d+(?:[\s.]\d{3})*(?:[.,]\d+)?\s*(?:кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|т(?!\p{L})|тонн(?:а|и|у)?|tonnes?\b)/iu.test(text);
+  const transaction=/куп|придба|замов|потрібн|товар|продукт|постач|опт|гурт|buy|order|supplier|wholesale|bulk/i.test(text);
+  return quantity||transaction;
+}
+
+function isAgricultureNeed(value){
+  return /агро|сільськ|ферм|врожай|картоп|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|food|produce|peas?/i.test(String(value||""));
+}
+
+function productSearchTerm(value){
+  const ignored=new Set([
+    "потрібно","потрібен","потрібна","потрібні","треба","хочу","шукаю","знайти","купити","придбати","замовити",
+    "мені","для","та","і","у","в","на","по","кг","kg","кілограм","кілограмів","тонна","тонни","тонн","т"
+  ]);
+  const aliases={гороху:"горох",гороха:"горох",картоплі:"картопля"};
+  return String(value||"").toLowerCase()
+    .replace(/\d+(?:[\s.]\d{3})*(?:[.,]\d+)?/g," ")
+    .replace(/[^\p{L}\p{N}\s-]/gu," ")
+    .split(/\s+/)
+    .filter(word=>word&&!ignored.has(word))
+    .map(word=>aliases[word]||word)
+    .slice(0,5)
+    .join(" ")
+    .trim();
+}
+
 export function createFallbackPlan(query,{lang="uk"}={}){
   const terms=cleanTerms(query);
   const goal=String(query||"").trim();
+  const productNeed=isProductNeed(goal);
+  const agricultureNeed=isAgricultureNeed(goal);
+  const product=productSearchTerm(goal)||goal;
+  const nearbyQuery=productNeed
+    ?(lang==="uk"?`${product} магазин`:`${product} store`)
+    :goal;
+  const internetQuery=productNeed
+    ?(lang==="uk"?`купити ${goal}`:`buy ${goal}`)
+    :goal;
   return {
     understood:Boolean(goal),
     goal,
-    intent:"solve",
-    domain:"general",
-    solution_scope:"mixed",
+    intent:productNeed?"buy":"solve",
+    domain:agricultureNeed?"agriculture":productNeed?"products":"general",
+    solution_scope:productNeed?"transaction":"mixed",
     urgency:"planned",
-    needs_location:false,
+    needs_location:productNeed,
     clarification:{required:false,question:"",options:[]},
     passport_search:{
       terms,
@@ -20,15 +57,20 @@ export function createFallbackPlan(query,{lang="uk"}={}){
     },
     solution_steps:goal?[{
       id:"main-result",
-      title:lang==="uk"?"Знайти основне рішення":"Find the main solution",
+      title:productNeed
+        ?(lang==="uk"?`Знайти, де придбати ${product}`:`Find where to buy ${product}`)
+        :(lang==="uk"?"Знайти основне рішення":"Find the main solution"),
       purpose:goal,
       passport_terms:terms,
-      nearby_query:goal,
-      internet_query:goal,
+      nearby_query:nearbyQuery,
+      internet_query:internetQuery,
       nearby_relevant:true,
       internet_relevant:true
     }]:[],
-    external_searches:[],
+    external_searches:productNeed?[
+      {source:"maps",mode:"nearby",query:nearbyQuery,reason:lang==="uk"?"Знайти реальні магазини або постачальників поруч":"Find real nearby stores or suppliers"},
+      {source:"marketplace",mode:"standard",query:internetQuery,reason:lang==="uk"?"Знайти конкретні товари й оголошення":"Find concrete products and listings"}
+    ]:[],
     safety:{level:"none",message:""},
     result_strategy:lang==="uk"?"Спочатку Паспорти можливостей, потім найкращі додаткові варіанти":"Opportunity Passports first, then the best additional options",
     fallback:true

@@ -95,8 +95,8 @@ function isAgriculture(text){
   return /агро|agri|сільськ|ферм|врожай|картоп|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|добрив|комбікорм|food|produce|peas?/i.test(String(text||""));
 }
 
-function isProductTransaction(text){
-  return /куп|прод|товар|продукт|постач|опт|гурт|тонн|кілограм|достав|оренд|buy|sell|supplier|wholesale|bulk|product|delivery/i.test(String(text||""));
+export function isProductTransaction(text){
+  return /куп|прод|товар|продукт|постач|опт|гурт|тонн|кілограм|кг(?!\p{L})|достав|оренд|buy|sell|supplier|wholesale|bulk|product|delivery/iu.test(String(text||""));
 }
 
 export function sourceGroupsFor({source="web",goal="",query="",domain=""}={}){
@@ -155,13 +155,15 @@ const SEARCH_STOP_WORDS=new Set([
   "ukraine","for","the","a","an"
 ]);
 
+const SEARCH_WORD_ALIASES={гороху:"горох",гороха:"горох",картоплі:"картопля"};
+
 export function marketplaceSearchTerm(text){
   const withoutQuantity=String(text||"")
     .toLowerCase()
     .replace(/\d+(?:[\s.]*\d)*(?:[.,]\d+)?\s*(?:тонн(?:а|и|у)?|тон(?!\p{L})|т(?!\p{L})|кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|tonnes?\b)/giu," ")
     .replace(/[^\p{L}\p{N}\s-]/gu," ");
   const seen=new Set();
-  const words=withoutQuantity.split(/\s+/).filter(Boolean).filter(word=>!SEARCH_STOP_WORDS.has(word)).filter(word=>{
+  const words=withoutQuantity.split(/\s+/).filter(Boolean).filter(word=>!SEARCH_STOP_WORDS.has(word)).map(word=>SEARCH_WORD_ALIASES[word]||word).filter(word=>{
     const key=word.length>5?word.slice(0,5):word;
     if(seen.has(key))return false;
     seen.add(key);
