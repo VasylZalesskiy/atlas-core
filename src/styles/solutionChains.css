@@ -1,4 +1,36 @@
 .solutionKicker,.stageHeading>div>span,.scopeHeading>span,.finalSolutionsHeading>span,.solutionChainHead>div>span{display:block;color:#0b7c41;font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+.immediateSolution{border:1px solid #abd2bb;border-radius:24px;background:linear-gradient(135deg,#f1faf5 0%,#fff 70%);padding:24px;box-shadow:0 16px 42px rgba(18,91,50,.09)}
+.immediateSolutionTop{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:14px;border-bottom:1px solid #dcece2}
+.immediateSolutionTop>span{color:#087a3f;font-size:11px;font-weight:950;letter-spacing:.1em;text-transform:uppercase}
+.immediateSolutionTop>small{display:inline-flex;align-items:center;gap:6px;color:#65736b;font-size:11px}
+.immediateSolutionBody{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:24px;padding:22px 0 4px}
+.immediateSolutionBody>div:first-child>strong{color:#0b7c41;font-size:12px;text-transform:uppercase;letter-spacing:.07em}
+.immediateSolutionBody h2{margin:6px 0 8px;font-size:clamp(26px,3.4vw,38px);line-height:1.08;letter-spacing:-.035em}
+.immediateSolutionBody p{max-width:720px;margin:0;color:#55645b;line-height:1.5}
+.immediateSolutionBody .recommendationReason{margin-top:8px;color:#24362c;font-weight:750}
+.immediateSolutionBody>.chainActions{grid-column:auto;justify-content:flex-end;align-self:end;min-width:190px}
+.immediateSolutionBody>.chainActions .chainAction{min-height:48px;padding:12px 16px;font-size:13px}
+.immediateAlternatives{margin-top:18px;padding-top:18px;border-top:1px solid #deebe3}
+.immediateAlternatives>strong{display:block;margin-bottom:10px;color:#607067;font-size:11px;text-transform:uppercase;letter-spacing:.07em}
+.immediateAlternatives>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.immediateAlternatives article{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;border:1px solid #dfe9e3;border-radius:14px;background:#fff;padding:12px 13px;min-width:0}
+.immediateAlternatives article>div:first-child{min-width:0}
+.immediateAlternatives article span{color:#0b7c41;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.07em}
+.immediateAlternatives article h3{margin:3px 0 0;font-size:14px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.immediateAlternatives .chainActions{grid-column:auto;flex-wrap:nowrap}
+.immediateAlternatives .chainAction{grid-column:auto;width:36px;height:36px;margin:0;padding:0;font-size:0;flex:0 0 auto}
+.immediateAlternatives .chainAction svg{width:15px;height:15px}
+.solutionSearchState{display:flex;align-items:center;gap:14px;border:1px solid #dce7e0;border-radius:18px;background:#f8fbf9;padding:20px;color:#0b7d42}
+.solutionSearchState>div{display:grid;gap:3px}
+.solutionSearchState strong{font-size:17px;color:#1d3025}
+.solutionSearchState span{font-size:13px;color:#65736b}
+.solutionSearchState .spin,.immediateSolutionTop .spin{animation:spin 1s linear infinite}
+.solutionDetails{margin-top:18px;border:1px solid #dfe7e2;border-radius:17px;background:#fafcfb;overflow:hidden}
+.solutionDetails>summary{padding:16px 18px;color:#0a7540;font-weight:900;cursor:pointer;list-style-position:inside}
+.solutionDetails[open]>summary{border-bottom:1px solid #e4ebe7;background:#fff}
+.solutionDetails>.solutionChains{padding:16px}
+.solutionChecks{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;color:#738078;font-size:11px}
+.solutionChecks span{display:inline-flex;align-items:center;gap:5px}
 .passportStage,.searchScopePicker,.finalSolutions{margin-top:18px}
 .passportStage,.searchScopePicker{border:1px solid #dce6df;border-radius:22px;background:#fff;padding:22px}
 .stageHeading{display:flex;align-items:flex-start;gap:14px}
@@ -63,5 +95,5 @@
 .chainAlternative .chainMeta{margin-top:6px}
 .chainAlternative .chainAction{grid-column:auto;flex:0 0 auto;margin:0;padding:8px;font-size:0}
 .chainAlternative .chainAction svg{width:15px;height:15px}
-@media(max-width:900px){.solutionChains{grid-template-columns:1fr}.scopeButtons{grid-template-columns:1fr}.scopeButtons button{align-items:center}.passportStepGrid{grid-template-columns:1fr 1fr}}
-@media(max-width:620px){.passportStage,.searchScopePicker,.solutionChainCard{padding:16px;border-radius:18px}.passportStepGrid{grid-template-columns:1fr}.solutionChainHead{display:grid}.chainCompleteness{justify-self:start;grid-template-columns:auto auto;align-items:center;gap:7px}.chainCompleteness span{text-align:left}.chainStep{grid-template-columns:30px minmax(0,1fr)}.chainStepNumber{width:28px;height:28px}.chainAction,.chainActions{grid-column:1/-1;width:100%}.chainActions .chainAction{flex:1}.chainAlternatives{grid-column:1/-1}.chainAlternative .chainAction{width:auto}.scopeButtons button{padding:14px}}
+@media(max-width:900px){.solutionChains{grid-template-columns:1fr}.scopeButtons{grid-template-columns:1fr}.scopeButtons button{align-items:center}.passportStepGrid{grid-template-columns:1fr 1fr}.immediateSolutionBody{grid-template-columns:1fr}.immediateSolutionBody>.chainActions{justify-content:flex-start}.immediateAlternatives>div{grid-template-columns:1fr}}
+@media(max-width:620px){.immediateSolution{padding:18px;border-radius:19px}.immediateSolutionTop{align-items:flex-start;flex-direction:column;gap:6px}.immediateSolutionBody{gap:16px;padding-top:18px}.immediateSolutionBody>.chainActions{width:100%;min-width:0}.immediateSolutionBody>.chainActions .chainAction{width:100%;flex:1}.immediateAlternatives article{grid-template-columns:minmax(0,1fr) auto}.immediateAlternatives .chainActions{width:auto}.immediateAlternatives .chainAction{width:36px;flex:0 0 36px}.solutionDetails>.solutionChains{padding:10px}.passportStage,.searchScopePicker,.solutionChainCard{padding:16px;border-radius:18px}.passportStepGrid{grid-template-columns:1fr}.solutionChainHead{display:grid}.chainCompleteness{justify-self:start;grid-template-columns:auto auto;align-items:center;gap:7px}.chainCompleteness span{text-align:left}.chainStep{grid-template-columns:30px minmax(0,1fr)}.chainStepNumber{width:28px;height:28px}.chainAction,.chainActions{grid-column:1/-1;width:100%}.chainActions .chainAction{flex:1}.chainAlternatives{grid-column:1/-1}.chainAlternative .chainAction{width:auto}.scopeButtons button{padding:14px}}
