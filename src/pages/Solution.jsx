@@ -15,6 +15,13 @@ import "../styles/solutionChains.css";
 
 function clean(value){return String(value||"").replace(/\s+/g," ").trim()}
 
+function sourceForInternetStep(step,plannedSources,index){
+  const text=`${step?.title||""} ${step?.purpose||""} ${step?.internet_query||""}`;
+  const commerce=/куп|прод|опт|гурт|товар|постач|маркетплейс|оголош|ціна|buy|sell|wholesale|supplier|marketplace|listing/i.test(text);
+  if(commerce)return "marketplace";
+  return plannedSources[index]?.source||plannedSources[0]?.source||"web";
+}
+
 function formatDistance(value){
   if(!Number.isFinite(value))return "";
   if(value<1)return `${Math.max(10,Math.round(value*1000/10)*10)} м`;
@@ -427,7 +434,7 @@ export default function Solution({lang}){
     const plannedSources=(plan?.external_searches||[]).filter(item=>["web","marketplace","official"].includes(item?.source));
     Promise.all(searchable.map(async(step,index)=>{
       try{
-        const source=plannedSources[index]?.source||plannedSources[0]?.source||"marketplace";
+        const source=sourceForInternetStep(step,plannedSources,index);
         const results=await searchExternalSources({
           goal:activeTask,
           domain:plan?.domain||"",
