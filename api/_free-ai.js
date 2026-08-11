@@ -1,120 +1,68 @@
-const GATEWAY_RESPONSES_URL="https://ai-gateway.vercel.sh/v1/responses";
-const GATEWAY_MODELS_URL="https://ai-gateway.vercel.sh/v1/models";
+const GEMINI_MODEL="gemini-3.5-flash-lite";
+const GEMINI_URL=`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const APPROVED_MODELS=[
-  "inclusionai/ling-3.0-tiny-free",
-  "poolside/laguna-s-2.1-free"
-];
-
-let catalogCache=null;
-
-function authToken(explicitToken=""){
-  return String(explicitToken||process.env.VERCEL_OIDC_TOKEN||process.env.AI_GATEWAY_API_KEY||"").trim();
+function apiKey(){
+  // The dedicated variable is intentional: Atlas will not silently reuse a
+  // key from a project that may have billing enabled.
+  return String(process.env.GEMINI_FREE_TIER_API_KEY||"").trim();
 }
 
-function numericPrices(value,prices=[]){
-  if(value&&typeof value==="object"){
-    for(const entry of Object.values(value))numericPrices(entry,prices);
-    return prices;
+function extractGeminiText(data){
+  for(const candidate of data?.candidates||[]){
+    const text=(candidate?.content?.parts||[]).map(part=>typeof part?.text==="string"?part.text:"").join("").trim();
+    if(text)return text;
   }
-  if(typeof value==="number"&&Number.isFinite(value))prices.push(value);
-  if(typeof value==="string"&&value.trim()!==""&&Number.isFinite(Number(value)))prices.push(Number(value));
-  return prices;
+  return "";
 }
 
-export function isExplicitlyFreeModel(model){
-  if(!model||!APPROVED_MODELS.includes(model.id))return false;
-  const markedFree=Array.isArray(model.tags)&&model.tags.includes("free")||model.id.endsWith("-free");
-  if(!markedFree)return false;
-  return numericPrices(model.pricing||{}).every(price=>price===0);
+export async function getFreeAiStatus(){
+  return {
+    provider:"google-gemini-free-tier",
+    configured:Boolean(apiKey()),
+    zero_cost_only:true,
+    paid_fallback:false,
+    model:GEMINI_MODEL,
+    required_key:"GEMINI_FREE_TIER_API_KEY",
+    billing_requirement:"billing-disabled-project"
+  };
 }
 
-function preferredModels(){
-  const requested=String(process.env.ATLAS_FREE_AI_MODEL||"").trim();
-  return requested&&APPROVED_MODELS.includes(requested)
-    ?[requested,...APPROVED_MODELS.filter(id=>id!==requested)]
-    :APPROVED_MODELS;
-}
-
-async function loadCatalog({force=false}={}){
-  if(!force&&catalogCache&&Date.now()-catalogCache.loadedAt<10*60*1000)return catalogCache.models;
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),5000);
-  try{
-    const response=await fetch(GATEWAY_MODELS_URL,{headers:{Accept:"application/json"},signal:controller.signal});
-    if(!response.ok)throw new Error(`free-ai-catalog-${response.status}`);
-    const data=await response.json();
-    const models=Array.isArray(data?.data)?data.data:[];
-    catalogCache={loadedAt:Date.now(),models};
-    return models;
-  }finally{
-    clearTimeout(timeout);
-  }
-}
-
-export async function getFreeAiStatus({force=false,token=""}={}){
-  const configured=Boolean(authToken(token));
-  try{
-    const models=await loadCatalog({force});
-    const byId=new Map(models.map(model=>[model.id,model]));
-    const model=preferredModels().map(id=>byId.get(id)).find(isExplicitlyFreeModel)||null;
-    return {
-      provider:"vercel-ai-gateway",
-      configured,
-      catalog_verified:Boolean(model),
-      zero_cost_only:true,
-      model:model?.id||null,
-      pricing:model?.pricing||null
-    };
-  }catch(error){
-    return {
-      provider:"vercel-ai-gateway",
-      configured,
-      catalog_verified:false,
-      zero_cost_only:true,
-      model:null,
-      pricing:null,
-      error:String(error?.message||"free-ai-catalog-unavailable").slice(0,160)
-    };
-  }
-}
-
-export async function runFreeAiResponse({instructions,input,maxOutputTokens=2600,timeoutMs=15000,token=""}={}){
-  const resolvedToken=authToken(token);
-  if(!resolvedToken)throw Object.assign(new Error("free-ai-auth-unavailable"),{code:"free-ai-auth-unavailable"});
-
-  const status=await getFreeAiStatus({token:resolvedToken});
-  if(!status.catalog_verified||!status.model){
-    throw Object.assign(new Error("free-ai-price-not-verified"),{code:"free-ai-price-not-verified"});
-  }
+export async function runFreeAiResponse({instructions,input,maxOutputTokens=2600,timeoutMs=15000,json=true}={}){
+  const key=apiKey();
+  if(!key)throw Object.assign(new Error("free-ai-key-unavailable"),{code:"free-ai-key-unavailable"});
 
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),timeoutMs);
   try{
-    const response=await fetch(GATEWAY_RESPONSES_URL,{
+    const generationConfig={temperature:0,maxOutputTokens};
+    if(json)generationConfig.responseMimeType="application/json";
+    const response=await fetch(GEMINI_URL,{
       method:"POST",
-      headers:{Authorization:`Bearer ${resolvedToken}`,"Content-Type":"application/json"},
+      headers:{"Content-Type":"application/json","x-goog-api-key":key},
       body:JSON.stringify({
-        model:status.model,
-        store:false,
-        instructions,
-        input,
-        temperature:0,
-        max_output_tokens:maxOutputTokens
+        systemInstruction:{parts:[{text:String(instructions||"")}]},
+        contents:[{role:"user",parts:[{text:String(input||"")}]}],
+        generationConfig
       }),
       signal:controller.signal
     });
     const data=await response.json().catch(()=>({}));
     if(!response.ok){
       const error=new Error(data?.error?.message||`free-ai-${response.status}`);
-      error.code=data?.error?.code||`free-ai-${response.status}`;
+      error.code=data?.error?.status||`free-ai-${response.status}`;
       error.status=response.status;
       throw error;
     }
-    return {data,model:data?.model||status.model,status};
+    const outputText=extractGeminiText(data);
+    if(!outputText)throw Object.assign(new Error("free-ai-empty-response"),{code:"free-ai-empty-response"});
+    return {
+      data:{...data,status:"completed",output_text:outputText},
+      model:GEMINI_MODEL,
+      status:await getFreeAiStatus()
+    };
   }finally{
     clearTimeout(timeout);
   }
 }
 
-export const FREE_AI_MODELS=Object.freeze([...APPROVED_MODELS]);
+export const FREE_AI_MODEL=GEMINI_MODEL;

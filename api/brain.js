@@ -156,17 +156,12 @@ async function resolveLocationContext(location,language){
   }
 }
 
-function oidcTokenFromRequest(req){
-  const value=req?.headers?.["x-vercel-oidc-token"];
-  return String(Array.isArray(value)?value[0]||"":value||"").trim();
-}
-
-async function runDiagnostic(token){
+async function runDiagnostic(){
   try{
-    const {data,model}=await runFreeAiResponse({instructions:"Reply exactly with OK.",input:"Health check",maxOutputTokens:32,timeoutMs:8000,token});
+    const {data,model}=await runFreeAiResponse({instructions:"Reply exactly with OK.",input:"Health check",maxOutputTokens:32,timeoutMs:8000,json:false});
     return {
       api_call_ok:true,
-      provider:"vercel-ai-gateway",
+      provider:"google-gemini-free-tier",
       model,
       response_status:data?.status||"completed",
       incomplete_reason:data?.incomplete_details?.reason||null,
@@ -175,7 +170,7 @@ async function runDiagnostic(token){
   }catch(error){
     return {
       api_call_ok:false,
-      provider:"vercel-ai-gateway",
+      provider:"google-gemini-free-tier",
       error_code:error?.code||"free-ai-unavailable",
       message:error?.message||"Request failed"
     };
@@ -196,13 +191,12 @@ function parsePlan(text){
 
 export default async function handler(req,res){
   const startedAt=Date.now();
-  const oidcToken=oidcTokenFromRequest(req);
 
   if(req.method==="GET"){
-    const freeAi=await getFreeAiStatus({force:String(req.query?.refresh||"")==="1",token:oidcToken});
+    const freeAi=await getFreeAiStatus();
     const base={status:"atlas-brain-endpoint-online",ai:freeAi,paid_ai_disabled:true};
     if(String(req.query?.test||"")==="1"){
-      const diagnostic=await runDiagnostic(oidcToken);
+      const diagnostic=await runDiagnostic();
       return send(res,200,{...base,...diagnostic});
     }
     return send(res,200,base);
@@ -264,8 +258,7 @@ export default async function handler(req,res){
       instructions:`${instructions}\n\n${solutionChainPolicy}\n\nReturn ONLY one JSON object matching this JSON Schema. Do not use Markdown fences or add prose:\n${JSON.stringify(schema)}`,
       input:JSON.stringify(context),
       maxOutputTokens:2600,
-      timeoutMs:15000,
-      token:oidcToken
+      timeoutMs:15000
     });
 
     if(data?.status==="incomplete"){
