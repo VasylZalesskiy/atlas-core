@@ -1,8 +1,8 @@
 import {useEffect,useMemo,useState} from "react";
 import {useLocation,useNavigate} from "react-router-dom";
 import {
-  ArrowLeft,Check,Clock3,ExternalLink,Globe2,MapPin,Navigation,
-  Phone,RefreshCw,Search,UserRound,UsersRound
+  ArrowLeft,Check,Clock3,ExternalLink,MapPin,Navigation,
+  Phone,RefreshCw,Search,UserRound
 } from "lucide-react";
 import {analyzeAtlasQuery,createFallbackPlan} from "../services/atlasBrain";
 import {searchPassportProfiles} from "../services/passportSearch";
@@ -121,6 +121,71 @@ function CandidateAction({candidate,origin,lang}){
   return null;
 }
 
+function candidatePriority(candidate){
+  if(candidate?.kind==="passport")return 500;
+  if(candidate?.kind==="external"&&candidate.resultKind==="listing")return 450;
+  if(candidate?.kind==="place")return 400;
+  if(candidate?.kind==="external"&&candidate.resultKind==="search_page"){
+    const sourceBonus={OLX:30,Rozetka:25,"Prom.ua":20}[candidate.source]||0;
+    return 300+sourceBonus;
+  }
+  if(candidate?.kind==="external"&&candidate.resultKind==="maps_search")return 250;
+  return candidate?100:0;
+}
+
+function recommendationReason(candidate,lang){
+  if(candidate?.kind==="passport")return lang==="uk"
+    ?"Збіг знайдено серед можливостей людей Atlas."
+    :"A match was found among Atlas people's capabilities.";
+  if(candidate?.kind==="external"&&candidate.resultKind==="listing")return lang==="uk"
+    ?"Конкретна пропозиція, яку можна відкрити й перевірити у продавця."
+    :"A concrete offer you can open and confirm with the seller.";
+  if(candidate?.kind==="place")return lang==="uk"
+    ?"Конкретне місце поруч із маршрутом і контактами."
+    :"A specific nearby place with route and contact details.";
+  if(candidate?.resultKind==="search_page")return lang==="uk"
+    ?"Прямий перехід до актуальних пропозицій без повторного введення запиту."
+    :"A direct jump to current offers without retyping the request.";
+  if(candidate?.resultKind==="maps_search")return lang==="uk"
+    ?"Магазини поблизу вже відкриті за вашим запитом."
+    :"Nearby stores are already opened for your request.";
+  return "";
+}
+
+function ImmediateSolution({candidate,alternatives,origin,lang,stillSearching}){
+  return <section className="immediateSolution">
+    <div className="immediateSolutionTop">
+      <span>{lang==="uk"?"НАЙКРАЩА ДОСТУПНА ДІЯ":"BEST AVAILABLE ACTION"}</span>
+      {stillSearching&&<small><RefreshCw className="spin" size={13}/>{lang==="uk"?"Atlas ще перевіряє альтернативи":"Atlas is still checking alternatives"}</small>}
+    </div>
+    <div className="immediateSolutionBody">
+      <div>
+        <strong>{candidate.source}</strong>
+        <h2>{candidate.title}</h2>
+        {candidate.description&&<p>{candidate.description}</p>}
+        <p className="recommendationReason">{recommendationReason(candidate,lang)}</p>
+        <div className="chainMeta">
+          {candidate.locationText&&<span><MapPin size={13}/>{candidate.locationText}</span>}
+          {candidate.city&&<span><MapPin size={13}/>{candidate.city}</span>}
+          {Number.isFinite(candidate.distanceKm)&&<span><MapPin size={13}/>{formatDistance(candidate.distanceKm)}</span>}
+          {candidate.quantityText&&<span>{lang==="uk"?"Заявлено":"Declared"}: {candidate.quantityText}</span>}
+          {candidate.priceText&&<span>{candidate.priceText}</span>}
+        </div>
+      </div>
+      <CandidateAction candidate={candidate} origin={origin} lang={lang}/>
+    </div>
+    {alternatives.length>0&&<div className="immediateAlternatives">
+      <strong>{lang==="uk"?"Ще конкретні варіанти":"More concrete options"}</strong>
+      <div>
+        {alternatives.map(alternative=><article key={alternative.id||alternative.url||alternative.title}>
+          <div><span>{alternative.source}</span><h3>{alternative.title}</h3></div>
+          <CandidateAction candidate={alternative} origin={origin} lang={lang}/>
+        </article>)}
+      </div>
+    </div>}
+  </section>;
+}
+
 function SolutionChain({chain,index,origin,lang}){
   const complete=chain.found===chain.steps.length;
   return <section className={`solutionChainCard ${index===0?"primaryChain":""}`}>
@@ -176,58 +241,6 @@ function SolutionChain({chain,index,origin,lang}){
           </div>)}
         </div>}
       </article>)}
-    </div>
-  </section>;
-}
-
-function PassportStage({steps,groups,loading,checked,lang}){
-  const total=new Set(groups.flatMap(group=>group.matches.map(match=>match.slug||match.name).filter(Boolean))).size;
-  return <section className="passportStage">
-    <div className="stageHeading">
-      <div className={`stageIcon ${checked?"done":""}`}>{checked?<Check size={20}/>:<UsersRound size={21}/>}</div>
-      <div>
-        <span>{lang==="uk"?"Етап 1":"Stage 1"}</span>
-        <h2>{lang==="uk"?"Паспорти можливостей":"Opportunity Passports"}</h2>
-        <p>{loading
-          ?(lang==="uk"?"Перевіряю людей, навички, речі та ресурси…":"Checking people, skills, items and resources…")
-          :total
-            ?(lang==="uk"?`Знайдено ${total} релевантних можливостей. Вони матимуть пріоритет у рішенні.`:`Found ${total} relevant opportunities. They will have priority in the solution.`)
-            :(lang==="uk"?"Збігів поки немає. Atlas не зупиняється і може продовжити пошук.":"No matches yet. Atlas can continue searching.")}
-        </p>
-      </div>
-    </div>
-    {!loading&&checked&&<div className="passportStepGrid">
-      {steps.map(step=>{
-        const match=groups.find(group=>group.stepId===step.id)?.matches?.[0];
-        return <div className={match?"passportStepHit":"passportStepMiss"} key={step.id}>
-          <span>{step.title}</span>
-          <strong>{match?(match.headline||match.name):(lang==="uk"?"Потрібно розширити пошук":"Needs broader search")}</strong>
-        </div>;
-      })}
-    </div>}
-  </section>;
-}
-
-function SearchScopePicker({value,onChoose,disabled,hasPassportResults,lang}){
-  return <section className="searchScopePicker">
-    <div className="scopeHeading">
-      <span>{lang==="uk"?"Етап 2 · Ваш вибір":"Stage 2 · Your choice"}</span>
-      <h2>{hasPassportResults
-        ?(lang==="uk"?"Де порівняти або доповнити рішення?":"Where should Atlas compare or complete the solution?")
-        :(lang==="uk"?"Де продовжити пошук?":"Where should Atlas continue searching?")}
-      </h2>
-      <p>{lang==="uk"?"Atlas виконає лише той зовнішній пошук, який ви оберете.":"Atlas will run only the external search you choose."}</p>
-    </div>
-    <div className="scopeButtons">
-      <button className={value==="nearby"?"active":""} type="button" onClick={()=>onChoose("nearby")} disabled={disabled}>
-        <MapPin size={22}/><span><strong>{lang==="uk"?"Поруч":"Nearby"}</strong><small>{lang==="uk"?"Місцеві люди, магазини й сервіси":"Local people, shops and services"}</small></span>
-      </button>
-      <button className={value==="internet"?"active":""} type="button" onClick={()=>onChoose("internet")} disabled={disabled}>
-        <Globe2 size={22}/><span><strong>{lang==="uk"?"В інтернеті":"On the internet"}</strong><small>{lang==="uk"?"Маркетплейси та перевірені джерела":"Marketplaces and verified sources"}</small></span>
-      </button>
-      <button className={value==="both"?"active":""} type="button" onClick={()=>onChoose("both")} disabled={disabled}>
-        <Search size={22}/><span><strong>{lang==="uk"?"Поруч + інтернет":"Nearby + internet"}</strong><small>{lang==="uk"?"Порівняти два ланцюжки":"Compare two solution chains"}</small></span>
-      </button>
     </div>
   </section>;
 }
@@ -327,7 +340,6 @@ export default function Solution({lang}){
   },[activeTask,brainLoading,stepsKey]);
 
   const passportsChecked=Boolean(activeTask&&!passportLoading&&!brainLoading&&passportCheckedGoal===activeTask);
-  const passportResultCount=new Set(passportGroups.flatMap(group=>group.matches.map(match=>match.slug||match.name).filter(Boolean))).size;
 
   async function ensureOrigin(){
     if(origin)return origin;
@@ -350,19 +362,17 @@ export default function Solution({lang}){
     return next||null;
   }
 
-  async function chooseScope(next){
-    trackAtlas("Atlas Search Scope Selected",{
-      scope:next,
-      language:lang,
-      passport_matches:passportResultCount
-    });
-    setSearchScope(next);
-    setNearbyGroups([]);
-    setInternetGroups([]);
+  useEffect(()=>{
+    if(!passportsChecked||plan?.clarification?.required||searchScope)return;
+    setSearchScope("both");
     setNearbyError("");
     setInternetError("");
-    if(next==="nearby"||next==="both")await ensureOrigin();
-  }
+    trackAtlas("Atlas Automatic Search Started",{
+      language:lang,
+      location_provided:Boolean(initialWhere||origin)
+    });
+    if(initialWhere&&!origin&&!originLoading)ensureOrigin();
+  },[passportsChecked,plan?.clarification?.required,searchScope,initialWhere]);
 
   useEffect(()=>{
     const controller=new AbortController();
@@ -475,6 +485,20 @@ export default function Solution({lang}){
   const nearbyByStep=useMemo(()=>new Map(nearbyGroups.map(group=>[group.stepId,group.candidates||[]])),[nearbyGroups]);
   const internetByStep=useMemo(()=>new Map(internetGroups.map(group=>[group.stepId,group.candidates||[]])),[internetGroups]);
 
+  const rankedCandidates=useMemo(()=>{
+    const candidates=[
+      ...passportGroups.flatMap(group=>group.matches.slice(0,2).map(match=>passportCandidate(match,lang))),
+      ...nearbyGroups.flatMap(group=>group.candidates||[]),
+      ...internetGroups.flatMap(group=>group.candidates||[])
+    ];
+    return candidates
+      .filter(Boolean)
+      .filter((candidate,index,array)=>array.findIndex(item=>(item.id||item.url||item.title)===(candidate.id||candidate.url||candidate.title))===index)
+      .sort((a,b)=>candidatePriority(b)-candidatePriority(a));
+  },[passportGroups,nearbyGroups,internetGroups,lang]);
+  const recommendedCandidate=rankedCandidates[0]||null;
+  const recommendedAlternatives=rankedCandidates.slice(1,5);
+
   const chains=useMemo(()=>{
     if(!searchScope)return [];
     const build=(mode,{preferExternal=false}={})=>{
@@ -534,7 +558,7 @@ export default function Solution({lang}){
   }
 
   const externalBusy=nearbyLoading||internetLoading||originLoading;
-  const waitingForOrigin=(searchScope==="nearby"||searchScope==="both")&&!origin;
+  const solutionBusy=brainLoading||passportLoading||externalBusy||Boolean(activeTask&&!searchScope&&!plan?.clarification?.required);
   const locationText=origin?(initialWhere||(lang==="uk"?"поточна локація":"current location")):(initialWhere||(lang==="uk"?"не визначена":"not set"));
 
   return <main className="simpleSolutionPage">
@@ -553,8 +577,13 @@ export default function Solution({lang}){
 
       <div className="simpleResultsHeader">
         <div>
-          <span className="solutionKicker">ATLAS · {lang==="uk"?"ПОШУК РІШЕННЯ":"SOLUTION SEARCH"}</span>
-          <h1>{plan?.clarification?.required?(lang==="uk"?"Потрібне одне уточнення":"One quick question"):(lang==="uk"?"Будуємо ланцюжок рішення":"Building a solution chain")}</h1>
+          <span className="solutionKicker">ATLAS · {lang==="uk"?"РІШЕННЯ":"SOLUTION"}</span>
+          <h1>{plan?.clarification?.required
+            ?(lang==="uk"?"Потрібне одне уточнення":"One quick question")
+            :recommendedCandidate
+              ?(lang==="uk"?"Ось що можна зробити зараз":"Here is what you can do now")
+              :(lang==="uk"?"Atlas шукає найкраще рішення…":"Atlas is finding the best solution…")}
+          </h1>
           {plan?.goal&&<p>{plan.goal}</p>}
         </div>
         {plan?.safety?.level&&plan.safety.level!=="none"&&plan.safety.message&&<div className={`simpleSafety ${plan.safety.level}`}>{plan.safety.message}</div>}
@@ -565,32 +594,43 @@ export default function Solution({lang}){
         {Array.isArray(plan.clarification.options)&&plan.clarification.options.length>0&&<div className="simpleClarifierChips">{plan.clarification.options.map(option=><button key={option} type="button" onClick={()=>refine(option)}>{option}</button>)}</div>}
       </div>}
 
-      {(brainLoading||passportLoading)&&<div className="simpleStateLine"><RefreshCw className="spin" size={16}/>{brainLoading?(lang==="uk"?"Розкладаю задачу на потрібні ланки…":"Breaking the task into required links…"):(lang==="uk"?"Шукаю кожну ланку в Паспортах…":"Searching every link in Passports…")}</div>}
+      {!plan?.clarification?.required&&recommendedCandidate&&<ImmediateSolution
+        candidate={recommendedCandidate}
+        alternatives={recommendedAlternatives}
+        origin={origin}
+        lang={lang}
+        stillSearching={solutionBusy}
+      />}
 
-      {!plan?.clarification?.required&&<PassportStage steps={steps} groups={passportGroups} loading={brainLoading||passportLoading} checked={passportsChecked} lang={lang}/>}
-
-      {passportsChecked&&!plan?.clarification?.required&&<SearchScopePicker value={searchScope} onChoose={chooseScope} disabled={externalBusy} hasPassportResults={passportResultCount>0} lang={lang}/>}
+      {!plan?.clarification?.required&&!recommendedCandidate&&solutionBusy&&<div className="solutionSearchState">
+        <RefreshCw className="spin" size={20}/>
+        <div>
+          <strong>{lang==="uk"?"Шукаю конкретні варіанти":"Finding concrete options"}</strong>
+          <span>{lang==="uk"?"Atlas сам перевіряє Паспорти, пропозиції поруч і маркетплейси.":"Atlas is automatically checking Passports, nearby options and marketplaces."}</span>
+        </div>
+      </div>}
 
       {(searchScope==="nearby"||searchScope==="both")&&!origin&&!originLoading&&<div className="simpleGeoPrompt">
-        <div><strong>{lang==="uk"?"Для пошуку поруч потрібна локація":"Location is needed for nearby search"}</strong><span>{lang==="uk"?"Координати не зберігаються.":"Coordinates are not stored."}</span></div>
-        <button className="primary" type="button" onClick={ensureOrigin}><MapPin size={18}/>{lang==="uk"?"Використати мою локацію":"Use my location"}</button>
+        <div><strong>{lang==="uk"?"Додати найближчі магазини й маршрут":"Add nearby stores and a route"}</strong><span>{lang==="uk"?"Це доповнить уже автоматичний пошук. Координати не зберігаються.":"This adds to the automatic search. Coordinates are not stored."}</span></div>
+        <button className="primary" type="button" onClick={ensureOrigin}><MapPin size={18}/>{lang==="uk"?"Додати мою локацію":"Add my location"}</button>
       </div>}
 
       {originError&&<div className="simpleEmpty">{lang==="uk"?"Не вдалося визначити цю локацію. Вкажіть місто на головній сторінці або дозвольте геолокацію.":"Could not resolve this location. Enter a city on the home page or allow geolocation."}</div>}
 
-      {externalBusy&&<div className="simpleStateLine"><RefreshCw className="spin" size={16}/>{lang==="uk"?"Збираю вибрані варіанти у готовий ланцюжок…":"Assembling selected results into a complete chain…"}</div>}
+      {!plan?.clarification?.required&&!recommendedCandidate&&!solutionBusy&&<div className="simpleEmpty">
+        {lang==="uk"?"Надійного готового варіанта поки не знайдено. Atlas не показує загальні статті як рішення.":"No reliable ready option was found. Atlas does not present generic articles as a solution."}
+      </div>}
 
-      {searchScope&&!externalBusy&&!waitingForOrigin&&<section className="finalSolutions">
-        <div className="finalSolutionsHeading">
-          <span>{lang==="uk"?"Етап 3 · Готове рішення":"Stage 3 · Ready solution"}</span>
-          <h2>{chains.length>1?(lang==="uk"?"Два ланцюжки для порівняння":"Two chains to compare"):(lang==="uk"?"Один практичний ланцюжок":"One practical solution chain")}</h2>
-          <p>{lang==="uk"?"Atlas показує не список посилань, а послідовність конкретних кроків.":"Atlas shows a sequence of concrete actions, not a list of links."}</p>
-        </div>
+      {recommendedCandidate&&chains.length>0&&<details className="solutionDetails">
+        <summary>{lang==="uk"?"Повний ланцюжок і перевірені джерела":"Full chain and checked sources"}</summary>
         <div className="solutionChains">{chains.map((chain,index)=><SolutionChain key={chain.mode} chain={chain} index={index} origin={origin} lang={lang}/>)}</div>
-      </section>}
+      </details>}
 
-      {brainError&&<p className="simpleHint">{lang==="uk"?"Atlas Brain зараз у резервному режимі. Пошук працює за текстом задачі без вигаданих результатів.":"Atlas Brain is in fallback mode. Search continues from the task text without invented results."}</p>}
-      {(nearbyError||internetError)&&<p className="simpleHint">{lang==="uk"?"Частина вибраних джерел не відповіла. Atlas залишив ці ланки порожніми, а не підмінив їх вигаданими даними.":"Some selected sources did not respond. Atlas left those links empty instead of inventing data."}</p>}
+      {(passportsChecked||brainError||nearbyError||internetError)&&<div className="solutionChecks">
+        {passportsChecked&&<span><Check size={14}/>{lang==="uk"?"Паспорти можливостей перевірено":"Opportunity Passports checked"}</span>}
+        {(nearbyError||internetError)&&<span>{lang==="uk"?"Частина джерел не відповіла — Atlas не підмінив їх вигаданими даними.":"Some sources did not respond — Atlas did not replace them with invented data."}</span>}
+        {brainError&&<span>{lang==="uk"?"Аналіз запиту виконано в резервному режимі.":"The request was analyzed in fallback mode."}</span>}
+      </div>}
     </section>
   </main>;
 }
