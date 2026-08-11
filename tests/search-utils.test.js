@@ -44,11 +44,16 @@ test("uses stores, Rozetka and OLX for a 100 kg pea request",()=>{
   assert.ok(groups.flatMap(group=>group.domains).includes("olx.ua"));
 });
 
-test("builds direct OLX, Rozetka, Prom and Google Maps actions",()=>{
+test("puts ATB with product and Google Maps navigation before marketplace alternatives",()=>{
   assert.equal(marketplaceSearchTerm("Потрібно купити 100 кг гороху"),"горох");
   assert.equal(marketplaceSearchTerm("горох україна горох продаж OLX Agroboard Prom.ua"),"горох");
   const shortcuts=buildMarketplaceShortcuts({query:"Потрібно купити 100 кг гороху",locationText:"Тернопіль"});
-  assert.deepEqual(shortcuts.map(item=>item.source_name),["OLX","Rozetka","Prom.ua","Google Maps"]);
+  assert.deepEqual(shortcuts.map(item=>item.source_name),["АТБ","OLX","Rozetka","Prom.ua","Google Maps"]);
+  const atb=shortcuts.find(item=>item.source_name==="АТБ");
+  assert.equal(atb.result_kind,"store_option");
+  assert.match(atb.url,/atbmarket\.com\/catalog\/395-krupi/);
+  assert.match(atb.google_maps_url,/google\.com\/maps\/dir/);
+  assert.match(decodeURIComponent(atb.google_maps_url),/АТБ Тернопіль/);
   assert.match(shortcuts.find(item=>item.source_name==="Rozetka").url,/rozetka\.com\.ua\/ua\/search/);
   assert.match(shortcuts.find(item=>item.source_name==="Google Maps").url,/google\.com\/maps\/search/);
   assert.match(decodeURIComponent(shortcuts.find(item=>item.source_name==="Google Maps").url),/горох магазин Тернопіль/);

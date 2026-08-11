@@ -82,7 +82,7 @@ test("Brain uses only the dedicated Gemini free-tier key",async()=>{
   }
 });
 
-test("external commerce search returns OLX, Rozetka, Prom and Google Maps without an API call",async()=>{
+test("external commerce search returns ATB, OLX, Rozetka, Prom and Google Maps without an API call",async()=>{
   const originalFetch=globalThis.fetch;
   globalThis.fetch=async()=>{throw new Error("unexpected-network-call")};
   try{
@@ -99,7 +99,7 @@ test("external commerce search returns OLX, Rozetka, Prom and Google Maps withou
     },res);
     assert.equal(res.statusCode,200);
     assert.equal(res.body.paid_search_disabled,true);
-    assert.deepEqual(new Set(res.body.results.map(item=>item.source_name)),new Set(["OLX","Rozetka","Prom.ua","Google Maps"]));
+    assert.deepEqual(new Set(res.body.results.map(item=>item.source_name)),new Set(["АТБ","OLX","Rozetka","Prom.ua","Google Maps"]));
   }finally{
     globalThis.fetch=originalFetch;
   }

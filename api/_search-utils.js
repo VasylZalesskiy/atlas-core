@@ -1,13 +1,14 @@
 const MARKETPLACE_HOSTS=new Set([
   "upwork.com","freelancehunt.com","work.ua","robota.ua","linkedin.com","indeed.com",
   "olx.ua","auto.ria.com","dom.ria.com","prom.ua","etsy.com","fiverr.com",
-  "rozetka.com.ua","silpo.ua","metro.zakaz.ua","novus.zakaz.ua","auchan.zakaz.ua","zakaz.ua",
+  "atbmarket.com","rozetka.com.ua","silpo.ua","metro.zakaz.ua","novus.zakaz.ua","auchan.zakaz.ua","zakaz.ua",
   "flagma.ua","agro-ukraine.com","agrotorg.net","agrotender.com.ua","clunya.com","prod.ua"
 ]);
 
 const SOURCE_NAMES={
   "olx.ua":"OLX",
   "prom.ua":"Prom.ua",
+  "atbmarket.com":"АТБ",
   "rozetka.com.ua":"Rozetka",
   "silpo.ua":"Сільпо",
   "metro.zakaz.ua":"METRO",
@@ -177,6 +178,11 @@ export function googleMapsSearchUrl(query,locationText=""){
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(text)}`;
 }
 
+export function googleMapsDirectionsUrl(destination,locationText=""){
+  const text=[String(destination||"").trim(),String(locationText||"").trim()].filter(Boolean).join(" ");
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(text)}`;
+}
+
 export function buildMarketplaceShortcuts({goal="",query="",locationText="",language="uk"}={}){
   const term=marketplaceSearchTerm(query)||marketplaceSearchTerm(goal)||String(query||goal||"").trim();
   if(!term)return [];
@@ -186,7 +192,29 @@ export function buildMarketplaceShortcuts({goal="",query="",locationText="",lang
   const verification=language==="uk"
     ?"Готовий пошук — відкрийте актуальні пропозиції та перевірте кількість, ціну й доставку у продавця"
     :"Prepared search — open current offers and confirm quantity, price and delivery with the seller";
+  const requestedKilograms=extractRequestedKilograms(`${goal} ${query}`);
+  const requestedAmount=requestedKilograms?`${requestedKilograms} кг`:language==="uk"?"потрібну кількість":"the required quantity";
+  const retailerOptions=/горох|peas?/i.test(term)?[{
+    title:language==="uk"?"Горох 1 кг — АТБ":"Peas 1 kg — ATB",
+    snippet:language==="uk"
+      ?`АТБ продає фасований горох. Відкрийте найближчий магазин і перевірте, чи можна зібрати ${requestedAmount}.`
+      :`ATB sells packaged peas. Open the nearest store and confirm whether ${requestedAmount} can be assembled.`,
+    url:"https://www.atbmarket.com/catalog/395-krupi/f/vid-krup%3Dgoroh",
+    source_type:"marketplace",
+    source_name:"АТБ",
+    source_group:"retail-stores",
+    result_kind:"store_option",
+    price_text:"",
+    location_text:locationText,
+    quantity_tonnes:null,
+    quantity_text:"1 кг / упаковка",
+    verification_text:language==="uk"
+      ?`Товар є в каталозі АТБ; залишок ${requestedAmount} у конкретному магазині потрібно підтвердити перед поїздкою.`
+      :`The product is listed by ATB; confirm store-level stock for ${requestedAmount} before travelling.`,
+    google_maps_url:googleMapsDirectionsUrl("АТБ",locationText)
+  }]:[];
   return [
+    ...retailerOptions,
     {title:`${label} — OLX`,snippet:language==="uk"?"Актуальні оголошення продавців на OLX":"Current seller listings on OLX",url:`https://www.olx.ua/uk/list/q-${olxSlug}/`,source_type:"marketplace",source_name:"OLX",source_group:"olx",result_kind:"search_page",price_text:"",location_text:locationText,quantity_tonnes:null,quantity_text:"",verification_text:verification},
     {title:`${label} — Rozetka`,snippet:language==="uk"?"Товари та продавці на Rozetka":"Products and sellers on Rozetka",url:`https://rozetka.com.ua/ua/search/?text=${encoded}`,source_type:"marketplace",source_name:"Rozetka",source_group:"retail-stores",result_kind:"search_page",price_text:"",location_text:locationText,quantity_tonnes:null,quantity_text:"",verification_text:verification,google_maps_url:googleMapsSearchUrl(`Rozetka ${term}`,locationText)},
     {title:`${label} — Prom.ua`,snippet:language==="uk"?"Пропозиції магазинів і постачальників на Prom.ua":"Shop and supplier offers on Prom.ua",url:`https://prom.ua/ua/search?search_term=${encoded}`,source_type:"marketplace",source_name:"Prom.ua",source_group:"retail-stores",result_kind:"search_page",price_text:"",location_text:locationText,quantity_tonnes:null,quantity_text:"",verification_text:verification},
@@ -198,6 +226,7 @@ export function actionabilityScore(result,{requestedTonnes=null}={}){
   const hay=`${result.title||""} ${result.snippet||""} ${result.url||""}`.toLowerCase();
   const quantity=Number(result.quantity_tonnes);
   let score=0;
+  if(result.result_kind==="store_option")score+=30;
   if(/продам|пропозиці|в наявності|постачаль|опт|гурт|купити|ціна|достав|sell|offer|supplier|wholesale|bulk|marketplace|apply|vacanc|project/.test(hay))score+=4;
   if(looksLikeConcreteListing(result.url))score+=4;
   if(["agriculture","business-classifieds"].includes(result.source_group))score+=2;

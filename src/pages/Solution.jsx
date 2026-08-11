@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useState} from "react";
 import {useLocation,useNavigate} from "react-router-dom";
 import {
-  ArrowLeft,Check,Clock3,ExternalLink,MapPin,Navigation,
+  ArrowLeft,Check,Clock3,ExternalLink,Globe2,MapPin,Navigation,
   Phone,RefreshCw,Search,UserRound
 } from "lucide-react";
 import {analyzeAtlasQuery,createFallbackPlan} from "../services/atlasBrain";
@@ -87,7 +87,7 @@ function internetCandidate(item,index,lang){
     verificationText:item.verification_text||"",
     resultKind:item.result_kind||"source_page",
     googleMapsUrl:item.google_maps_url||"",
-    resolved:item.result_kind==="listing"
+    resolved:["listing","store_option"].includes(item.result_kind)
   };
 }
 
@@ -111,6 +111,10 @@ function CandidateAction({candidate,origin,lang}){
     </div>;
   }
   if(candidate.kind==="external"&&candidate.url){
+    if(candidate.resultKind==="store_option")return <div className="chainActions">
+      {candidate.googleMapsUrl&&<a className="chainAction" href={candidate.googleMapsUrl} target="_blank" rel="noreferrer"><Navigation size={16}/>{lang==="uk"?`Маршрут до ${candidate.source}`:`Route to ${candidate.source}`}</a>}
+      <a className="chainAction secondaryAction" href={candidate.url} target="_blank" rel="noreferrer"><ExternalLink size={16}/>{lang==="uk"?`Товар в ${candidate.source}`:`Product at ${candidate.source}`}</a>
+    </div>;
     const actionLabel=candidate.resultKind==="maps_search"
       ?"Google Maps"
       :candidate.resultKind==="search_page"
@@ -158,6 +162,7 @@ function candidatePriority(candidate,task){
   if(candidate?.kind==="passport")return passportMatchesTask(candidate,task)
     ?500+Math.min(80,candidate.matchScore)
     :140+Math.min(40,candidate.matchScore);
+  if(candidate?.kind==="external"&&candidate.resultKind==="store_option")return 480;
   if(candidate?.kind==="external"&&candidate.resultKind==="listing")return 450;
   if(candidate?.kind==="place")return 400;
   if(candidate?.kind==="external"&&candidate.resultKind==="search_page"){
@@ -178,6 +183,9 @@ function recommendationReason(candidate,lang){
   if(candidate?.kind==="place")return lang==="uk"
     ?"Конкретне місце поруч із маршрутом і контактами."
     :"A specific nearby place with route and contact details.";
+  if(candidate?.resultKind==="store_option")return lang==="uk"
+    ?"Конкретний товар уже є в каталозі магазину; далі — перевірити потрібний залишок і їхати."
+    :"A concrete product is already in the store catalogue; next confirm the required stock and go.";
   if(candidate?.resultKind==="search_page")return lang==="uk"
     ?"Прямий перехід до актуальних пропозицій без повторного введення запиту."
     :"A direct jump to current offers without retyping the request.";
@@ -592,6 +600,14 @@ export default function Solution({lang}){
     setActiveTask(value);
   }
 
+  function chooseSearchScope(scope){
+    setSearchScope(scope);
+    setNearbyError("");
+    setInternetError("");
+    trackAtlas("Atlas Search Scope Selected",{scope,language:lang});
+    if((scope==="nearby"||scope==="both")&&initialWhere&&!origin&&!originLoading)ensureOrigin();
+  }
+
   const externalBusy=nearbyLoading||internetLoading||originLoading;
   const solutionBusy=brainLoading||passportLoading||externalBusy||Boolean(activeTask&&!searchScope&&!plan?.clarification?.required);
   const locationText=origin?(initialWhere||(lang==="uk"?"поточна локація":"current location")):(initialWhere||(lang==="uk"?"не визначена":"not set"));
@@ -628,6 +644,25 @@ export default function Solution({lang}){
         <strong>{plan.clarification.question}</strong>
         {Array.isArray(plan.clarification.options)&&plan.clarification.options.length>0&&<div className="simpleClarifierChips">{plan.clarification.options.map(option=><button key={option} type="button" onClick={()=>refine(option)}>{option}</button>)}</div>}
       </div>}
+
+      {!plan?.clarification?.required&&activeTask&&<section className="searchScopePicker">
+        <div className="scopeHeading">
+          <span>{lang==="uk"?"ВАШ ВИБІР":"YOUR CHOICE"}</span>
+          <h2>{lang==="uk"?"Де шукати?":"Where should Atlas search?"}</h2>
+          <p>{lang==="uk"?"Оберіть джерела — результат перебудується одразу.":"Choose the sources — the result updates immediately."}</p>
+        </div>
+        <div className="scopeButtons" role="group" aria-label={lang==="uk"?"Де шукати":"Where to search"}>
+          <button className={searchScope==="nearby"?"active":""} type="button" onClick={()=>chooseSearchScope("nearby")} disabled={!passportsChecked} aria-pressed={searchScope==="nearby"}>
+            <MapPin size={21}/><span><strong>{lang==="uk"?"Поруч":"Nearby"}</strong><small>{lang==="uk"?"Магазини та маршрут":"Stores and route"}</small></span>
+          </button>
+          <button className={searchScope==="internet"?"active":""} type="button" onClick={()=>chooseSearchScope("internet")} disabled={!passportsChecked} aria-pressed={searchScope==="internet"}>
+            <Globe2 size={21}/><span><strong>{lang==="uk"?"В інтернеті":"Online"}</strong><small>{lang==="uk"?"АТБ і маркетплейси":"ATB and marketplaces"}</small></span>
+          </button>
+          <button className={searchScope==="both"?"active":""} type="button" onClick={()=>chooseSearchScope("both")} disabled={!passportsChecked} aria-pressed={searchScope==="both"}>
+            <Search size={21}/><span><strong>{lang==="uk"?"Поруч + інтернет":"Nearby + online"}</strong><small>{lang==="uk"?"Порівняти всі варіанти":"Compare all options"}</small></span>
+          </button>
+        </div>
+      </section>}
 
       {!plan?.clarification?.required&&recommendedCandidate&&<ImmediateSolution
         candidate={recommendedCandidate}
