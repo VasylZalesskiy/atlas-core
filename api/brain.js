@@ -156,9 +156,14 @@ async function resolveLocationContext(location,language){
   }
 }
 
-async function runDiagnostic(){
+function oidcTokenFromRequest(req){
+  const value=req?.headers?.["x-vercel-oidc-token"];
+  return String(Array.isArray(value)?value[0]||"":value||"").trim();
+}
+
+async function runDiagnostic(token){
   try{
-    const {data,model}=await runFreeAiResponse({instructions:"Reply exactly with OK.",input:"Health check",maxOutputTokens:32,timeoutMs:8000});
+    const {data,model}=await runFreeAiResponse({instructions:"Reply exactly with OK.",input:"Health check",maxOutputTokens:32,timeoutMs:8000,token});
     return {
       api_call_ok:true,
       provider:"vercel-ai-gateway",
@@ -191,12 +196,13 @@ function parsePlan(text){
 
 export default async function handler(req,res){
   const startedAt=Date.now();
+  const oidcToken=oidcTokenFromRequest(req);
 
   if(req.method==="GET"){
-    const freeAi=await getFreeAiStatus({force:String(req.query?.refresh||"")==="1"});
+    const freeAi=await getFreeAiStatus({force:String(req.query?.refresh||"")==="1",token:oidcToken});
     const base={status:"atlas-brain-endpoint-online",ai:freeAi,paid_ai_disabled:true};
     if(String(req.query?.test||"")==="1"){
-      const diagnostic=await runDiagnostic();
+      const diagnostic=await runDiagnostic(oidcToken);
       return send(res,200,{...base,...diagnostic});
     }
     return send(res,200,base);
@@ -258,7 +264,8 @@ export default async function handler(req,res){
       instructions:`${instructions}\n\n${solutionChainPolicy}\n\nReturn ONLY one JSON object matching this JSON Schema. Do not use Markdown fences or add prose:\n${JSON.stringify(schema)}`,
       input:JSON.stringify(context),
       maxOutputTokens:2600,
-      timeoutMs:15000
+      timeoutMs:15000,
+      token:oidcToken
     });
 
     if(data?.status==="incomplete"){

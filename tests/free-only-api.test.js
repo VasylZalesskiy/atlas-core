@@ -50,6 +50,36 @@ test("Brain never uses a legacy OpenAI key and falls back with HTTP 200",async()
   }
 });
 
+test("Brain uses the Vercel request OIDC token for a verified free model",async()=>{
+  const originalFetch=globalThis.fetch;
+  const calls=[];
+  const plan={
+    understood:true,goal:"100 кг гороху",intent:"buy",domain:"agriculture",solution_scope:"transaction",urgency:"planned",needs_location:true,
+    clarification:{required:false,question:"",options:[]},
+    passport_search:{terms:["горох"],capability_description:"Постачальники гороху"},
+    solution_steps:[{id:"buy",title:"Знайти горох",purpose:"Придбати 100 кг гороху",passport_terms:["горох"],nearby_query:"горох магазин",internet_query:"купити 100 кг гороху",nearby_relevant:true,internet_relevant:true}],
+    external_searches:[{source:"maps",mode:"nearby",query:"горох магазин",reason:"знайти поруч"},{source:"marketplace",mode:"standard",query:"купити 100 кг гороху",reason:"знайти пропозиції"}],
+    safety:{level:"none",message:""},result_strategy:"Паспорти, магазини поруч, маркетплейси"
+  };
+  globalThis.fetch=async(url,options={})=>{
+    calls.push({url:String(url),authorization:options.headers?.Authorization||""});
+    if(String(url).endsWith("/v1/models"))return new Response(JSON.stringify({data:[{id:"inclusionai/ling-3.0-tiny-free",tags:["free"],pricing:{}}]}),{status:200,headers:{"Content-Type":"application/json"}});
+    if(String(url).endsWith("/v1/responses"))return new Response(JSON.stringify({status:"completed",model:"inclusionai/ling-3.0-tiny-free",output_text:JSON.stringify(plan)}),{status:200,headers:{"Content-Type":"application/json"}});
+    throw new Error("unexpected-url");
+  };
+  try{
+    const res=recorder();
+    await brainHandler({method:"POST",body:{query:"100 кг гороху",language:"uk"},headers:{"x-vercel-oidc-token":"vercel-request-token"}},res);
+    assert.equal(res.statusCode,200);
+    assert.equal(res.body.ai_status,"free-ai");
+    assert.equal(res.body.model,"inclusionai/ling-3.0-tiny-free");
+    assert.ok(calls.some(call=>call.url.endsWith("/v1/responses")&&call.authorization==="Bearer vercel-request-token"));
+    assert.ok(calls.every(call=>!call.url.includes("api.openai.com")));
+  }finally{
+    globalThis.fetch=originalFetch;
+  }
+});
+
 test("external commerce search returns OLX, Rozetka, Prom and Google Maps without an API call",async()=>{
   const originalFetch=globalThis.fetch;
   globalThis.fetch=async()=>{throw new Error("unexpected-network-call")};

@@ -8,8 +8,8 @@ const APPROVED_MODELS=[
 
 let catalogCache=null;
 
-function authToken(){
-  return process.env.VERCEL_OIDC_TOKEN||process.env.AI_GATEWAY_API_KEY||"";
+function authToken(explicitToken=""){
+  return String(explicitToken||process.env.VERCEL_OIDC_TOKEN||process.env.AI_GATEWAY_API_KEY||"").trim();
 }
 
 function numericPrices(value,prices=[]){
@@ -52,8 +52,8 @@ async function loadCatalog({force=false}={}){
   }
 }
 
-export async function getFreeAiStatus({force=false}={}){
-  const configured=Boolean(authToken());
+export async function getFreeAiStatus({force=false,token=""}={}){
+  const configured=Boolean(authToken(token));
   try{
     const models=await loadCatalog({force});
     const byId=new Map(models.map(model=>[model.id,model]));
@@ -79,11 +79,11 @@ export async function getFreeAiStatus({force=false}={}){
   }
 }
 
-export async function runFreeAiResponse({instructions,input,maxOutputTokens=2600,timeoutMs=15000}={}){
-  const token=authToken();
-  if(!token)throw Object.assign(new Error("free-ai-auth-unavailable"),{code:"free-ai-auth-unavailable"});
+export async function runFreeAiResponse({instructions,input,maxOutputTokens=2600,timeoutMs=15000,token=""}={}){
+  const resolvedToken=authToken(token);
+  if(!resolvedToken)throw Object.assign(new Error("free-ai-auth-unavailable"),{code:"free-ai-auth-unavailable"});
 
-  const status=await getFreeAiStatus();
+  const status=await getFreeAiStatus({token:resolvedToken});
   if(!status.catalog_verified||!status.model){
     throw Object.assign(new Error("free-ai-price-not-verified"),{code:"free-ai-price-not-verified"});
   }
@@ -93,7 +93,7 @@ export async function runFreeAiResponse({instructions,input,maxOutputTokens=2600
   try{
     const response=await fetch(GATEWAY_RESPONSES_URL,{
       method:"POST",
-      headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},
+      headers:{Authorization:`Bearer ${resolvedToken}`,"Content-Type":"application/json"},
       body:JSON.stringify({
         model:status.model,
         store:false,
