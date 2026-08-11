@@ -1,4 +1,5 @@
-const OPENAI_URL="https://api.openai.com/v1/responses";
+import {createFallbackPlan} from "../src/services/atlasBrain.js";
+import {getFreeAiStatus,runFreeAiResponse} from "./_free-ai.js";
 
 function redactAnalyticsText(value,max=600){
   return String(value||"")
@@ -155,36 +156,13 @@ async function resolveLocationContext(location,language){
   }
 }
 
-async function runDiagnostic(apiKey,model){
+async function runDiagnostic(){
   try{
-    const response=await fetch(OPENAI_URL,{
-      method:"POST",
-      headers:{
-        "Authorization":`Bearer ${apiKey}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        model,
-        store:false,
-        input:"Reply exactly with OK.",
-        reasoning:{effort:"minimal"},
-        max_output_tokens:256
-      })
-    });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok){
-      return {
-        api_call_ok:false,
-        openai_status:response.status,
-        error_type:data?.error?.type||"unknown",
-        error_code:data?.error?.code||"unknown",
-        message:data?.error?.message||"OpenAI request failed"
-      };
-    }
+    const {data,model}=await runFreeAiResponse({instructions:"Reply exactly with OK.",input:"Health check",maxOutputTokens:32,timeoutMs:8000});
     return {
       api_call_ok:true,
-      openai_status:response.status,
-      model:data?.model||model,
+      provider:"vercel-ai-gateway",
+      model,
       response_status:data?.status||"completed",
       incomplete_reason:data?.incomplete_details?.reason||null,
       output_text:extractText(data).slice(0,20)||null
@@ -192,35 +170,39 @@ async function runDiagnostic(apiKey,model){
   }catch(error){
     return {
       api_call_ok:false,
-      openai_status:0,
-      error_type:"network_or_runtime_error",
-      error_code:"request_failed",
+      provider:"vercel-ai-gateway",
+      error_code:error?.code||"free-ai-unavailable",
       message:error?.message||"Request failed"
     };
   }
 }
 
+function parsePlan(text){
+  const raw=String(text||"").trim().replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/i,"");
+  const start=raw.indexOf("{");
+  const end=raw.lastIndexOf("}");
+  if(start<0||end<=start)throw new Error("brain-invalid-json");
+  const plan=JSON.parse(raw.slice(start,end+1));
+  if(!plan||typeof plan!=="object"||!Array.isArray(plan.solution_steps)||!Array.isArray(plan.external_searches)||!plan.passport_search){
+    throw new Error("brain-invalid-plan");
+  }
+  return plan;
+}
+
 export default async function handler(req,res){
   const startedAt=Date.now();
-  const apiKey=process.env.OPENAI_API_KEY;
-  const model=process.env.OPENAI_MODEL||"gpt-5-mini";
 
   if(req.method==="GET"){
-    const base={
-      status:"atlas-brain-endpoint-online",
-      openai_key_configured:Boolean(apiKey),
-      model
-    };
+    const freeAi=await getFreeAiStatus({force:String(req.query?.refresh||"")==="1"});
+    const base={status:"atlas-brain-endpoint-online",ai:freeAi,paid_ai_disabled:true};
     if(String(req.query?.test||"")==="1"){
-      if(!apiKey)return send(res,200,{...base,api_call_ok:false,error_code:"openai-key-missing"});
-      const diagnostic=await runDiagnostic(apiKey,model);
+      const diagnostic=await runDiagnostic();
       return send(res,200,{...base,...diagnostic});
     }
     return send(res,200,base);
   }
 
   if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
-  if(!apiKey)return send(res,503,{error:"openai-key-missing"});
 
   let body={};
   try{
@@ -265,73 +247,32 @@ export default async function handler(req,res){
     location_context:locationContext
   };
 
-  const controller=new AbortController();
-  const timeout=setTimeout(()=>controller.abort(),15000);
+  const fallback=(reason)=>{
+    const plan={...createFallbackPlan(query,{lang:language}),location_text:locationText};
+    logAnalytics("atlas_brain_free_fallback",{reason:String(reason||"free-ai-unavailable").slice(0,120),duration_ms:Date.now()-startedAt});
+    return send(res,200,{plan,model:"deterministic/free",ai_status:"fallback",fallback_reason:String(reason||"free-ai-unavailable").slice(0,160),location_context:locationContext});
+  };
+
   try{
-    const response=await fetch(OPENAI_URL,{
-      method:"POST",
-      headers:{
-        "Authorization":`Bearer ${apiKey}`,
-        "Content-Type":"application/json"
-      },
-      body:JSON.stringify({
-        model,
-        store:false,
-        reasoning:{effort:"minimal"},
-        instructions:`${instructions}\n\n${solutionChainPolicy}`,
-        input:JSON.stringify(context),
-        max_output_tokens:2600,
-        text:{
-          format:{
-            type:"json_schema",
-            name:"atlas_brain_plan",
-            strict:true,
-            schema
-          }
-        }
-      }),
-      signal:controller.signal
+    const {data,model}=await runFreeAiResponse({
+      instructions:`${instructions}\n\n${solutionChainPolicy}\n\nReturn ONLY one JSON object matching this JSON Schema. Do not use Markdown fences or add prose:\n${JSON.stringify(schema)}`,
+      input:JSON.stringify(context),
+      maxOutputTokens:2600,
+      timeoutMs:15000
     });
 
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok){
-      logAnalyticsError("atlas_brain_failed",data?.error?.message||"brain-request-failed",{
-        status:response.status,
-        duration_ms:Date.now()-startedAt
-      });
-      return send(res,502,{
-        error:"brain-request-failed",
-        status:response.status,
-        details:data?.error?.message||"OpenAI request failed",
-        code:data?.error?.code||"",
-        type:data?.error?.type||""
-      });
-    }
-
     if(data?.status==="incomplete"){
-      logAnalyticsError("atlas_brain_failed",data?.incomplete_details?.reason||"brain-incomplete-response",{
-        status:response.status,
-        duration_ms:Date.now()-startedAt
-      });
-      return send(res,502,{
-        error:"brain-incomplete-response",
-        reason:data?.incomplete_details?.reason||"unknown",
-        model:data?.model||model
-      });
+      return fallback(data?.incomplete_details?.reason||"brain-incomplete-response");
     }
 
     const text=extractText(data);
-    if(!text){
-      logAnalyticsError("atlas_brain_failed","brain-empty-response",{duration_ms:Date.now()-startedAt});
-      return send(res,502,{error:"brain-empty-response",status:data?.status||"unknown"});
-    }
+    if(!text)return fallback("brain-empty-response");
 
     let plan;
     try{
-      plan=JSON.parse(text);
+      plan=parsePlan(text);
     }catch{
-      logAnalyticsError("atlas_brain_failed","brain-invalid-json",{duration_ms:Date.now()-startedAt});
-      return send(res,502,{error:"brain-invalid-json"});
+      return fallback("brain-invalid-json");
     }
 
     logAnalytics("atlas_brain_completed",{
@@ -343,12 +284,9 @@ export default async function handler(req,res){
       duration_ms:Date.now()-startedAt
     });
 
-    return send(res,200,{plan,model:data?.model||model,location_context:locationContext});
+    return send(res,200,{plan,model,ai_status:"free-ai",paid_ai_disabled:true,location_context:locationContext});
   }catch(error){
-    logAnalyticsError("atlas_brain_failed",error,{duration_ms:Date.now()-startedAt});
-    const timedOut=error?.name==="AbortError";
-    return send(res,timedOut?504:500,{error:timedOut?"brain-timeout":"brain-failed",details:error?.message||"Unknown error"});
-  }finally{
-    clearTimeout(timeout);
+    logAnalyticsError("atlas_brain_free_ai_unavailable",error,{duration_ms:Date.now()-startedAt});
+    return fallback(error?.name==="AbortError"?"free-ai-timeout":error?.code||error?.message||"free-ai-unavailable");
   }
 }
