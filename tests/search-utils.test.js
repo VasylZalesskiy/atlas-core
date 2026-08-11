@@ -46,6 +46,7 @@ test("uses stores, Rozetka and OLX for a 100 kg pea request",()=>{
 
 test("builds direct OLX, Rozetka, Prom and Google Maps actions",()=>{
   assert.equal(marketplaceSearchTerm("Потрібно купити 100 кг гороху"),"гороху");
+  assert.equal(marketplaceSearchTerm("горох україна горох продаж OLX Agroboard Prom.ua"),"горох");
   const shortcuts=buildMarketplaceShortcuts({query:"Потрібно купити 100 кг гороху",locationText:"Тернопіль"});
   assert.deepEqual(shortcuts.map(item=>item.source_name),["OLX","Rozetka","Prom.ua","Google Maps"]);
   assert.match(shortcuts.find(item=>item.source_name==="Rozetka").url,/rozetka\.com\.ua\/ua\/search/);
