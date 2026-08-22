@@ -1,6 +1,6 @@
 import {useEffect,useState} from "react";
 import {Link,useNavigate} from "react-router-dom";
-import {FileText,MapPin,MessageSquare,PlusCircle,Search} from "lucide-react";
+import {FileText,MapPin,MessageSquare,PlusCircle,Search,Smartphone} from "lucide-react";
 import ThinkingState from "../components/ThinkingState";
 import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
@@ -86,11 +86,15 @@ export default function Home({t,lang}){
         ATLAS · {lang==="uk"?"ТЕСТОВА ВЕРСІЯ":"TEST VERSION"}
       </div>
 
-      <div style={{marginBottom:18}}>
+      <div style={{marginBottom:18,display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap"}}>
         <a href={aboutUrl} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,color:"#0d7a41",fontSize:13,fontWeight:800,textDecoration:"underline",textUnderlineOffset:3}}>
           <FileText size={16}/>
           {lang==="uk"?"Вперше тут? Прочитайте за 1 хвилину, що робить Atlas →":"New here? Read in 1 minute what Atlas does →"}
         </a>
+        <Link to="/share" style={{display:"inline-flex",alignItems:"center",gap:7,padding:"8px 12px",borderRadius:12,background:"#e9f7ee",border:"1px solid #b9ddc7",color:"#08723d",fontSize:13,fontWeight:900}}>
+          <Smartphone size={17}/>
+          {lang==="uk"?"Мобільна версія · QR · встановити на телефон →":"Mobile Atlas · QR · install on phone →"}
+        </Link>
       </div>
 
       <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,letterSpacing:"-.035em",marginBottom:28}}>
