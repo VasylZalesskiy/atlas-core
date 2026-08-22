@@ -18,6 +18,7 @@ export default function ShareApp({lang="uk"}){
   const [installPrompt,setInstallPrompt]=useState(()=>window.atlasInstallPrompt||null);
   const [installed,setInstalled]=useState(isAtlasInstalled);
   const [notice,setNotice]=useState("");
+  const [showIosHelp,setShowIosHelp]=useState(false);
   const device=browserDevice();
   const shareText=atlasShareText(lang);
   const links=useMemo(()=>createMessengerLinks(lang),[lang]);
@@ -48,11 +49,24 @@ export default function ShareApp({lang="uk"}){
   }
 
   async function installAtlas(){
-    if(!installPrompt)return;
-    await installPrompt.prompt();
-    const result=await installPrompt.userChoice;
-    if(result?.outcome==="accepted")setNotice(uk?"Встановлення Atlas розпочато.":"Atlas installation started.");
-    setInstallPrompt(null);window.atlasInstallPrompt=null;
+    setNotice("");
+    if(installed){
+      setNotice(uk?"Atlas уже встановлено на цьому телефоні.":"Atlas is already installed on this phone.");
+      return;
+    }
+    if(installPrompt){
+      await installPrompt.prompt();
+      const result=await installPrompt.userChoice;
+      if(result?.outcome==="accepted")setNotice(uk?"Встановлення Atlas розпочато.":"Atlas installation started.");
+      setInstallPrompt(null);window.atlasInstallPrompt=null;
+      return;
+    }
+    if(device==="ios"){
+      setShowIosHelp(true);
+      setNotice(uk?"На iPhone Apple вимагає підтвердити додавання через меню Safari.":"On iPhone, Apple requires confirmation through Safari's menu.");
+      return;
+    }
+    setNotice(uk?"Відкрийте Atlas у Chrome та натисніть цю кнопку ще раз. Якщо системне вікно не з’явиться — меню ⋮ → «Встановити застосунок».":"Open Atlas in Chrome and press this button again. If the system prompt does not appear, use ⋮ → Install app.");
   }
 
   function downloadQr(){
@@ -71,10 +85,21 @@ export default function ShareApp({lang="uk"}){
       <div className="shareAppIntro">
         <span className="shareAppMark"><img src="/atlas-icon.svg" alt=""/>ATLAS</span>
         <span className="shareAppEyebrow">{uk?"ОДНЕ ПОСИЛАННЯ · БУДЬ-ЯКИЙ ТЕЛЕФОН":"ONE LINK · ANY PHONE"}</span>
-        <h1>{uk?"Передайте Atlas за 10 секунд":"Share Atlas in 10 seconds"}</h1>
-        <p>{uk?"Покажіть QR-код людині поруч або надішліть посилання через Telegram, Viber, WhatsApp чи будь-який інший месенджер.":"Show the QR code to someone nearby or send the link through Telegram, Viber, WhatsApp, or any other messenger."}</p>
+        <h1>{uk?"Atlas на телефон":"Atlas on your phone"}</h1>
+        <p>{uk?"Натисніть одну кнопку нижче. На Android відкриється системне встановлення. На iPhone Atlas покаже останню дію, яку Apple вимагає підтвердити вручну.":"Press the single button below. On Android the system installer opens. On iPhone Atlas shows the final action Apple requires you to confirm manually."}</p>
+
+        {!installed?<button className="installAtlasButton" type="button" onClick={installAtlas} style={{width:"100%",justifyContent:"center",fontSize:17,padding:"16px 20px",marginBottom:12}}><Download size={21}/>{uk?"Встановити Atlas":"Install Atlas"}</button>:<div className="installedBadge" style={{marginBottom:12}}><Check size={21}/><span><strong>{uk?"Atlas уже встановлено":"Atlas is already installed"}</strong><small>{uk?"Відкривайте його з іконки на головному екрані":"Open it from the Home Screen icon"}</small></span></div>}
+
+        {showIosHelp&&<div style={{background:"#fff7df",border:"1px solid #ead79b",borderRadius:16,padding:"14px 16px",marginBottom:14,textAlign:"left"}}>
+          <strong style={{display:"block",marginBottom:7}}>{uk?"iPhone — ще 2 натискання":"iPhone — 2 more taps"}</strong>
+          <div style={{display:"grid",gap:6,fontSize:14,lineHeight:1.45}}>
+            <span>1. {uk?"У Safari натисніть кнопку «Поділитися» ↑.":"In Safari, tap Share ↑."}</span>
+            <span>2. {uk?"Оберіть «На початковий екран» → «Додати».":"Choose Add to Home Screen → Add."}</span>
+          </div>
+        </div>}
+
         <div className="shareAppPrimaryActions">
-          <button className="shareNativeButton" type="button" onClick={shareAtlas}><Share2 size={20}/>{uk?"Поділитися через телефон":"Share from phone"}</button>
+          <button className="shareNativeButton" type="button" onClick={shareAtlas}><Share2 size={20}/>{uk?"Поділитися Atlas":"Share Atlas"}</button>
           <button className="shareCopyButton" type="button" onClick={copyLink}>{copied?<Check size={19}/>:<Copy size={19}/>} {copied?(uk?"Скопійовано":"Copied"):(uk?"Копіювати посилання":"Copy link")}</button>
         </div>
         <div className="shareLinkBox"><span>{ATLAS_SHARE_URL}</span><button type="button" onClick={copyLink} aria-label={uk?"Копіювати посилання":"Copy link"}><Copy size={17}/></button></div>
@@ -98,11 +123,10 @@ export default function ShareApp({lang="uk"}){
     </section>
 
     <section className="installAtlasSection">
-      <div className="installAtlasHeading"><span>{uk?"ВСТАНОВИТИ ЯК ЗАСТОСУНОК":"INSTALL AS AN APP"}</span><h2>{uk?"Іконка Atlas на головному екрані":"Atlas icon on the Home Screen"}</h2><p>{uk?"Після встановлення Atlas відкривається окремим вікном — без пошуку посилання в чаті.":"After installation, Atlas opens in its own window without searching for the link in chat."}</p></div>
-      {installed?<div className="installedBadge"><Check size={21}/><span><strong>{uk?"Atlas уже встановлено":"Atlas is already installed"}</strong><small>{uk?"Відкривайте його з іконки на екрані":"Open it from the Home Screen icon"}</small></span></div>:installPrompt?<button className="installAtlasButton" type="button" onClick={installAtlas}><Download size={20}/>{uk?"Встановити Atlas зараз":"Install Atlas now"}</button>:null}
+      <div className="installAtlasHeading"><span>{uk?"ЯК ЦЕ ПРАЦЮЄ":"HOW IT WORKS"}</span><h2>{uk?"Іконка Atlas на головному екрані":"Atlas icon on the Home Screen"}</h2><p>{uk?"Після встановлення Atlas відкривається окремим вікном — без пошуку посилання в чаті.":"After installation, Atlas opens in its own window without searching for the link in chat."}</p></div>
       <div className="installDeviceGrid">
-        <article className={device==="ios"?"detected":""}><div className="deviceLabel"><span></span><strong>iPhone / iPad</strong>{device==="ios"&&<b>{uk?"Ваш пристрій":"Your device"}</b>}</div><ol><li>{uk?"Відкрийте Atlas у Safari.":"Open Atlas in Safari."}</li><li>{uk?"Натисніть «Поділитися».":"Tap Share."}</li><li>{uk?"Оберіть «На початковий екран».":"Choose Add to Home Screen."}</li></ol></article>
-        <article className={device==="android"?"detected":""}><div className="deviceLabel"><span>●</span><strong>Android</strong>{device==="android"&&<b>{uk?"Ваш пристрій":"Your device"}</b>}</div><ol><li>{uk?"Відкрийте Atlas у Chrome.":"Open Atlas in Chrome."}</li><li>{uk?"Натисніть меню ⋮.":"Tap the ⋮ menu."}</li><li>{uk?"Оберіть «Встановити застосунок».":"Choose Install app."}</li></ol></article>
+        <article className={device==="ios"?"detected":""}><div className="deviceLabel"><span></span><strong>iPhone / iPad</strong>{device==="ios"&&<b>{uk?"Ваш пристрій":"Your device"}</b>}</div><ol><li>{uk?"Натисніть «Встановити Atlas» вище.":"Tap Install Atlas above."}</li><li>{uk?"Safari: «Поділитися» → «На початковий екран».":"Safari: Share → Add to Home Screen."}</li></ol></article>
+        <article className={device==="android"?"detected":""}><div className="deviceLabel"><span>●</span><strong>Android</strong>{device==="android"&&<b>{uk?"Ваш пристрій":"Your device"}</b>}</div><ol><li>{uk?"Відкрийте Atlas у Chrome.":"Open Atlas in Chrome."}</li><li>{uk?"Натисніть «Встановити Atlas» — далі підтвердіть системне вікно.":"Tap Install Atlas, then confirm the system prompt."}</li></ol></article>
       </div>
     </section>
   </main>;
