@@ -5,6 +5,12 @@ function recognitionConstructor(){
   return window.SpeechRecognition||window.webkitSpeechRecognition||null;
 }
 
+function isMobileBrowser(){
+  if(typeof navigator==="undefined")return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent||"")
+    || Boolean(window.matchMedia?.("(pointer: coarse)").matches);
+}
+
 export default function useSpeechInput({lang="uk",onResult}){
   const recognitionRef=useRef(null);
   const restartTimerRef=useRef(null);
@@ -13,6 +19,7 @@ export default function useSpeechInput({lang="uk",onResult}){
   const [listening,setListening]=useState(false);
   const [error,setError]=useState("");
   const supported=Boolean(recognitionConstructor());
+  const mobileSafe=typeof window!=="undefined"&&isMobileBrowser();
 
   useEffect(()=>{onResultRef.current=onResult},[onResult]);
   useEffect(()=>()=>{
@@ -29,12 +36,12 @@ export default function useSpeechInput({lang="uk",onResult}){
   }
 
   function scheduleRestart(recognition){
-    if(!keepListeningRef.current)return;
+    if(mobileSafe||!keepListeningRef.current)return;
     if(restartTimerRef.current)window.clearTimeout(restartTimerRef.current);
     restartTimerRef.current=window.setTimeout(()=>{
       if(!keepListeningRef.current)return;
       try{recognition.start()}catch{}
-    },180);
+    },450);
   }
 
   function start(){
@@ -50,8 +57,10 @@ export default function useSpeechInput({lang="uk",onResult}){
 
     const recognition=new Recognition();
     recognition.lang=lang==="uk"?"uk-UA":"en-US";
-    recognition.continuous=true;
-    recognition.interimResults=true;
+    // Mobile Safari/older mobile browsers can freeze when continuous recognition
+    // is combined with rapid automatic restarts. Use a single safe session there.
+    recognition.continuous=!mobileSafe;
+    recognition.interimResults=!mobileSafe;
     recognition.maxAlternatives=1;
 
     recognition.onstart=()=>{
@@ -74,7 +83,9 @@ export default function useSpeechInput({lang="uk",onResult}){
     recognition.onerror=event=>{
       if(event.error==="aborted")return;
       if(event.error==="no-speech"){
-        if(keepListeningRef.current)setError(lang==="uk"?"Слухаю… говоріть ближче до мікрофона.":"Listening… speak closer to the microphone.");
+        if(keepListeningRef.current)setError(lang==="uk"?"Не почув голос. Натисніть мікрофон і скажіть фразу ще раз.":"No speech detected. Tap the microphone and try again.");
+        keepListeningRef.current=false;
+        setListening(false);
         return;
       }
       keepListeningRef.current=false;
@@ -83,6 +94,11 @@ export default function useSpeechInput({lang="uk",onResult}){
     };
 
     recognition.onend=()=>{
+      if(mobileSafe){
+        keepListeningRef.current=false;
+        setListening(false);
+        return;
+      }
       if(keepListeningRef.current){
         setListening(true);
         scheduleRestart(recognition);
@@ -105,5 +121,5 @@ export default function useSpeechInput({lang="uk",onResult}){
     setListening(false);
   }
 
-  return {supported,listening,error,start,stop};
+  return {supported,listening,error,start,stop,mobileSafe};
 }
