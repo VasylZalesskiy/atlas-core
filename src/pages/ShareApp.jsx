@@ -83,7 +83,7 @@ export default function ShareApp({lang="uk"}){
 
       <div className="shareQrCard">
         <div className="shareQrHeading"><span><Smartphone size={19}/></span><div><strong>{uk?"Наведіть камеру телефону":"Point the phone camera"}</strong><small>{uk?"QR відкриє офіційний Atlas":"QR opens the official Atlas"}</small></div></div>
-        <div className="shareQrFrame"><QRCodeSVG value={ATLAS_SHARE_URL} size={236} level="M" marginSize={3} fgColor="#074f2e" bgColor="#ffffff" title={uk?"QR-код для відкриття Atlas":"QR code to open Atlas"}/><img src="/atlas-icon.svg" alt=""/></div>
+        <div className="shareQrFrame"><QRCodeSVG value={ATLAS_SHARE_URL} size={236} level="H" marginSize={3} fgColor="#074f2e" bgColor="#ffffff" title={uk?"QR-код для відкриття Atlas":"QR code to open Atlas"}/><img src="/atlas-icon.svg" alt=""/></div>
         <button className="downloadQrButton" type="button" onClick={downloadQr}><Download size={17}/>{uk?"Зберегти QR-код":"Save QR code"}</button>
       </div>
     </section>
