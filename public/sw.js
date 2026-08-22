@@ -1,4 +1,4 @@
-const CACHE="atlas-shell-v1";
+const CACHE="atlas-shell-v2";
 const SHELL=["/","/manifest.webmanifest","/atlas-icon.svg","/atlas-icon-180.png","/atlas-icon-192.png","/atlas-icon-512.png"];
 
 self.addEventListener("install",event=>{

@@ -9,7 +9,7 @@ function timeText(value,lang){
   return new Intl.DateTimeFormat(lang==="uk"?"uk-UA":"en-US",{dateStyle:"long",timeStyle:"short"}).format(date);
 }
 
-export default function PilotGate({lang="uk",children}){
+export default function PilotGate({lang="uk",children,bypass=false}){
   const [status,setStatus]=useState(null);
 
   useEffect(()=>{
@@ -22,7 +22,7 @@ export default function PilotGate({lang="uk",children}){
     return()=>{alive=false;window.clearInterval(timer);document.removeEventListener("visibilitychange",onVisibility)};
   },[]);
 
-  if(!status||status.active)return children;
+  if(bypass||!status||status.active)return children;
   const uk=lang==="uk";
   return <main className="pilotGate"><section>
     <div className="pilotGateIcon">{status.beforeStart?<Clock3 size={34}/>:<PauseCircle size={34}/>}</div>

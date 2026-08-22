@@ -15,6 +15,7 @@
   ],
   "shortcuts":[
     {"name":"Новий пошук","url":"/","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]},
-    {"name":"Мої запити","url":"/requests","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]}
+    {"name":"Мої потреби","url":"/needs","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Передати Atlas","url":"/share","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]}
   ]
 }

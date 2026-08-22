@@ -5,6 +5,15 @@ import App from "./App";
 import "./styles/styles.css";
 import "./styles/brainSolution.css";
 import "./styles/atlas26.css";
+window.addEventListener("beforeinstallprompt",event=>{
+  event.preventDefault();
+  window.atlasInstallPrompt=event;
+  window.dispatchEvent(new CustomEvent("atlas-install-ready"));
+});
+window.addEventListener("appinstalled",()=>{
+  window.atlasInstallPrompt=null;
+  window.dispatchEvent(new CustomEvent("atlas-app-installed"));
+});
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));
 }

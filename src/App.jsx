@@ -13,6 +13,7 @@ import Chat from "./pages/Chat";
 import Market from "./pages/Market";
 import Requests from "./pages/Requests";
 import Needs from "./pages/Needs";
+import ShareApp from "./pages/ShareApp";
 import CatalogAdmin from "./pages/CatalogAdmin";
 import dict from "./data/translations";
 
@@ -22,12 +23,13 @@ export default function App(){
   const location=useLocation();
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
   return <>
-    {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/></Routes>:<PilotGate lang={lang}>
+    {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
       <Header lang={lang} setLang={setLang}/>
       <Routes>
         <Route path="/" element={<Home t={t} lang={lang}/>}/>
         <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
         <Route path="/needs" element={<Needs lang={lang}/>}/>
+        <Route path="/share" element={<ShareApp lang={lang}/>}/>
         <Route path="/requests" element={<Requests lang={lang}/>}/>
         <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
         <Route path="/chat" element={<Chat/>}/>
