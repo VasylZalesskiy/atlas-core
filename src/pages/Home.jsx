@@ -1,6 +1,6 @@
 import {useEffect,useState} from "react";
 import {Link,useNavigate} from "react-router-dom";
-import {FileText,MapPin,MessageSquare,PlusCircle,Search,Smartphone} from "lucide-react";
+import {FileText,MapPin,MessageSquare,PlusCircle,RotateCcw,Search,Smartphone} from "lucide-react";
 import ThinkingState from "../components/ThinkingState";
 import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
@@ -44,6 +44,14 @@ export default function Home({t,lang}){
     setThinking(true);
   }
 
+  function newSearch(){
+    setTask("");
+    setWhere("");
+    setThinking(false);
+    setActiveStep(0);
+    window.setTimeout(()=>document.querySelector(".searchbox textarea")?.focus(),0);
+  }
+
   async function sendFeedback(e){
     e.preventDefault();
     if(feedbackBusy||feedback.trim().length<2)return;
@@ -79,6 +87,7 @@ export default function Home({t,lang}){
     :"Add what you have, can do, lend, sell, give away, or help with for free.";
   const capabilityButton=lang==="uk"?"+ Додати можливість":"+ Add an opportunity";
   const aboutUrl=lang==="uk"?"/atlas-about-uk.txt":"/atlas-about-en.txt";
+  const hasSearch=Boolean(task.trim()||where.trim());
 
   return <main className="home">
     <section className="hero" style={{paddingTop:40}}>
@@ -103,7 +112,10 @@ export default function Home({t,lang}){
       </h1>
 
       <form className="searchbox" onSubmit={go} style={{padding:20}}>
-        <label style={{fontSize:12}}>{lang==="uk"?"Опишіть вашу задачу":"Describe your task"}</label>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+          <label style={{fontSize:12}}>{lang==="uk"?"Опишіть вашу задачу":"Describe your task"}</label>
+          {hasSearch&&<button type="button" onClick={newSearch} style={{border:0,background:"transparent",color:"#0d7a41",display:"inline-flex",alignItems:"center",gap:6,fontSize:12,fontWeight:900,cursor:"pointer"}}><RotateCcw size={15}/>{lang==="uk"?"Новий пошук":"New search"}</button>}
+        </div>
         <VoiceTaskInput autoFocus value={task} onChange={setTask} lang={lang} placeholder={placeholder}/>
 
         <label style={{fontSize:12}}>{locationLabel}</label>
@@ -112,7 +124,10 @@ export default function Home({t,lang}){
           <input value={where} onChange={e=>setWhere(e.target.value)} placeholder={t.wherePh} style={{fontSize:14}}/>
         </div>
 
-        <button className="primary" type="submit" style={{fontSize:14,padding:"13px 18px"}}><Search size={18}/>{t.build}</button>
+        <div style={{display:"grid",gridTemplateColumns:hasSearch?"1fr auto":"1fr",gap:9}}>
+          <button className="primary" type="submit" style={{fontSize:14,padding:"13px 18px"}}><Search size={18}/>{t.build}</button>
+          {hasSearch&&<button className="secondary" type="button" onClick={newSearch} style={{justifyContent:"center",whiteSpace:"nowrap",padding:"12px 14px"}}><RotateCcw size={17}/>{lang==="uk"?"Очистити все":"Clear all"}</button>}
+        </div>
         <small style={{color:"#69756e",lineHeight:1.45}}>
           {lang==="uk"
             ?"Для покращення тестової версії Atlas зберігає текст задачі й технічні події. Координати та контакти не записуються. Не додавайте особисті дані."
