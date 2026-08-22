@@ -1,0 +1,19 @@
+.solutionSortBar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  margin:-4px 0 16px;
+  padding:11px 13px;
+  border:1px solid #e0e8e3;
+  border-radius:13px;
+  background:#f8faf9;
+}
+.solutionSortBar label{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:850}
+.solutionSortBar select{border:1px solid #cad8cf;border-radius:9px;padding:8px 10px;background:#fff;color:#31453a}
+.solutionSortBar small{color:#6c7971}
+@media(max-width:760px){
+  .solutionSortBar{align-items:stretch;flex-direction:column}
+  .solutionSortBar label{justify-content:space-between}
+  .solutionSortBar select{max-width:68%}
+}

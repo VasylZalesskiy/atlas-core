@@ -1,47 +1,98 @@
 import {useEffect,useMemo,useRef,useState} from "react";
-import {ArrowLeft,CheckCircle2,Copy,Inbox,Pencil,PlusCircle,Share2,Trash2,XCircle} from "lucide-react";
-import {Link} from "react-router-dom";
-import {addMyOpportunity,deleteMyOpportunity,loadIncomingRequests,loadMyPassport,respondToPassportRequest,saveMyPassport,updateMyOpportunity} from "../services/passportStore";
+import {CheckCircle2,Copy,Inbox,Pencil,Pause,Play,Plus,Share2,Trash2,X} from "lucide-react";
+import {
+  addMyOpportunity,
+  deleteMyOpportunity,
+  loadIncomingRequests,
+  loadMyPassport,
+  opportunityGroups,
+  respondToPassportRequest,
+  saveMyPassport,
+  setMyOpportunityActive,
+  updateMyOpportunity
+} from "../services/passportStore";
 
-const kinds=[
-  {value:"help",uk:"Можу допомогти",en:"I can help"},
-  {value:"share",uk:"Можу поділитися",en:"I can share"},
-  {value:"sell",uk:"Продам",en:"I can sell"},
-  {value:"give",uk:"Подарую",en:"I can give away"},
-  {value:"lend",uk:"Позичу",en:"I can lend"},
-  {value:"rent",uk:"Здам в оренду",en:"I can rent out"},
-  {value:"other",uk:"Інше",en:"Other"}
+const durations=[
+  {value:"hour",label:"1 година"},
+  {value:"day",label:"1 день"},
+  {value:"month",label:"1 місяць"},
+  {value:"year",label:"1 рік"}
 ];
 
-function friendlyError(error,uk){
+const paymentOptions=[
+  {value:"free",label:"Безкоштовно"},
+  {value:"paid",label:"За оплату"},
+  {value:"exchange",label:"Обмін"},
+  {value:"negotiable",label:"За домовленістю"}
+];
+
+const priceUnits=["кг","шт.","година","консультація","послуга","день","поїздка","комплект"];
+const currencySymbols={UAH:"грн",USD:"$",EUR:"€"};
+
+const emptyEntry=()=>({
+  group:"have",text:"",duration:"month",place:"",radiusValue:"",radiusUnit:"км",online:false,
+  paymentType:"free",priceValue:"",priceUnit:"шт.",currency:"UAH",minimumQuantity:"",deliveryIncluded:false
+});
+
+function friendlyError(error){
   const text=String(error?.message||error||"");
-  if(/anonymous|signups|disabled/i.test(text))return uk?"У Supabase потрібно увімкнути Anonymous Sign-Ins.":"Anonymous Sign-Ins must be enabled in Supabase.";
-  if(/atlas_requests|relation .*atlas_requests.*does not exist/i.test(text))return uk?"Запити між користувачами ще не активовані в Supabase.":"User requests are not active in Supabase yet.";
-  if(/atlas_passports|atlas_opportunities|atlas_private_contacts|relation .* does not exist/i.test(text))return uk?"База Паспортів ще не активована в Supabase.":"The Passport database is not active in Supabase yet.";
-  return text||(uk?"Не вдалося виконати дію.":"The action could not be completed.");
+  if(/anonymous|signups|disabled/i.test(text))return "У Supabase потрібно увімкнути анонімний вхід.";
+  if(/atlas_requests|relation .*atlas_requests.*does not exist/i.test(text))return "Запити між користувачами ще не активовані.";
+  if(/atlas_passports|atlas_opportunities|atlas_private_contacts|relation .* does not exist/i.test(text))return "База Паспортів ще не активована.";
+  return text||"Не вдалося виконати дію.";
 }
 
-export default function Profile({t,lang="uk"}){
-  const uk=lang!=="en";
+function OpportunityFields({value,onChange,textareaRef,compact=false}){
+  const paid=value.paymentType==="paid";
+  return <div className="opportunityFields">
+    <label><span>Підгрупа</span><select value={value.group} onChange={event=>onChange({...value,group:event.target.value})}>{opportunityGroups.map(group=><option key={group.value} value={group.value}>{group.label}</option>)}</select></label>
+    <label><span>Можливість</span><textarea ref={textareaRef} required maxLength={1100} value={value.text} onChange={event=>onChange({...value,text:event.target.value})} placeholder="Наприклад: маю 20 кг зайвої картоплі" style={{minHeight:compact?72:82}}/><small>Записуйте своїми словами. Atlas не змінює зміст тексту.</small></label>
+    <fieldset className="durationPicker"><legend>Актуальність</legend><div>{durations.map(item=><button type="button" className={value.duration===item.value?"active":""} key={item.value} onClick={()=>onChange({...value,duration:item.value})}>{item.label}</button>)}</div></fieldset>
+    <label><span>Умови надання</span><select value={value.paymentType} onChange={event=>onChange({...value,paymentType:event.target.value})}>{paymentOptions.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+    {paid&&<div className="opportunityPrice">
+      <label><span>Ціна за одиницю</span><input required inputMode="decimal" value={value.priceValue} onChange={event=>onChange({...value,priceValue:event.target.value.replace(/[^0-9.,]/g,"").slice(0,14)})} placeholder="40"/></label>
+      <label><span>Одиниця</span><select value={value.priceUnit} onChange={event=>onChange({...value,priceUnit:event.target.value})}>{priceUnits.map(unit=><option key={unit}>{unit}</option>)}</select></label>
+      <label><span>Валюта</span><select value={value.currency} onChange={event=>onChange({...value,currency:event.target.value})}><option value="UAH">грн</option><option value="USD">USD</option><option value="EUR">EUR</option></select></label>
+      <label><span>Мінімальна кількість</span><input inputMode="decimal" value={value.minimumQuantity} onChange={event=>onChange({...value,minimumQuantity:event.target.value.replace(/[^0-9.,]/g,"").slice(0,14)})} placeholder="5"/></label>
+      <label className="onlineCheck deliveryCheck"><input type="checkbox" checked={value.deliveryIncluded} onChange={event=>onChange({...value,deliveryIncluded:event.target.checked})}/><span>Доставка входить у ціну</span></label>
+    </div>}
+    <div className="opportunityLocation">
+      <label><span>Місце надання</span><input value={value.place} maxLength={120} onChange={event=>onChange({...value,place:event.target.value})} placeholder="Місто, район або адреса"/></label>
+      <label><span>Радіус</span><input inputMode="decimal" value={value.radiusValue} onChange={event=>onChange({...value,radiusValue:event.target.value.replace(/[^0-9.,]/g,"").slice(0,12)})} placeholder="30"/></label>
+      <label><span>Одиниця</span><select value={value.radiusUnit} onChange={event=>onChange({...value,radiusUnit:event.target.value})}><option>км</option><option>м</option><option>см</option></select></label>
+    </div>
+    <label className="onlineCheck"><input type="checkbox" checked={value.online} onChange={event=>onChange({...value,online:event.target.checked})}/><span>Можна надати онлайн</span></label>
+  </div>;
+}
+
+function opportunityMeta(item){
+  const duration=durations.find(option=>option.value===item.duration)?.label;
+  const distance=item.radiusValue?`${item.radiusValue} ${item.radiusUnit}`:"";
+  const payment=paymentOptions.find(option=>option.value===item.paymentType)?.label;
+  const price=item.paymentType==="paid"&&item.priceValue?`${item.priceValue} ${currencySymbols[item.currency]||item.currency} / ${item.priceUnit}`:"";
+  const minimum=item.paymentType==="paid"&&item.minimumQuantity?`мін. ${item.minimumQuantity} ${item.priceUnit}`:"";
+  return [payment,price,minimum,item.deliveryIncluded?"доставка включена":"",duration,item.place,distance,item.online?"онлайн":""].filter(Boolean);
+}
+
+export default function Profile(){
   const addRef=useRef(null);
   const textareaRef=useRef(null);
   const [loading,setLoading]=useState(true);
   const [saving,setSaving]=useState(false);
   const [adding,setAdding]=useState(false);
-  const [editBusy,setEditBusy]=useState("");
+  const [busyId,setBusyId]=useState("");
   const [editing,setEditing]=useState(null);
-  const [requestBusy,setRequestBusy]=useState("");
   const [error,setError]=useState("");
-  const [requestError,setRequestError]=useState("");
   const [notice,setNotice]=useState("");
   const [passport,setPassport]=useState(null);
   const [opportunities,setOpportunities]=useState([]);
-  const [incomingRequests,setIncomingRequests]=useState([]);
-  const [form,setForm]=useState({displayName:"",profession:"",skills:"",city:"",contact:""});
-  const [entry,setEntry]=useState({kind:"help",text:""});
+  const [requests,setRequests]=useState([]);
+  const [form,setForm]=useState({displayName:"",city:"",contact:"",profession:"",skills:""});
+  const [entry,setEntry]=useState(emptyEntry);
 
   const shareUrl=useMemo(()=>passport?.slug?`${window.location.origin}/p/${passport.slug}`:"",[passport?.slug]);
-  const pendingCount=incomingRequests.filter(item=>item.status==="pending").length;
+  const activeCount=opportunities.filter(item=>item.is_active).length;
+  const pendingCount=requests.filter(item=>item.status==="pending").length;
 
   useEffect(()=>{
     let alive=true;
@@ -52,156 +103,161 @@ export default function Profile({t,lang="uk"}){
       setOpportunities(data.opportunities||[]);
       setForm({
         displayName:data.passport?.display_name||"",
-        profession:data.passport?.profession||"",
-        skills:data.passport?.skills||"",
         city:data.passport?.city||"",
-        contact:data.contact||""
+        contact:data.contact||"",
+        profession:data.passport?.profession||"",
+        skills:data.passport?.skills||""
       });
       if(data.passport?.id){
-        try{const requests=await loadIncomingRequests();if(alive)setIncomingRequests(requests||[])}
-        catch(e){if(alive)setRequestError(friendlyError(e,uk))}
+        try{const incoming=await loadIncomingRequests();if(alive)setRequests(incoming||[])}catch{/* Запити можуть ще не бути активовані. */}
       }
-    }).catch(e=>{if(alive)setError(friendlyError(e,uk))}).finally(()=>{if(alive)setLoading(false)});
+    }).catch(cause=>{if(alive)setError(friendlyError(cause))}).finally(()=>{if(alive)setLoading(false)});
     return()=>{alive=false};
-  },[uk]);
+  },[]);
 
-  useEffect(()=>{
-    if(!loading&&passport&&window.location.hash==="#add-opportunity"){
-      setTimeout(()=>scrollToAdd(false),80);
-    }
-  },[loading,passport?.id]);
-
-  function scrollToAdd(updateHash=true){
+  function scrollToAdd(){
     setEditing(null);
-    if(updateHash)history.replaceState(null,"","#add-opportunity");
     addRef.current?.scrollIntoView({behavior:"smooth",block:"start"});
-    setTimeout(()=>textareaRef.current?.focus(),350);
+    window.setTimeout(()=>textareaRef.current?.focus(),320);
   }
 
-  async function savePassport(e){
-    e.preventDefault();if(saving)return;
-    setError("");setNotice("");setSaving(true);
+  async function savePassport(event){
+    event.preventDefault();
+    if(saving)return;
+    setSaving(true);setError("");setNotice("");
     try{
       const saved=await saveMyPassport(form);
       setPassport(saved);
-      setNotice(uk?"✓ Паспорт збережено. Професія, навички та можливості доступні Atlas для пошуку.":"✓ Passport saved. Your profession, skills and opportunities are searchable by Atlas.");
-    }catch(e){setError(friendlyError(e,uk))}finally{setSaving(false)}
+      setNotice("Паспорт збережено.");
+    }catch(cause){setError(friendlyError(cause))}finally{setSaving(false)}
   }
 
-  async function addOpportunity(e){
-    e.preventDefault();if(adding||!passport?.id||!entry.text.trim())return;
-    setError("");setNotice("");setAdding(true);
+  async function addOpportunity(event){
+    event.preventDefault();
+    if(adding||!passport?.id||!entry.text.trim())return;
+    if(entry.paymentType==="paid"&&!entry.priceValue){setError("Для платної можливості вкажіть ціну за одиницю.");return}
+    setAdding(true);setError("");setNotice("");
     try{
       const added=await addMyOpportunity(passport.id,entry);
       setOpportunities(items=>[added,...items]);
-      setEntry(value=>({...value,text:""}));
-      setNotice(uk?`✓ Можливість додано. У Паспорті вже ${opportunities.length+1}. Додавайте наступну.`:`✓ Opportunity added. Your Passport now has ${opportunities.length+1}. Add another anytime.`);
-      setTimeout(()=>textareaRef.current?.focus(),80);
-    }catch(e){setError(friendlyError(e,uk))}finally{setAdding(false)}
+      setEntry(value=>({...emptyEntry(),group:value.group}));
+      setNotice("Можливість додано. Можна одразу додати наступну.");
+      window.setTimeout(()=>textareaRef.current?.focus(),80);
+    }catch(cause){setError(friendlyError(cause))}finally{setAdding(false)}
   }
 
-  function startEdit(item){
-    setError("");setNotice("");
-    setEditing({id:item.id,kind:item.kind,text:item.text});
-  }
+  function startEdit(item){setEditing({...item});setError("");setNotice("")}
 
   async function saveEdit(){
-    if(!editing?.id||!editing.text.trim()||editBusy)return;
-    setError("");setNotice("");setEditBusy(editing.id);
+    if(!editing?.id||!editing.text.trim()||busyId)return;
+    if(editing.paymentType==="paid"&&!editing.priceValue){setError("Для платної можливості вкажіть ціну за одиницю.");return}
+    setBusyId(editing.id);setError("");
     try{
       const updated=await updateMyOpportunity(editing.id,editing);
-      setOpportunities(items=>items.map(item=>item.id===editing.id?{...item,...updated}:item));
-      setEditing(null);
-      setNotice(uk?"✓ Можливість оновлено. Atlas уже шукає за новим текстом.":"✓ Opportunity updated. Atlas is already searching the new text.");
-    }catch(e){setError(friendlyError(e,uk))}finally{setEditBusy("")}
+      setOpportunities(items=>items.map(item=>item.id===updated.id?updated:item));
+      setEditing(null);setNotice("Зміни збережено.");
+    }catch(cause){setError(friendlyError(cause))}finally{setBusyId("")}
+  }
+
+  async function toggleOpportunity(item){
+    if(busyId)return;
+    setBusyId(item.id);setError("");
+    try{
+      const updated=await setMyOpportunityActive(item.id,!item.is_active);
+      setOpportunities(items=>items.map(current=>current.id===updated.id?updated:current));
+      setNotice(updated.is_active?"Можливість знову активна.":"Можливість призупинено.");
+    }catch(cause){setError(friendlyError(cause))}finally{setBusyId("")}
   }
 
   async function removeOpportunity(id){
-    setError("");setNotice("");
-    try{await deleteMyOpportunity(id);setOpportunities(items=>items.filter(item=>item.id!==id));if(editing?.id===id)setEditing(null);setNotice(uk?"Можливість видалено.":"Opportunity removed.")}
-    catch(e){setError(friendlyError(e,uk))}
+    if(busyId||!window.confirm("Видалити цю можливість?"))return;
+    setBusyId(id);setError("");
+    try{
+      await deleteMyOpportunity(id);
+      setOpportunities(items=>items.filter(item=>item.id!==id));
+      if(editing?.id===id)setEditing(null);
+      setNotice("Можливість видалено.");
+    }catch(cause){setError(friendlyError(cause))}finally{setBusyId("")}
   }
 
   async function answerRequest(id,status){
-    if(requestBusy)return;setRequestBusy(id);setRequestError("");setNotice("");
+    if(busyId)return;
+    setBusyId(id);setError("");
     try{
       const updated=await respondToPassportRequest(id,status);
-      setIncomingRequests(items=>items.map(item=>item.id===id?{...item,...updated}:item));
-      setNotice(status==="accepted"?(uk?"✓ Запит прийнято. Ваш контакт відкрито тільки цьому користувачу.":"✓ Request accepted. Your contact is visible only to this requester."):(uk?"Запит відхилено.":"Request declined."));
-    }catch(e){setRequestError(friendlyError(e,uk))}finally{setRequestBusy("")}
+      setRequests(items=>items.map(item=>item.id===id?{...item,...updated}:item));
+      setNotice(status==="accepted"?"Запит прийнято.":"Запит відхилено.");
+    }catch(cause){setError(friendlyError(cause))}finally{setBusyId("")}
   }
 
-  async function copyLink(){if(!shareUrl)return;await navigator.clipboard.writeText(shareUrl);setNotice(uk?"Посилання на Паспорт скопійовано.":"Passport link copied.")}
-  async function sharePassport(){if(!shareUrl)return;if(navigator.share){await navigator.share({title:"Atlas · Паспорт можливостей",url:shareUrl}).catch(()=>{});return}await copyLink()}
+  async function copyLink(){if(shareUrl){await navigator.clipboard.writeText(shareUrl);setNotice("Посилання на Паспорт скопійовано.")}}
+  async function sharePassport(){
+    if(!shareUrl)return;
+    if(navigator.share){await navigator.share({title:"Atlas · Паспорт можливостей",url:shareUrl}).catch(()=>{});return}
+    await copyLink();
+  }
 
-  if(loading)return <main className="page"><section className="profileShell" style={{maxWidth:760}}><p>{uk?"Відкриваю ваш Паспорт…":"Opening your Passport…"}</p></section></main>;
+  if(loading)return <main className="page appPage"><section className="profileShell"><p>Відкриваю ваш Паспорт…</p></section></main>;
 
-  return <main className="page"><section className="profileShell" style={{maxWidth:760}}>
-    <Link className="back" to="/"><ArrowLeft size={18}/>{uk?"Назад до Atlas":"Back to Atlas"}</Link>
-    <span className="kicker">ATLAS · {uk?"ПАСПОРТ МОЖЛИВОСТЕЙ":"OPPORTUNITY PASSPORT"}</span>
-    <h1 style={{marginBottom:8}}>{passport?(uk?"Ваш Паспорт можливостей":"Your Opportunity Passport"):(uk?"Створіть Паспорт можливостей":"Create an Opportunity Passport")}</h1>
-    <p style={{margin:"0 0 24px",color:"#66746c",fontSize:17,lineHeight:1.55}}>{uk?"Розкажіть, хто ви за професією, що ще вмієте і які можливості можете запропонувати. Atlas використовує все це, щоб знаходити вас для відповідних задач.":"Tell Atlas your profession, other skills and what you can offer. Atlas uses all of it to match you with relevant tasks."}</p>
+  return <main className="page appPage"><section className="profileShell passportPage">
+    <div className="passportHeading"><div><span className="kicker">ATLAS · ПАСПОРТ МОЖЛИВОСТЕЙ</span><h1>{passport?"Ваш Паспорт":"Створіть Паспорт"}</h1><p>Записуйте можливості так, як вони є. Кожна з них може стати частиною чиєїсь задачі.</p></div>{passport&&<div className="passportCounter"><strong>{activeCount}</strong><span>активних</span></div>}</div>
 
-    <form className="profileForm" onSubmit={savePassport} style={{gridTemplateColumns:"1fr",marginBottom:passport?28:0}}>
-      <label><span>{uk?"Ім’я або псевдонім":"Name or nickname"}</span><input required disabled={saving} value={form.displayName} onChange={e=>setForm({...form,displayName:e.target.value})}/></label>
-      <label><span>{uk?"Хто я за професією / основна діяльність":"My profession / main occupation"}</span><input disabled={saving} value={form.profession} onChange={e=>setForm({...form,profession:e.target.value})} placeholder={uk?"Наприклад: електрик, бухгалтер, менеджер із закупівель":"For example: electrician, accountant, procurement manager"}/></label>
-      <label><span>{uk?"Мої навички та досвід":"My skills and experience"}</span><textarea disabled={saving} value={form.skills} onChange={e=>setForm({...form,skills:e.target.value})} maxLength={2000} placeholder={uk?"Наприклад: переговори, логістика, Excel, ремонт генераторів, водіння, зварювання…":"For example: negotiations, logistics, Excel, generator repair, driving, welding…"} style={{minHeight:110}}/></label>
-      <label><span>{uk?"Місто / район":"City / area"}</span><input disabled={saving} value={form.city} onChange={e=>setForm({...form,city:e.target.value})}/></label>
-      <label><span>{uk?"Контакт — публічно не показується":"Contact — never shown publicly"}</span><input required disabled={saving} value={form.contact} onChange={e=>setForm({...form,contact:e.target.value})}/></label>
-      <button className="primary" disabled={saving}>{saving?(t?.saving||"Зберігаю…"):(passport?(uk?"Зберегти Паспорт":"Save Passport"):(uk?"Створити Паспорт":"Create Passport"))}</button>
+    <form className="passportIdentity" onSubmit={savePassport}>
+      <label><span>Ім’я або псевдонім</span><input required value={form.displayName} onChange={event=>setForm({...form,displayName:event.target.value})}/></label>
+      <label><span>Місто / район</span><input value={form.city} onChange={event=>setForm({...form,city:event.target.value})}/></label>
+      <label className="contactField"><span>Приватний контакт</span><input required value={form.contact} onChange={event=>setForm({...form,contact:event.target.value})}/><small>Публічно не показується. Відкривається лише після вашої згоди.</small></label>
+      <button className="secondary" disabled={saving}>{saving?"Зберігаю…":passport?"Зберегти дані":"Створити Паспорт"}</button>
     </form>
 
     {passport&&<>
-      <div id="add-opportunity" ref={addRef} style={{borderTop:"1px solid #e4ebe6",paddingTop:26,scrollMarginTop:100}}>
-        <h2 style={{margin:"0 0 6px",fontSize:25}}>{uk?"+ Додати можливість":"+ Add an opportunity"}</h2>
-        <p style={{margin:"0 0 16px",color:"#66746c"}}>{uk?"Тут додавайте конкретні речі, ресурси або допомогу понад вашу професію та навички. Одне поле — одна можливість.":"Add specific things, resources or help here in addition to your profession and skills. One field — one opportunity."}</p>
-        <form onSubmit={addOpportunity} style={{display:"grid",gap:12}}>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{kinds.map(item=><button key={item.value} type="button" onClick={()=>setEntry({...entry,kind:item.value})} style={{border:entry.kind===item.value?"2px solid #11934b":"1px solid #d8e1da",background:entry.kind===item.value?"#eef9f2":"white",borderRadius:999,padding:"9px 13px",fontWeight:700,cursor:"pointer"}}>{uk?item.uk:item.en}</button>)}</div>
-          <textarea ref={textareaRef} value={entry.text} onChange={e=>setEntry({...entry,text:e.target.value})} placeholder={uk?"Наприклад: маю причіп, можу позичити на день":"For example: I have a trailer I can lend for a day"} style={{minHeight:110,fontSize:17,padding:14,border:"1px solid #d8e1da",borderRadius:12}}/>
-          <button className="primary" disabled={adding||!entry.text.trim()}><PlusCircle size={20}/>{adding?(uk?"Додаю…":"Adding…"):(uk?"Додати до Паспортa":"Add to Passport")}</button>
+      <section className="passportActions">
+        <button className="primary" type="button" onClick={scrollToAdd}><Plus size={19}/>Додати можливість</button>
+        <button className="secondary" type="button" onClick={sharePassport}><Share2 size={17}/>Поділитися</button>
+        <button className="secondary iconButton" type="button" onClick={copyLink} aria-label="Копіювати посилання"><Copy size={17}/></button>
+      </section>
+
+      <section className="opportunityEditor" ref={addRef}>
+        <div className="sectionTitle"><div><span>НОВА МОЖЛИВІСТЬ</span><h2>Додати як є</h2></div></div>
+        <form onSubmit={addOpportunity}>
+          <OpportunityFields value={entry} onChange={setEntry} textareaRef={textareaRef}/>
+          <button className="primary addOpportunity" disabled={adding||!entry.text.trim()}><Plus size={18}/>{adding?"Додаю…":"Додати до Паспортa"}</button>
         </form>
-      </div>
+      </section>
 
-      <div style={{marginTop:30}}>
-        <div style={{display:"flex",justifyContent:"space-between",gap:16,alignItems:"center",flexWrap:"wrap"}}>
-          <div><h2 style={{margin:"0 0 4px",fontSize:25}}>{uk?"Мої можливості":"My opportunities"} · {opportunities.length}</h2><span style={{color:"#66746c"}}>{uk?"Кожну можна швидко змінити або видалити.":"Each one can be quickly edited or removed."}</span></div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            <button type="button" onClick={()=>scrollToAdd()} className="primary"><PlusCircle size={17}/>{uk?"Додати ще":"Add another"}</button>
-            {shareUrl&&<><button type="button" onClick={copyLink} className="secondary"><Copy size={17}/>{uk?"Копіювати":"Copy"}</button><button type="button" onClick={sharePassport} className="secondary"><Share2 size={17}/>{uk?"Поділитися":"Share"}</button></>}
-          </div>
-        </div>
-        <div style={{display:"grid",gap:10,marginTop:16}}>
-          {opportunities.length===0&&<div style={{padding:18,border:"1px dashed #cbd8ce",borderRadius:12,color:"#66746c"}}>{uk?"Додаткових можливостей поки немає. Професія та навички вже можуть використовуватися Atlas для пошуку.":"No additional opportunities yet. Your profession and skills can already be used by Atlas for search."}</div>}
-          {opportunities.map(item=>{
-            const kind=kinds.find(k=>k.value===item.kind);
-            const isEditing=editing?.id===item.id;
-            return <div key={item.id} style={{padding:16,border:"1px solid #e1e9e3",borderRadius:14,background:"#fff"}}>
-              {isEditing?<div style={{display:"grid",gap:12}}>
-                <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{kinds.map(option=><button key={option.value} type="button" onClick={()=>setEditing(value=>({...value,kind:option.value}))} style={{border:editing.kind===option.value?"2px solid #11934b":"1px solid #d8e1da",background:editing.kind===option.value?"#eef9f2":"white",borderRadius:999,padding:"7px 11px",fontWeight:700,cursor:"pointer"}}>{uk?option.uk:option.en}</button>)}</div>
-                <textarea value={editing.text} onChange={e=>setEditing(value=>({...value,text:e.target.value}))} style={{minHeight:90,fontSize:16,padding:12,border:"1px solid #cbd8ce",borderRadius:11}} autoFocus/>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}><button type="button" className="primary" disabled={editBusy===item.id||!editing.text.trim()} onClick={saveEdit}><CheckCircle2 size={17}/>{editBusy===item.id?(uk?"Зберігаю…":"Saving…"):(uk?"Зберегти":"Save")}</button><button type="button" className="secondary" disabled={editBusy===item.id} onClick={()=>setEditing(null)}><XCircle size={17}/>{uk?"Скасувати":"Cancel"}</button></div>
-              </div>:<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:14}}>
-                <div><strong style={{display:"block",fontSize:13,color:"#0b8d46",marginBottom:5}}>{kind?(uk?kind.uk:kind.en):(uk?"Можливість":"Opportunity")}</strong><span style={{fontSize:17,lineHeight:1.45}}>{item.text}</span></div>
-                <div style={{display:"flex",gap:7,flex:"0 0 auto"}}><button type="button" onClick={()=>startEdit(item)} title={uk?"Редагувати":"Edit"} style={{border:"1px solid #e1e9e3",background:"white",borderRadius:10,padding:9,cursor:"pointer"}}><Pencil size={18}/></button><button type="button" onClick={()=>removeOpportunity(item.id)} title={uk?"Видалити":"Delete"} style={{border:"1px solid #e1e9e3",background:"white",borderRadius:10,padding:9,cursor:"pointer"}}><Trash2 size={18}/></button></div>
-              </div>}
-            </div>;
-          })}
-        </div>
-      </div>
+      <section className="opportunityGroups">
+        <div className="sectionTitle"><div><span>МОЇ МОЖЛИВОСТІ</span><h2>{opportunities.length} записів у {opportunityGroups.length} підгрупах</h2></div></div>
+        {opportunityGroups.map(group=>{
+          const items=opportunities.filter(item=>item.group===group.value);
+          return <details className="opportunityGroup" key={group.value} open={items.length>0}>
+            <summary><span>{group.label}</span><b>{items.length}</b></summary>
+            <div className="opportunityList">
+              {items.length===0&&<p className="groupEmpty">Поки порожньо.</p>}
+              {items.map(item=>{
+                const meta=opportunityMeta(item);
+                const isEditing=editing?.id===item.id;
+                return <article className={`opportunityCard ${item.is_active?"":"paused"}`} key={item.id}>
+                  {isEditing?<div className="editOpportunity"><OpportunityFields value={editing} onChange={setEditing} compact/><div className="editActions"><button className="primary" type="button" disabled={busyId===item.id||!editing.text.trim()} onClick={saveEdit}><CheckCircle2 size={17}/>Зберегти</button><button className="secondary" type="button" onClick={()=>setEditing(null)}><X size={17}/>Скасувати</button></div></div>:<>
+                    <div className="opportunityCopy"><p>{item.text}</p><div className="opportunityMeta">{!item.is_active&&<span className="pausedTag">Призупинено</span>}{meta.map(value=><span key={value}>{value}</span>)}</div></div>
+                    <div className="recordActions">
+                      <button type="button" disabled={busyId===item.id} onClick={()=>toggleOpportunity(item)}>{item.is_active?<><Pause size={16}/>Призупинити</>:<><Play size={16}/>Активувати</>}</button>
+                      <button type="button" onClick={()=>startEdit(item)}><Pencil size={16}/>Змінити</button>
+                      <button className="deleteAction" type="button" disabled={busyId===item.id} onClick={()=>removeOpportunity(item.id)}><Trash2 size={16}/>Видалити</button>
+                    </div>
+                  </>}
+                </article>;
+              })}
+            </div>
+          </details>;
+        })}
+      </section>
 
-      <div style={{marginTop:34,paddingTop:28,borderTop:"1px solid #e4ebe6"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:5}}><Inbox size={24}/><h2 style={{margin:0,fontSize:25}}>{uk?"Вхідні запити":"Incoming requests"}{pendingCount?` · ${pendingCount}`:""}</h2></div>
-        <p style={{margin:"0 0 16px",color:"#66746c"}}>{uk?"Контакт відкривається тільки після вашої згоди.":"Your contact is revealed only after you accept."}</p>
-        {requestError&&<div className="error" style={{marginBottom:14}}>{requestError}</div>}
-        <div style={{display:"grid",gap:10}}>
-          {!requestError&&incomingRequests.length===0&&<div style={{padding:18,border:"1px dashed #cbd8ce",borderRadius:12,color:"#66746c"}}>{uk?"Поки немає запитів.":"No requests yet."}</div>}
-          {incomingRequests.map(item=><article key={item.id} style={{padding:16,border:"1px solid #e1e9e3",borderRadius:14,background:"#fff"}}><div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start",flexWrap:"wrap"}}><div style={{flex:"1 1 360px"}}><strong style={{display:"block",color:"#0b8d46",marginBottom:5}}>{item.requester_name||(uk?"Користувач Atlas":"Atlas user")}</strong>{item.opportunity?.text&&<div style={{fontWeight:700,marginBottom:7}}>{item.opportunity.text}</div>}<div style={{lineHeight:1.5}}>{item.message}</div></div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{item.status==="pending"&&<><button className="primary" type="button" disabled={requestBusy===item.id} onClick={()=>answerRequest(item.id,"accepted")}><CheckCircle2 size={17}/>{uk?"Прийняти":"Accept"}</button><button className="secondary" type="button" disabled={requestBusy===item.id} onClick={()=>answerRequest(item.id,"declined")}><XCircle size={17}/>{uk?"Відхилити":"Decline"}</button></>}{item.status==="accepted"&&<span style={{padding:"9px 12px",borderRadius:10,background:"#edf9f1",color:"#08783c",fontWeight:700}}>{uk?"Прийнято":"Accepted"}</span>}{item.status==="declined"&&<span style={{padding:"9px 12px",borderRadius:10,background:"#f7f3f2",color:"#765d57",fontWeight:700}}>{uk?"Відхилено":"Declined"}</span>}</div></div></article>)}
-        </div>
-      </div>
+      <section className="incomingRequests">
+        <div className="sectionTitle"><div><span>ЗАПИТИ</span><h2><Inbox size={21}/>Вхідні{pendingCount?` · ${pendingCount}`:""}</h2></div></div>
+        {requests.length===0?<p className="groupEmpty">Поки немає запитів.</p>:requests.map(item=><article key={item.id}><div><strong>{item.requester_name||"Користувач Atlas"}</strong>{item.opportunity?.text&&<span>{item.opportunity.text}</span>}<p>{item.message}</p></div>{item.status==="pending"?<div><button className="primary" disabled={busyId===item.id} onClick={()=>answerRequest(item.id,"accepted")}><CheckCircle2 size={16}/>Прийняти</button><button className="secondary" disabled={busyId===item.id} onClick={()=>answerRequest(item.id,"declined")}><X size={16}/>Відхилити</button></div>:<b>{item.status==="accepted"?"Прийнято":"Відхилено"}</b>}</article>)}
+      </section>
     </>}
 
-    {error&&<div className="error" style={{marginTop:16}}>{error}</div>}
-    {notice&&<div className="success" style={{marginTop:16}}>{notice}</div>}
-    <p className="principle" style={{textAlign:"center"}}>{uk?"Твої можливості є частинкою чиєїсь задачі.":"Your capabilities are part of someone else's solution."}</p>
+    {error&&<div className="error">{error}</div>}
+    {notice&&<div className="success">{notice}</div>}
   </section></main>;
 }

@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useState} from "react";
 import {ArrowLeft,CheckCircle2,Copy,MapPin,MessageCircle,PlusCircle,Send} from "lucide-react";
 import {Link,useParams} from "react-router-dom";
-import {createPassportRequest,ensureAtlasSession,loadMyRequestsForPassport,loadPublicPassport} from "../services/passportStore";
+import {createPassportRequest,ensureAtlasSession,loadMyRequestsForPassport,loadPublicPassport,opportunityGroups} from "../services/passportStore";
 
 const kindLabels={
   help:{uk:"Може допомогти",en:"Can help"},
@@ -12,6 +12,23 @@ const kindLabels={
   rent:{uk:"Здає в оренду",en:"Renting out"},
   other:{uk:"Можливість",en:"Opportunity"}
 };
+
+const groupLabels=Object.fromEntries(opportunityGroups.map(item=>[item.value,item.label]));
+const durationLabels={hour:"1 година",day:"1 день",month:"1 місяць",year:"1 рік"};
+const paymentLabels={free:"Безкоштовно",paid:"За оплату",exchange:"Обмін",negotiable:"За домовленістю"};
+const currencySymbols={UAH:"грн",USD:"$",EUR:"€"};
+
+function publicOpportunityMeta(item,uk){
+  const payment=paymentLabels[item.paymentType]||paymentLabels.free;
+  const price=item.paymentType==="paid"&&item.priceValue?`${item.priceValue} ${currencySymbols[item.currency]||item.currency} / ${item.priceUnit}`:"";
+  return [
+    uk?payment:({free:"Free",paid:"Paid",exchange:"Exchange",negotiable:"Negotiable"}[item.paymentType]||"Free"),
+    price,
+    item.minimumQuantity?(uk?`мін. ${item.minimumQuantity} ${item.priceUnit}`:`min. ${item.minimumQuantity} ${item.priceUnit}`):"",
+    item.deliveryIncluded?(uk?"доставка включена":"delivery included"):"",
+    durationLabels[item.duration],item.place,item.radiusValue?`${item.radiusValue} ${item.radiusUnit}`:"",item.online?(uk?"онлайн":"online"):""
+  ].filter(Boolean);
+}
 
 export default function PublicPassport({lang="uk"}){
   const {slug}=useParams();
@@ -106,11 +123,12 @@ export default function PublicPassport({lang="uk"}){
 
       <div style={{display:"grid",gap:12}}>
         {opportunities.map(item=>{
-          const label=kindLabels[item.kind]||kindLabels.other;
+          const label=groupLabels[item.group]||(kindLabels[item.kind]?kindLabels[item.kind][uk?"uk":"en"]:(uk?"Можливість":"Opportunity"));
           const request=latestByOpportunity.get(item.id);
           return <article key={item.id} style={{padding:18,border:"1px solid #e1e9e3",borderRadius:14,background:"white"}}>
-            <strong style={{display:"block",fontSize:13,color:"#0b8d46",marginBottom:7}}>{uk?label.uk:label.en}</strong>
+            <strong style={{display:"block",fontSize:13,color:"#0b8d46",marginBottom:7}}>{label}</strong>
             <div style={{fontSize:18,lineHeight:1.5}}>{item.text}</div>
+            <div className="opportunityMeta" style={{marginTop:10}}>{publicOpportunityMeta(item,uk).map(value=><span key={value}>{value}</span>)}</div>
             {!isOwner&&<>
               {request?.status==="pending"&&<div style={{marginTop:14,padding:"11px 13px",borderRadius:11,background:"#f4f8f5",color:"#526159",fontWeight:700}}>{uk?"Запит надіслано · очікує відповіді":"Request sent · awaiting response"}</div>}
               {request?.status==="declined"&&<div style={{marginTop:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}><span style={{color:"#7a5b55"}}>{uk?"Власник відхилив попередній запит.":"The owner declined the previous request."}</span><button className="secondary" type="button" onClick={()=>openRequest(item)}><MessageCircle size={17}/>{uk?"Надіслати новий":"Send another"}</button></div>}

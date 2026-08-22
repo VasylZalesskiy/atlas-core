@@ -1,5 +1,5 @@
-import {useEffect,useMemo,useState} from "react";
-import {useLocation,useNavigate} from "react-router-dom";
+import {useEffect,useMemo,useRef,useState} from "react";
+import {Link,useLocation,useSearchParams} from "react-router-dom";
 import {
   ArrowLeft,Check,Clock3,ExternalLink,Globe2,MapPin,Navigation,
   Phone,RefreshCw,Search,UserRound
@@ -10,6 +10,9 @@ import {searchExternalSources} from "../services/externalSearch";
 import {getDrivingRoute,openGoogleDirections,searchDestination,searchNearbyPlaces} from "../services/googleMaps";
 import {trackAtlas} from "../services/analytics";
 import useGeolocation from "../hooks/useGeolocation";
+import SearchHistoryList from "../components/SearchHistoryList";
+import VoiceTaskInput from "../components/VoiceTaskInput";
+import {saveSearchHistory} from "../services/searchHistory";
 import "../styles/simpleSolution.css";
 import "../styles/solutionChains.css";
 
@@ -29,6 +32,14 @@ function formatDistance(value){
   return `${value<10?value.toFixed(1):Math.round(value)} км`;
 }
 
+const currencySymbols={UAH:"грн",USD:"$",EUR:"€"};
+
+function structuredPrice(candidate){
+  const value=Number(String(candidate?.priceValue||"").replace(",","."));
+  if(!Number.isFinite(value)||value<0||!candidate?.priceUnit)return null;
+  return {value,unit:candidate.priceUnit,currency:candidate.currency||"UAH"};
+}
+
 function normalizeSteps(plan,task,lang){
   const source=Array.isArray(plan?.solution_steps)?plan.solution_steps:[];
   const fallback=createFallbackPlan(task,{lang}).solution_steps;
@@ -45,6 +56,17 @@ function normalizeSteps(plan,task,lang){
 }
 
 function passportCandidate(profile,lang){
+  const priceValue=profile.price_value==null?"":String(profile.price_value);
+  const priceUnit=profile.price_unit||"";
+  const currency=profile.currency||"UAH";
+  const paymentType=profile.payment_type||"free";
+  const priceText=paymentType==="paid"&&priceValue&&priceUnit
+    ?`${priceValue} ${currencySymbols[currency]||currency} / ${priceUnit}`
+    :paymentType==="exchange"
+      ?(lang==="uk"?"Обмін":"Exchange")
+      :paymentType==="negotiable"
+        ?(lang==="uk"?"За домовленістю":"Negotiable")
+        :(lang==="uk"?"Безкоштовно":"Free");
   return {
     kind:"passport",
     id:profile.slug||profile.name,
@@ -55,6 +77,13 @@ function passportCandidate(profile,lang){
     passportUrl:profile.slug?`/p/${profile.slug}`:"",
     matchScore:Number(profile.score)||0,
     matchedTerms:Array.isArray(profile.matched)?profile.matched:[],
+    paymentType,
+    priceValue,
+    priceUnit,
+    currency,
+    priceText,
+    minimumQuantity:profile.minimum_quantity||"",
+    deliveryIncluded:Boolean(profile.delivery_included),
     resolved:true
   };
 }
@@ -333,11 +362,14 @@ function SolutionChain({chain,index,origin,lang}){
 
 export default function Solution({lang}){
   const {state}=useLocation();
-  const navigate=useNavigate();
-  const initialTask=clean(state?.task);
-  const initialWhere=clean(state?.where);
+  const [searchParams,setSearchParams]=useSearchParams();
+  const initialTask=clean(searchParams.get("q")||state?.task);
+  const initialWhere=clean(searchParams.get("where")||state?.where);
+  const routeSignature=`${initialTask}\n${initialWhere}`;
+  const previousRouteRef=useRef(routeSignature);
   const [task,setTask]=useState(initialTask);
   const [activeTask,setActiveTask]=useState(initialTask);
+  const [searchRunId,setSearchRunId]=useState(0);
   const [plan,setPlan]=useState(()=>createFallbackPlan(initialTask,{lang}));
   const [brainLoading,setBrainLoading]=useState(Boolean(initialTask));
   const [brainError,setBrainError]=useState("");
@@ -354,8 +386,19 @@ export default function Solution({lang}){
   const [typedOrigin,setTypedOrigin]=useState(null);
   const [originLoading,setOriginLoading]=useState(false);
   const [originError,setOriginError]=useState("");
+  const [sortMode,setSortMode]=useState("recommended");
   const geo=useGeolocation(state?.geoLocation||null);
   const origin=geo.location||typedOrigin;
+
+  useEffect(()=>{
+    if(previousRouteRef.current===routeSignature)return;
+    previousRouteRef.current=routeSignature;
+    setTask(initialTask);
+    setActiveTask(initialTask);
+    setTypedOrigin(null);
+    setSortMode("recommended");
+    setSearchRunId(value=>value+1);
+  },[routeSignature,initialTask]);
 
   useEffect(()=>{
     if(!activeTask){
@@ -379,10 +422,11 @@ export default function Solution({lang}){
       })
       .finally(()=>{if(!controller.signal.aborted)setBrainLoading(false)});
     return()=>controller.abort();
-  },[activeTask,lang,initialWhere,state?.geoLocation?.latitude,state?.geoLocation?.longitude]);
+  },[activeTask,searchRunId,lang,initialWhere,state?.geoLocation?.latitude,state?.geoLocation?.longitude]);
 
   const steps=useMemo(()=>normalizeSteps(plan,activeTask,lang),[plan,activeTask,lang]);
   const stepsKey=useMemo(()=>JSON.stringify(steps),[steps]);
+  const passportRunKey=`${searchRunId}:${activeTask}`;
 
   useEffect(()=>{
     let alive=true;
@@ -419,13 +463,13 @@ export default function Solution({lang}){
       .finally(()=>{
         if(alive){
           setPassportLoading(false);
-          setPassportCheckedGoal(activeTask);
+          setPassportCheckedGoal(passportRunKey);
         }
       });
     return()=>{alive=false};
-  },[activeTask,brainLoading,stepsKey]);
+  },[activeTask,brainLoading,stepsKey,passportRunKey]);
 
-  const passportsChecked=Boolean(activeTask&&!passportLoading&&!brainLoading&&passportCheckedGoal===activeTask);
+  const passportsChecked=Boolean(activeTask&&!passportLoading&&!brainLoading&&passportCheckedGoal===passportRunKey);
 
   async function ensureOrigin(){
     if(origin)return origin;
@@ -512,7 +556,7 @@ export default function Solution({lang}){
       })
       .finally(()=>{if(!controller.signal.aborted)setNearbyLoading(false)});
     return()=>controller.abort();
-  },[passportsChecked,searchScope,origin?.latitude,origin?.longitude,stepsKey,lang]);
+  },[passportsChecked,searchScope,origin?.latitude,origin?.longitude,stepsKey,lang,searchRunId]);
 
   useEffect(()=>{
     const controller=new AbortController();
@@ -564,7 +608,7 @@ export default function Solution({lang}){
       })
       .finally(()=>{if(!controller.signal.aborted)setInternetLoading(false)});
     return()=>controller.abort();
-  },[passportsChecked,searchScope,stepsKey,activeTask,lang,plan]);
+  },[passportsChecked,searchScope,stepsKey,activeTask,lang,plan,searchRunId]);
 
   const passportByStep=useMemo(()=>new Map(passportGroups.map(group=>[
     group.stepId,
@@ -586,8 +630,21 @@ export default function Solution({lang}){
       .filter((candidate,index,array)=>array.findIndex(item=>candidateIdentity(item)===candidateIdentity(candidate))===index)
       .sort((a,b)=>candidatePriority(b,activeTask)-candidatePriority(a,activeTask));
   },[plannedDirectCandidate,passportGroups,nearbyGroups,internetGroups,lang,activeTask]);
-  const recommendedCandidate=rankedCandidates[0]||null;
-  const recommendedAlternatives=rankedCandidates.slice(1,5);
+  const sortedCandidates=useMemo(()=>{
+    if(sortMode==="recommended")return rankedCandidates;
+    const direction=sortMode==="price-desc"?-1:1;
+    return [...rankedCandidates].sort((a,b)=>{
+      const priceA=structuredPrice(a);
+      const priceB=structuredPrice(b);
+      if(priceA&&priceB&&priceA.unit===priceB.unit&&priceA.currency===priceB.currency)return (priceA.value-priceB.value)*direction;
+      if(priceA&&!priceB)return -1;
+      if(!priceA&&priceB)return 1;
+      return candidatePriority(b,activeTask)-candidatePriority(a,activeTask);
+    });
+  },[rankedCandidates,sortMode,activeTask]);
+  const recommendedCandidate=sortedCandidates[0]||null;
+  const recommendedAlternatives=sortedCandidates.slice(1,5);
+  const structuredPriceCount=rankedCandidates.filter(candidate=>structuredPrice(candidate)).length;
 
   const chains=useMemo(()=>{
     if(!["nearby","internet","both"].includes(searchScope))return [];
@@ -627,25 +684,42 @@ export default function Solution({lang}){
     }];
   },[searchScope,steps,passportByStep,nearbyByStep,internetByStep,lang]);
 
+  function launchSearch(value,where=initialWhere,source="solution"){
+    const cleanTask=clean(value);
+    const cleanWhere=clean(where);
+    if(!cleanTask)return;
+    trackAtlas("Atlas Search Submitted",{
+      language:lang,
+      location_provided:Boolean(cleanWhere||origin),
+      source
+    });
+    saveSearchHistory({task:cleanTask,where:cleanWhere});
+    setTask(cleanTask);
+    setPassportCheckedGoal("");
+    setPassportGroups([]);
+    setBrainLoading(true);
+    setSortMode("recommended");
+    const next=new URLSearchParams();
+    next.set("q",cleanTask);
+    if(cleanWhere)next.set("where",cleanWhere);
+    if(cleanTask===initialTask&&cleanWhere===initialWhere){
+      setActiveTask(cleanTask);
+      setSearchRunId(run=>run+1);
+    }else{
+      setSearchParams(next);
+    }
+  }
+
   function submit(event){
     event.preventDefault();
-    const value=clean(task);
-    if(value){
-      trackAtlas("Atlas Search Submitted",{
-        language:lang,
-        location_provided:Boolean(initialWhere||origin),
-        source:"solution"
-      });
-      setActiveTask(value);
-    }
+    launchSearch(task);
   }
 
   function refine(option){
     const base=plan?.domain==="health"?clean(plan?.goal):activeTask.replace(/[,.]+$/g,"");
     const value=`${base}, ${option}`;
     trackAtlas("Atlas Search Refined",{language:lang});
-    setTask(base);
-    setActiveTask(value);
+    launchSearch(value,initialWhere,"clarification");
   }
 
   function chooseSearchScope(scope){
@@ -664,12 +738,17 @@ export default function Solution({lang}){
 
   return <main className="simpleSolutionPage">
     <section className="simpleSolutionShell">
-      <a className="simpleBack" href="#" onClick={event=>{event.preventDefault();navigate(-1)}}><ArrowLeft size={17}/>{lang==="uk"?"Назад":"Back"}</a>
+      <Link className="simpleBack" to="/"><ArrowLeft size={17}/>{lang==="uk"?"Новий пошук":"New search"}</Link>
 
       <form className="simpleQueryForm" onSubmit={submit}>
-        <input value={task} onChange={event=>setTask(event.target.value)} placeholder={lang==="uk"?"Що вам потрібно?":"What do you need?"}/>
+        <VoiceTaskInput multiline={false} value={task} onChange={setTask} lang={lang} placeholder={lang==="uk"?"Що вам потрібно?":"What do you need?"}/>
         <button type="submit" aria-label={lang==="uk"?"Знайти":"Search"}><Search size={25}/></button>
       </form>
+
+      <details className="solutionHistory">
+        <summary>{lang==="uk"?"Попередні запити":"Previous searches"}</summary>
+        <SearchHistoryList lang={lang} compact limit={5} onSelect={item=>launchSearch(item.task,item.where,"history")}/>
+      </details>
 
       <div className="simpleLocationRow">
         <MapPin size={17}/><span>{lang==="uk"?"Локація:":"Location:"}</span><strong>{locationText}</strong>
@@ -689,6 +768,15 @@ export default function Solution({lang}){
         </div>
         {plan?.safety?.level&&plan.safety.level!=="none"&&plan.safety.message&&<div className={`simpleSafety ${plan.safety.level}`}>{plan.safety.message}</div>}
       </div>
+
+      {!plan?.clarification?.required&&plan?.solution_scope==="transaction"&&rankedCandidates.length>1&&<div className="solutionSortBar">
+        <label>{lang==="uk"?"Сортування":"Sort"}<select value={sortMode} onChange={event=>setSortMode(event.target.value)}>
+          <option value="recommended">{lang==="uk"?"Найкраще рішення Atlas":"Best Atlas solution"}</option>
+          <option value="price-asc">{lang==="uk"?"Від найдешевшого":"Lowest price first"}</option>
+          <option value="price-desc">{lang==="uk"?"Від найдорожчого":"Highest price first"}</option>
+        </select></label>
+        {structuredPriceCount<2&&<small>{lang==="uk"?"Цінове сортування з’явиться повністю, коли можливості матимуть ціну за однакову одиницю.":"Price sorting becomes useful when opportunities include comparable unit prices."}</small>}
+      </div>}
 
       {plan?.clarification?.required&&<div className="simpleClarifier">
         <strong>{plan.clarification.question}</strong>

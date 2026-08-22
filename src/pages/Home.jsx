@@ -2,8 +2,11 @@ import {useEffect,useState} from "react";
 import {Link,useNavigate} from "react-router-dom";
 import {FileText,MapPin,MessageSquare,PlusCircle,Search} from "lucide-react";
 import ThinkingState from "../components/ThinkingState";
+import SearchHistoryList from "../components/SearchHistoryList";
+import VoiceTaskInput from "../components/VoiceTaskInput";
 import {saveAtlasFeedback} from "../services/feedbackStore";
 import {trackAtlas} from "../services/analytics";
+import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 
 const examples={
   uk:["Болить живіт","Потрібен генератор","Хочу продати овочі","Пробило колесо"],
@@ -23,7 +26,7 @@ export default function Home({t,lang}){
   useEffect(()=>{
     if(!thinking)return;
     const timer=setInterval(()=>setActiveStep(step=>Math.min(step+1,t.thinkingSteps.length-1)),480);
-    const done=setTimeout(()=>nav("/solution",{state:{task:task.trim(),where:where.trim()}}),2500);
+    const done=setTimeout(()=>nav(solutionUrl(task,where)),850);
     return()=>{clearInterval(timer);clearTimeout(done)};
   },[thinking,nav,task,where,t.thinkingSteps.length]);
 
@@ -36,6 +39,7 @@ export default function Home({t,lang}){
       location_provided:Boolean(where.trim()),
       source:"home"
     });
+    saveSearchHistory({task:cleanTask,where});
     setActiveStep(0);
     setThinking(true);
   }
@@ -96,7 +100,7 @@ export default function Home({t,lang}){
 
       <form className="searchbox" onSubmit={go} style={{padding:20}}>
         <label style={{fontSize:12}}>{lang==="uk"?"Опишіть вашу задачу":"Describe your task"}</label>
-        <textarea autoFocus required value={task} onChange={e=>setTask(e.target.value)} placeholder={placeholder} style={{fontSize:16,minHeight:96}}/>
+        <VoiceTaskInput autoFocus value={task} onChange={setTask} lang={lang} placeholder={placeholder}/>
 
         <label style={{fontSize:12}}>{locationLabel}</label>
         <div className="location">
@@ -116,6 +120,10 @@ export default function Home({t,lang}){
         <span>{t.examples}:</span>
         {examples[lang].map(example=><button key={example} type="button" onClick={()=>setTask(example)} style={{fontSize:12,padding:"7px 10px"}}>{example}</button>)}
       </div>
+
+      <section className="homeHistory">
+        <SearchHistoryList lang={lang} compact limit={4} onSelect={item=>nav(solutionUrl(item.task,item.where))}/>
+      </section>
 
       <section style={{maxWidth:680,margin:"28px auto 0",padding:"18px 20px",background:"#fff",border:"1px solid #dfe8e2",borderRadius:18,textAlign:"left"}}>
         <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>

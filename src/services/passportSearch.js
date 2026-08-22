@@ -1,4 +1,5 @@
 import supabase from "./supabase";
+import {decodeOpportunityText} from "./opportunityCodec";
 
 function normalize(value){
   return String(value||"").toLowerCase().replace(/[.,!?;:()]/g," ").replace(/\s+/g," ").trim();
@@ -51,7 +52,8 @@ async function searchNewPassports(plan,{limit}){
   if(opportunityError)throw opportunityError;
 
   const opportunitiesByPassport=new Map();
-  for(const item of opportunities||[]){
+  for(const rawItem of opportunities||[]){
+    const item={...rawItem,...decodeOpportunityText(rawItem.text,rawItem.kind)};
     if(!opportunitiesByPassport.has(item.passport_id))opportunitiesByPassport.set(item.passport_id,[]);
     opportunitiesByPassport.get(item.passport_id).push(item);
   }
@@ -93,6 +95,12 @@ async function searchNewPassports(plan,{limit}){
       needs:"",
       opportunity_id:bestOpportunity?.id||null,
       opportunity_kind:bestOpportunity?.kind||"",
+      payment_type:bestOpportunity?.paymentType||"free",
+      price_value:bestOpportunity?.priceValue||"",
+      price_unit:bestOpportunity?.priceUnit||"",
+      currency:bestOpportunity?.currency||"UAH",
+      minimum_quantity:bestOpportunity?.minimumQuantity||"",
+      delivery_included:Boolean(bestOpportunity?.deliveryIncluded),
       score,
       matched
     };

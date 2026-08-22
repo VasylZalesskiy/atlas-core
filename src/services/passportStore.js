@@ -1,4 +1,11 @@
 import supabase from "./supabase";
+import {databaseKindForGroup,decodeOpportunityText,encodeOpportunityText} from "./opportunityCodec";
+export {opportunityGroups} from "./opportunityCodec";
+
+function decodeOpportunity(row){
+  if(!row)return row;
+  return {...row,...decodeOpportunityText(row.text,row.kind)};
+}
 
 function fail(message){
   const error=new Error(message);
@@ -44,7 +51,7 @@ async function enrichRequests(rows){
   if(error)return requests;
 
   const byId=new Map((data||[]).map(item=>[item.id,item]));
-  return requests.map(item=>({...item,opportunity:byId.get(item.opportunity_id)||null}));
+  return requests.map(item=>({...item,opportunity:decodeOpportunity(byId.get(item.opportunity_id)||null)}));
 }
 
 export async function loadMyPassport(){
@@ -73,7 +80,7 @@ export async function loadMyPassport(){
       .eq("owner_id",user.id)
       .order("created_at",{ascending:false});
     if(error)throw error;
-    opportunities=data||[];
+    opportunities=(data||[]).map(decodeOpportunity);
   }
 
   return {user,passport:passport||null,contact:privateRow?.contact||"",opportunities};
@@ -132,9 +139,9 @@ export async function saveMyPassport({displayName,profession,skills,city,contact
   return passport;
 }
 
-export async function addMyOpportunity(passportId,{kind,text}){
+export async function addMyOpportunity(passportId,entry){
   const user=await ensureAtlasSession();
-  const cleanText=String(text||"").trim();
+  const cleanText=String(entry?.text||"").trim();
   if(!passportId)throw fail("passport-required");
   if(!cleanText)throw fail("opportunity-required");
 
@@ -143,31 +150,44 @@ export async function addMyOpportunity(passportId,{kind,text}){
     .insert({
       passport_id:passportId,
       owner_id:user.id,
-      kind:String(kind||"other"),
-      text:cleanText,
+      kind:databaseKindForGroup(entry?.group),
+      text:encodeOpportunityText(entry),
       is_active:true
     })
     .select("id,kind,text,is_active,created_at")
     .single();
   if(error)throw error;
-  return data;
+  return decodeOpportunity(data);
 }
 
-export async function updateMyOpportunity(id,{kind,text}){
+export async function updateMyOpportunity(id,entry){
   const user=await ensureAtlasSession();
-  const cleanText=String(text||"").trim();
+  const cleanText=String(entry?.text||"").trim();
   if(!id)throw fail("opportunity-required");
   if(!cleanText)throw fail("opportunity-required");
 
   const {data,error}=await supabase
     .from("atlas_opportunities")
-    .update({kind:String(kind||"other"),text:cleanText})
+    .update({kind:databaseKindForGroup(entry?.group),text:encodeOpportunityText(entry)})
     .eq("id",id)
     .eq("owner_id",user.id)
     .select("id,kind,text,is_active,created_at")
     .single();
   if(error)throw error;
-  return data;
+  return decodeOpportunity(data);
+}
+
+export async function setMyOpportunityActive(id,isActive){
+  const user=await ensureAtlasSession();
+  const {data,error}=await supabase
+    .from("atlas_opportunities")
+    .update({is_active:Boolean(isActive)})
+    .eq("id",id)
+    .eq("owner_id",user.id)
+    .select("id,kind,text,is_active,created_at")
+    .single();
+  if(error)throw error;
+  return decodeOpportunity(data);
 }
 
 export async function deleteMyOpportunity(id){
@@ -197,7 +217,7 @@ export async function loadPublicPassport(slug){
     .eq("is_active",true)
     .order("created_at",{ascending:false});
   if(error)throw error;
-  return {passport,opportunities:data||[]};
+  return {passport,opportunities:(data||[]).map(decodeOpportunity)};
 }
 
 export async function createPassportRequest(passport,opportunity,{message,requesterName=""}){
