@@ -9,7 +9,7 @@ export default function BottomNav({lang="uk"}){
     {to:"/",label:uk?"Пошук":"Search",icon:Search},
     {to:"/needs",label:uk?"Потреби":"Needs",icon:HeartHandshake,featured:true},
     {to:"/requests",label:uk?"Запити":"Requests",icon:ClipboardList},
-    {to:"/profile",label:uk?"Можливості":"Opportunities",icon:IdCard},
+    {to:"/profile",label:uk?"Можливості":"Opportunities",icon:IdCard,featured:true},
     {to:"/chat",label:uk?"Чат":"Chat",icon:MessageCircleMore}
   ];
   return <nav className="bottomNav" aria-label="Головна навігація">{items.map(item=>{
