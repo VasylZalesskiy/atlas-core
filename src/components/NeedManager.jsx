@@ -1,11 +1,15 @@
 import {useEffect,useMemo,useState} from "react";
-import {CalendarRange,Check,Clock3,Leaf,LockKeyhole,PackageCheck,Plus,Scale,Settings2,Trash2,X} from "lucide-react";
+import {ArrowRight,CalendarRange,Check,Clock3,Leaf,LockKeyhole,MapPin,PackageCheck,Plus,Scale,Settings2,Sparkles,Trash2,X} from "lucide-react";
 import {Link} from "react-router-dom";
 import {addMyNeed,deleteMyNeed,updateMyNeedStatus} from "../services/passportStore";
 import {loadNeedCatalog} from "../services/catalogStore";
+import {searchPassportProfiles} from "../services/passportSearch";
 import "../styles/needs.css";
 
 const emptyNeeds=[];
+const needAliases={
+  tomatoes:["томати","томат","помідори","помідор","tomatoes","tomato"]
+};
 
 function isoDate(offset=0){
   const date=new Date();
@@ -13,6 +17,8 @@ function isoDate(offset=0){
   date.setDate(date.getDate()+offset);
   return date.toISOString().slice(0,10);
 }
+
+function normalize(value){return String(value||"").toLowerCase().trim()}
 
 function formatDateRange(from,to,uk){
   const locale=uk?"uk-UA":"en-GB";
@@ -30,7 +36,7 @@ function friendlyNeedError(error,uk){
   return text||(uk?"Не вдалося виконати дію.":"The action could not be completed.");
 }
 
-export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk"}){
+export default function NeedManager({passportId,passportSlug="",passportCity="",initialNeeds=emptyNeeds,lang="uk"}){
   const uk=lang!=="en";
   const [needs,setNeeds]=useState(()=>initialNeeds);
   const [groups,setGroups]=useState([]);
@@ -42,6 +48,7 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
   const [confirmDeleteId,setConfirmDeleteId]=useState("");
   const [notice,setNotice]=useState("");
   const [error,setError]=useState("");
+  const [matchesByNeed,setMatchesByNeed]=useState({});
 
   const openCount=needs.filter(item=>item.status==="not_received").length;
   const itemOptions=useMemo(()=>catalogItems.filter(item=>item.group_key===form.groupKey),[catalogItems,form.groupKey]);
@@ -61,6 +68,44 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
     }).catch(e=>{if(alive)setError(friendlyNeedError(e,uk))}).finally(()=>{if(alive)setCatalogLoading(false)});
     return()=>{alive=false};
   },[uk]);
+
+  useEffect(()=>{
+    let alive=true;
+    if(catalogLoading)return()=>{alive=false};
+    const today=isoDate();
+    const activeNeeds=needs.filter(item=>item.status==="not_received"&&(!item.needed_until||item.needed_until>=today));
+    if(!activeNeeds.length){setMatchesByNeed({});return()=>{alive=false}}
+
+    setMatchesByNeed(current=>{
+      const next={...current};
+      activeNeeds.forEach(item=>{delete next[item.id]});
+      return next;
+    });
+
+    Promise.all(activeNeeds.map(async item=>{
+      const catalogItem=catalogLookup.get(`${item.group_key}:${item.item_key}`);
+      const itemUk=catalogItem?.name_uk||item.item_key;
+      const itemEn=catalogItem?.name_en||itemUk;
+      const aliases=needAliases[item.item_key]||[];
+      const terms=[itemUk,itemEn,...aliases].map(normalize).filter(Boolean);
+      const plan={
+        goal:`${itemUk} ${item.quantity||""} ${item.unit||""}`.trim(),
+        passport_search:{terms,capability_description:uk?`має ${itemUk}`:`has ${itemEn}`}
+      };
+      const {matches}=await searchPassportProfiles(plan,{limit:8});
+      const filtered=(matches||[])
+        .filter(match=>match.slug&&match.slug!==passportSlug)
+        .sort((a,b)=>{
+          const aLocal=passportCity&&normalize(a.city)===normalize(passportCity)?1:0;
+          const bLocal=passportCity&&normalize(b.city)===normalize(passportCity)?1:0;
+          return bLocal-aLocal||Number(b.score||0)-Number(a.score||0);
+        })
+        .slice(0,3);
+      return [item.id,filtered];
+    })).then(entries=>{if(alive)setMatchesByNeed(Object.fromEntries(entries))}).catch(()=>{if(alive)setMatchesByNeed({})});
+
+    return()=>{alive=false};
+  },[needs,catalogLoading,catalogLookup,passportSlug,passportCity,uk]);
 
   function chooseGroup(option){
     if(!option.is_active)return;
@@ -82,7 +127,7 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
       setNeeds(items=>[added,...items]);
       setForm(value=>({...value,quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7)}));
       const itemName=uk?(selectedItem?.name_uk||"Товар"):(selectedItem?.name_en||selectedItem?.name_uk||"Item");
-      setNotice(uk?`✓ Потребу «${itemName}» додано до вашого Паспортa.`:`✓ “${itemName}” was added to your Passport.`);
+      setNotice(uk?`✓ Потребу «${itemName}» додано. Atlas перевіряє, чи є відповідні можливості.`:`✓ “${itemName}” was added. Atlas is checking for matching opportunities.`);
     }catch(e){setError(friendlyNeedError(e,uk))}finally{setAdding(false)}
   }
 
@@ -113,9 +158,9 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
       <div>
         <div className="needsEyebrow">ATLAS · {uk?"ПАСПОРТ ПОТРЕБ":"NEEDS PASSPORT"}</div>
         <h2>{uk?"Мої потреби":"My needs"}</h2>
-        <p>{uk?"Додайте конкретну потребу та керуйте її актуальністю в одному місці.":"Add a specific need and manage its validity in one place."}</p>
+        <p>{uk?"Додайте конкретну потребу. Atlas одразу перевірить Паспорти можливостей і покаже збіги.":"Add a specific need. Atlas immediately checks Opportunity Passports and shows matches."}</p>
       </div>
-      <div className="needsHeadingTools"><div className="needsPilotBadge">{uk?"Керований каталог":"Managed catalog"}</div><Link to="/admin/catalog" className="needsAdminLink"><Settings2 size={15}/>{uk?"Керування":"Manage"}</Link></div>
+      <div className="needsHeadingTools"><div className="needsPilotBadge">{uk?"Atlas Match активний":"Atlas Match active"}</div><Link to="/admin/catalog" className="needsAdminLink"><Settings2 size={15}/>{uk?"Керування":"Manage"}</Link></div>
     </div>
 
     <form className="needComposer" onSubmit={submitNeed}>
@@ -159,7 +204,7 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
     {(error||notice)&&<div className={`needMessage ${error?"errorState":"successState"}`} role="status" aria-live="polite">{error||notice}</div>}
 
     <div className="needsListHeading">
-      <div><h3>{uk?"Додані потреби":"Added needs"}</h3><p>{uk?"Статус можна змінити у будь-який момент.":"Status can be changed at any time."}</p></div>
+      <div><h3>{uk?"Додані потреби":"Added needs"}</h3><p>{uk?"Atlas автоматично звіряє активні потреби з можливостями людей.":"Atlas automatically matches active needs with people's opportunities."}</p></div>
       <span>{openCount} {uk?"не отримано":"not received"}</span>
     </div>
 
@@ -172,9 +217,22 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
         const catalogGroup=groupLookup.get(item.group_key);
         const itemName=uk?(catalogItem?.name_uk||item.item_key):(catalogItem?.name_en||catalogItem?.name_uk||item.item_key);
         const groupName=uk?(catalogGroup?.name_uk||item.group_key):(catalogGroup?.name_en||catalogGroup?.name_uk||item.group_key);
+        const matches=matchesByNeed[item.id];
         return <article className={`needRecord ${received?"received":""}`} key={item.id}>
           <div className="needRecordProduct"><span aria-hidden="true">{catalogItem?.icon||"📦"}</span><div><small>{groupName.toLocaleUpperCase(uk?"uk-UA":"en-GB")}</small><h4>{itemName}</h4></div></div>
           <div className="needRecordMeta"><div><Scale size={16}/><span><small>{uk?"Кількість":"Quantity"}</small><strong>{Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} {item.unit}</strong></span></div><div><CalendarRange size={16}/><span><small>{uk?"Актуальність":"Validity"}</small><strong>{formatDateRange(item.needed_from,item.needed_until,uk)}</strong></span></div></div>
+
+          {!received&&<div style={{gridColumn:"1/-1",marginTop:4,padding:14,border:"1px solid #cfe4d7",borderRadius:16,background:matches?.length?"#eef9f2":"#f8faf9"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,color:"#08753f",fontWeight:900,fontSize:13}}><Sparkles size={17}/>{uk?"ATLAS MATCH":"ATLAS MATCH"}</div>
+            {matches===undefined?<div style={{marginTop:7,color:"#66746c",fontSize:13}}>{uk?"Перевіряю Паспорти можливостей…":"Checking Opportunity Passports…"}</div>:matches.length===0?<div style={{marginTop:7,color:"#66746c",fontSize:13}}>{uk?"Зараз відповідних можливостей у Паспортaх не знайдено.":"No matching opportunities are available in Passports right now."}</div>:<>
+              <div style={{marginTop:6,fontSize:14,fontWeight:900,color:"#143c27"}}>{uk?`Є ${matches.length} відповідн${matches.length===1?"а можливість":"і можливості"}`:`${matches.length} matching opportunit${matches.length===1?"y":"ies"}`}</div>
+              <div style={{display:"grid",gap:8,marginTop:10}}>{matches.map(match=><Link key={`${item.id}-${match.slug}`} to={`/p/${match.slug}`} style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"center",padding:"10px 12px",border:"1px solid #d8e8de",borderRadius:13,background:"#fff"}}>
+                <div style={{minWidth:0}}><strong style={{display:"block",fontSize:14,color:"#173526",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{match.headline||match.name}</strong><span style={{display:"flex",alignItems:"center",gap:5,marginTop:3,color:"#68766e",fontSize:12}}>{match.city&&<><MapPin size={13}/>{match.city}</>} {match.name&&` · ${match.name}`}</span></div>
+                <span style={{display:"flex",alignItems:"center",gap:4,color:"#08753f",fontSize:12,fontWeight:900}}>{uk?"Відкрити":"Open"}<ArrowRight size={14}/></span>
+              </Link>)}</div>
+            </>}
+          </div>}
+
           <div className="needRecordActions">
             <div className="needStatus" role="group" aria-label={uk?"Статус потреби":"Need status"}>
               <button type="button" className={!received?"active":""} disabled={busyId===item.id} onClick={()=>changeStatus(item,"not_received")}><Clock3 size={15}/>{uk?"Не отримано":"Not received"}</button>
