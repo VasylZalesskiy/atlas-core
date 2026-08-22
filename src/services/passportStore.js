@@ -72,18 +72,29 @@ export async function loadMyPassport(){
   if(privateError)throw privateError;
 
   let opportunities=[];
+  let needs=[];
   if(passport?.id){
-    const {data,error}=await supabase
-      .from("atlas_opportunities")
-      .select("id,kind,text,is_active,created_at")
-      .eq("passport_id",passport.id)
-      .eq("owner_id",user.id)
-      .order("created_at",{ascending:false});
-    if(error)throw error;
-    opportunities=(data||[]).map(decodeOpportunity);
+    const [opportunityResult,needResult]=await Promise.all([
+      supabase
+        .from("atlas_opportunities")
+        .select("id,kind,text,is_active,created_at")
+        .eq("passport_id",passport.id)
+        .eq("owner_id",user.id)
+        .order("created_at",{ascending:false}),
+      supabase
+        .from("atlas_needs")
+        .select("id,group_key,item_key,quantity,unit,needed_from,needed_until,status,received_at,created_at,updated_at")
+        .eq("passport_id",passport.id)
+        .eq("owner_id",user.id)
+        .order("created_at",{ascending:false})
+    ]);
+    if(opportunityResult.error)throw opportunityResult.error;
+    if(needResult.error)throw needResult.error;
+    opportunities=(opportunityResult.data||[]).map(decodeOpportunity);
+    needs=needResult.data||[];
   }
 
-  return {user,passport:passport||null,contact:privateRow?.contact||"",opportunities};
+  return {user,passport:passport||null,contact:privateRow?.contact||"",opportunities,needs};
 }
 
 export async function saveMyPassport({displayName,profession,skills,city,contact}){
@@ -194,6 +205,57 @@ export async function deleteMyOpportunity(id){
   const user=await ensureAtlasSession();
   const {error}=await supabase
     .from("atlas_opportunities")
+    .delete()
+    .eq("id",id)
+    .eq("owner_id",user.id);
+  if(error)throw error;
+}
+
+export async function addMyNeed(passportId,{groupKey,itemKey,unit,quantity,neededFrom,neededUntil}){
+  const user=await ensureAtlasSession();
+  const amount=Number(quantity);
+  if(!passportId)throw fail("passport-required");
+  if(!Number.isFinite(amount)||amount<=0)throw fail("quantity-invalid");
+  if(!neededFrom||!neededUntil||neededUntil<neededFrom)throw fail("date-range-invalid");
+
+  const {data,error}=await supabase
+    .from("atlas_needs")
+    .insert({
+      passport_id:passportId,
+      owner_id:user.id,
+      group_key:String(groupKey||"vegetables"),
+      item_key:String(itemKey||"tomatoes"),
+      quantity:amount,
+      unit:String(unit||"шт").trim().slice(0,12),
+      needed_from:neededFrom,
+      needed_until:neededUntil,
+      status:"not_received"
+    })
+    .select("id,group_key,item_key,quantity,unit,needed_from,needed_until,status,received_at,created_at,updated_at")
+    .single();
+  if(error)throw error;
+  return data;
+}
+
+export async function updateMyNeedStatus(id,status){
+  const user=await ensureAtlasSession();
+  const nextStatus=status==="received"?"received":"not_received";
+  const now=new Date().toISOString();
+  const {data,error}=await supabase
+    .from("atlas_needs")
+    .update({status:nextStatus,received_at:nextStatus==="received"?now:null,updated_at:now})
+    .eq("id",id)
+    .eq("owner_id",user.id)
+    .select("id,status,received_at,updated_at")
+    .single();
+  if(error)throw error;
+  return data;
+}
+
+export async function deleteMyNeed(id){
+  const user=await ensureAtlasSession();
+  const {error}=await supabase
+    .from("atlas_needs")
     .delete()
     .eq("id",id)
     .eq("owner_id",user.id);

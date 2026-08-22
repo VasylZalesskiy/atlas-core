@@ -1,5 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import {CheckCircle2,Copy,Inbox,Pencil,Pause,Play,Plus,Share2,Trash2,X} from "lucide-react";
+import NeedManager from "../components/NeedManager";
 import {
   addMyOpportunity,
   deleteMyOpportunity,
@@ -38,7 +39,7 @@ function friendlyError(error){
   const text=String(error?.message||error||"");
   if(/anonymous|signups|disabled/i.test(text))return "У Supabase потрібно увімкнути анонімний вхід.";
   if(/atlas_requests|relation .*atlas_requests.*does not exist/i.test(text))return "Запити між користувачами ще не активовані.";
-  if(/atlas_passports|atlas_opportunities|atlas_private_contacts|relation .* does not exist/i.test(text))return "База Паспортів ще не активована.";
+  if(/atlas_passports|atlas_opportunities|atlas_private_contacts|atlas_needs|relation .* does not exist/i.test(text))return "База Паспортів ще не активована.";
   return text||"Не вдалося виконати дію.";
 }
 
@@ -74,7 +75,7 @@ function opportunityMeta(item){
   return [payment,price,minimum,item.deliveryIncluded?"доставка включена":"",duration,item.place,distance,item.online?"онлайн":""].filter(Boolean);
 }
 
-export default function Profile(){
+export default function Profile({lang="uk"}){
   const addRef=useRef(null);
   const textareaRef=useRef(null);
   const [loading,setLoading]=useState(true);
@@ -86,6 +87,7 @@ export default function Profile(){
   const [notice,setNotice]=useState("");
   const [passport,setPassport]=useState(null);
   const [opportunities,setOpportunities]=useState([]);
+  const [needs,setNeeds]=useState([]);
   const [requests,setRequests]=useState([]);
   const [form,setForm]=useState({displayName:"",city:"",contact:"",profession:"",skills:""});
   const [entry,setEntry]=useState(emptyEntry);
@@ -101,6 +103,7 @@ export default function Profile(){
       if(!alive)return;
       setPassport(data.passport);
       setOpportunities(data.opportunities||[]);
+      setNeeds(data.needs||[]);
       setForm({
         displayName:data.passport?.display_name||"",
         city:data.passport?.city||"",
@@ -250,6 +253,8 @@ export default function Profile(){
           </details>;
         })}
       </section>
+
+      <NeedManager passportId={passport.id} initialNeeds={needs} lang={lang}/>
 
       <section className="incomingRequests">
         <div className="sectionTitle"><div><span>ЗАПИТИ</span><h2><Inbox size={21}/>Вхідні{pendingCount?` · ${pendingCount}`:""}</h2></div></div>

@@ -1,5 +1,5 @@
 import {useMemo,useState} from "react";
-import {Routes,Route} from "react-router-dom";
+import {Routes,Route,useLocation} from "react-router-dom";
 import {Analytics} from "@vercel/analytics/react";
 import {SpeedInsights} from "@vercel/speed-insights/react";
 import Header from "./components/Header";
@@ -12,13 +12,16 @@ import PublicPassport from "./pages/PublicPassport";
 import Chat from "./pages/Chat";
 import Market from "./pages/Market";
 import Requests from "./pages/Requests";
+import CatalogAdmin from "./pages/CatalogAdmin";
 import dict from "./data/translations";
 
 export default function App(){
   const [lang,setLang]=useState("uk");
   const t=useMemo(()=>dict[lang],[lang]);
+  const location=useLocation();
+  const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
   return <>
-    <PilotGate lang={lang}>
+    {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/></Routes>:<PilotGate lang={lang}>
       <Header lang={lang} setLang={setLang}/>
       <Routes>
         <Route path="/" element={<Home t={t} lang={lang}/>}/>
@@ -31,7 +34,7 @@ export default function App(){
       </Routes>
       <BottomNav lang={lang}/>
       <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
-    </PilotGate>
+    </PilotGate>}
     <Analytics/>
     <SpeedInsights/>
   </>;
