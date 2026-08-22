@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from "react";
-import {CheckCircle2,Copy,Inbox,Pencil,Pause,Play,Plus,Share2,Trash2,X} from "lucide-react";
-import NeedManager from "../components/NeedManager";
+import {CheckCircle2,Copy,HeartHandshake,Inbox,Pencil,Pause,Play,Plus,Share2,Trash2,X} from "lucide-react";
+import {Link} from "react-router-dom";
 import {
   addMyOpportunity,
   deleteMyOpportunity,
@@ -75,7 +75,7 @@ function opportunityMeta(item){
   return [payment,price,minimum,item.deliveryIncluded?"доставка включена":"",duration,item.place,distance,item.online?"онлайн":""].filter(Boolean);
 }
 
-export default function Profile({lang="uk"}){
+export default function Profile(){
   const addRef=useRef(null);
   const textareaRef=useRef(null);
   const [loading,setLoading]=useState(true);
@@ -87,7 +87,6 @@ export default function Profile({lang="uk"}){
   const [notice,setNotice]=useState("");
   const [passport,setPassport]=useState(null);
   const [opportunities,setOpportunities]=useState([]);
-  const [needs,setNeeds]=useState([]);
   const [requests,setRequests]=useState([]);
   const [form,setForm]=useState({displayName:"",city:"",contact:"",profession:"",skills:""});
   const [entry,setEntry]=useState(emptyEntry);
@@ -103,7 +102,6 @@ export default function Profile({lang="uk"}){
       if(!alive)return;
       setPassport(data.passport);
       setOpportunities(data.opportunities||[]);
-      setNeeds(data.needs||[]);
       setForm({
         displayName:data.passport?.display_name||"",
         city:data.passport?.city||"",
@@ -215,6 +213,7 @@ export default function Profile({lang="uk"}){
     {passport&&<>
       <section className="passportActions">
         <button className="primary" type="button" onClick={scrollToAdd}><Plus size={19}/>Додати можливість</button>
+        <Link className="needsShortcut" to="/needs"><HeartHandshake size={18}/>Мої потреби</Link>
         <button className="secondary" type="button" onClick={sharePassport}><Share2 size={17}/>Поділитися</button>
         <button className="secondary iconButton" type="button" onClick={copyLink} aria-label="Копіювати посилання"><Copy size={17}/></button>
       </section>
@@ -253,8 +252,6 @@ export default function Profile({lang="uk"}){
           </details>;
         })}
       </section>
-
-      <NeedManager passportId={passport.id} initialNeeds={needs} lang={lang}/>
 
       <section className="incomingRequests">
         <div className="sectionTitle"><div><span>ЗАПИТИ</span><h2><Inbox size={21}/>Вхідні{pendingCount?` · ${pendingCount}`:""}</h2></div></div>

@@ -4,6 +4,7 @@ import {Link,useLocation} from "react-router-dom";
 function pageTitle(pathname,lang){
   const uk=lang!=="en";
   if(pathname.startsWith("/profile"))return uk?"Паспорт можливостей":"Opportunities";
+  if(pathname.startsWith("/needs"))return uk?"Паспорт потреб":"Needs Passport";
   if(pathname.startsWith("/requests"))return uk?"Мої запити":"My requests";
   if(pathname.startsWith("/chat"))return uk?"Чат":"Chat";
   if(pathname.startsWith("/market"))return uk?"Куплю / Продам":"Buy / Sell";

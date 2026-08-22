@@ -12,6 +12,7 @@ import PublicPassport from "./pages/PublicPassport";
 import Chat from "./pages/Chat";
 import Market from "./pages/Market";
 import Requests from "./pages/Requests";
+import Needs from "./pages/Needs";
 import CatalogAdmin from "./pages/CatalogAdmin";
 import dict from "./data/translations";
 
@@ -26,6 +27,7 @@ export default function App(){
       <Routes>
         <Route path="/" element={<Home t={t} lang={lang}/>}/>
         <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
+        <Route path="/needs" element={<Needs lang={lang}/>}/>
         <Route path="/requests" element={<Requests lang={lang}/>}/>
         <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
         <Route path="/chat" element={<Chat/>}/>

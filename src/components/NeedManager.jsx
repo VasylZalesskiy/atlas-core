@@ -5,6 +5,8 @@ import {addMyNeed,deleteMyNeed,updateMyNeedStatus} from "../services/passportSto
 import {loadNeedCatalog} from "../services/catalogStore";
 import "../styles/needs.css";
 
+const emptyNeeds=[];
+
 function isoDate(offset=0){
   const date=new Date();
   date.setHours(12,0,0,0);
@@ -28,7 +30,7 @@ function friendlyNeedError(error,uk){
   return text||(uk?"Не вдалося виконати дію.":"The action could not be completed.");
 }
 
-export default function NeedManager({passportId,initialNeeds=[],lang="uk"}){
+export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk"}){
   const uk=lang!=="en";
   const [needs,setNeeds]=useState(()=>initialNeeds);
   const [groups,setGroups]=useState([]);
