@@ -69,5 +69,5 @@ export default function Needs({lang="uk"}){
     </form>
   </section></main>;
 
-  return <main className="page appPage needsPage"><NeedManager passportId={passport.id} initialNeeds={needs} lang={lang}/>{error&&<div className="needsOnboardingError" role="alert">{error}</div>}</main>;
+  return <main className="page appPage needsPage"><NeedManager passportId={passport.id} passportSlug={passport.slug} passportCity={passport.city||""} initialNeeds={needs} lang={lang}/>{error&&<div className="needsOnboardingError" role="alert">{error}</div>}</main>;
 }
