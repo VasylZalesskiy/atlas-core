@@ -90,9 +90,9 @@ export default function ShareApp({lang="uk"}){
 
         {!installed?<button className="installAtlasButton" type="button" onClick={installAtlas} style={{width:"100%",justifyContent:"center",fontSize:17,padding:"16px 20px",marginBottom:12}}><Download size={21}/>{uk?"Встановити Atlas":"Install Atlas"}</button>:<div className="installedBadge" style={{marginBottom:12}}><Check size={21}/><span><strong>{uk?"Atlas уже встановлено":"Atlas is already installed"}</strong><small>{uk?"Відкривайте його з іконки на головному екрані":"Open it from the Home Screen icon"}</small></span></div>}
 
-        {showIosHelp&&<div style={{background:"#fff7df",border:"1px solid #ead79b",borderRadius:16,padding:"14px 16px",marginBottom:14,textAlign:"left"}}>
-          <strong style={{display:"block",marginBottom:7}}>{uk?"iPhone — ще 2 натискання":"iPhone — 2 more taps"}</strong>
-          <div style={{display:"grid",gap:6,fontSize:14,lineHeight:1.45}}>
+        {showIosHelp&&<div style={{background:"#fff7df",border:"1px solid #d8bf69",borderRadius:16,padding:"14px 16px",marginBottom:14,textAlign:"left",color:"#4d3d12"}}>
+          <strong style={{display:"block",marginBottom:7,color:"#3f320d"}}>{uk?"iPhone — ще 2 натискання":"iPhone — 2 more taps"}</strong>
+          <div style={{display:"grid",gap:6,fontSize:14,lineHeight:1.45,color:"#4d3d12"}}>
             <span>1. {uk?"У Safari натисніть кнопку «Поділитися» ↑.":"In Safari, tap Share ↑."}</span>
             <span>2. {uk?"Оберіть «На початковий екран» → «Додати».":"Choose Add to Home Screen → Add."}</span>
           </div>
