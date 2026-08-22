@@ -58,3 +58,63 @@ header{height:76px;padding:0 5vw;display:flex;justify-content:space-between;alig
 @media(max-width:760px){.bottomNav{bottom:8px;width:calc(100% - 12px);padding-inline:6px}.bottomNav a{min-height:53px;padding-inline:1px}.bottomNav a.featured{min-height:62px}.bottomNavIcon{width:31px}.bottomNavLabel{font-size:9px}.passportActions .needsShortcut{flex:1 1 44%}}
 .headerShare{display:grid;place-items:center;width:38px;height:38px;border:1px solid #cfe1d6;border-radius:12px;background:#edf8f1;color:#08723d;transition:background .18s ease,transform .18s ease}.headerShare:hover{background:#dff2e6;transform:translateY(-1px)}
 @media(max-width:760px){.headerShare{width:36px;height:36px}.atlasHeader .actions{gap:6px}}
+
+/* High-visibility mobile header */
+@media(max-width:760px){
+  .atlasHeader{
+    height:auto;
+    min-height:99px;
+    padding:calc(8px + env(safe-area-inset-top)) 12px 8px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:8px 12px;
+    background:rgba(255,255,255,.98);
+    border-bottom-color:#cfe1d6;
+    box-shadow:0 8px 24px rgba(18,78,45,.12);
+  }
+  .atlasHeader .brand{
+    min-width:0;
+    gap:8px;
+    font-size:17px;
+    letter-spacing:.1em;
+  }
+  .atlasHeader .brand span{display:inline}
+  .atlasHeader .brand b{width:42px;height:42px;border-radius:13px;box-shadow:0 6px 14px rgba(10,112,61,.24)}
+  .atlasHeader .actions{gap:7px}
+  .atlasHeader .actions>a{display:grid}
+  .atlasHeader .headerShare,.atlasHeader .lang,.atlasHeader .profileAvatar{min-width:42px;height:42px;border-radius:13px}
+  .atlasHeader .headerShare{width:42px;border:0;background:linear-gradient(145deg,#08743f,#13a15d);color:#fff;box-shadow:0 6px 14px rgba(10,128,70,.24)}
+  .atlasHeader .lang{padding:0 10px;border-color:#bdd5c6;background:#f7fbf8;color:#0b6539}
+  .atlasHeader .lang span{display:inline;font-size:12px}
+  .atlasHeader .profileAvatar{width:42px;border:2px solid #d8eee0;box-shadow:0 5px 13px rgba(18,104,59,.18)}
+  .atlasHeader .headerPageTitle{
+    position:static;
+    grid-column:1/-1;
+    transform:none;
+    display:flex;
+    align-items:center;
+    min-height:31px;
+    max-width:none;
+    padding:6px 10px;
+    overflow:hidden;
+    border:1px solid #d9e8de;
+    border-radius:10px;
+    background:#eff8f2;
+    color:#0b663a;
+    font-size:13px;
+    font-weight:900;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .atlasHeader .headerPageTitle:before{content:"";width:7px;height:7px;margin-right:8px;flex:0 0 auto;border-radius:50%;background:#16a15a;box-shadow:0 0 0 4px rgba(22,161,90,.12)}
+  .messengerTop{top:calc(107px + env(safe-area-inset-top))}
+}
+@media(max-width:350px){
+  .atlasHeader{column-gap:7px;padding-inline:8px}
+  .atlasHeader .brand{gap:6px;font-size:15px}
+  .atlasHeader .brand b{width:39px;height:39px}
+  .atlasHeader .actions{gap:5px}
+  .atlasHeader .headerShare,.atlasHeader .lang,.atlasHeader .profileAvatar{min-width:39px;height:39px}
+  .atlasHeader .headerShare,.atlasHeader .profileAvatar{width:39px}
+  .atlasHeader .lang{padding-inline:8px}
+}
