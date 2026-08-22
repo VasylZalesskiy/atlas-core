@@ -19,7 +19,7 @@ export default function VoiceTaskInput({value,onChange,lang="uk",placeholder,cla
   });
 
   const Input=multiline?"textarea":"input";
-  const compactMobile=typeof window!=="undefined"&&!multiline&&window.matchMedia?.("(max-width: 760px)").matches;
+  const controlsBelow=!multiline;
   const label=speech.listening
     ?(lang==="uk"?"Зупинити голосовий ввід":"Stop voice input")
     :(lang==="uk"?"Говорити":"Speak");
@@ -61,8 +61,8 @@ export default function VoiceTaskInput({value,onChange,lang="uk",placeholder,cla
     onClick={clearValue}
     aria-label={lang==="uk"?"Очистити поле":"Clear field"}
     title={lang==="uk"?"Очистити":"Clear"}
-    style={compactMobile
-      ?{position:"static",width:40,height:40,border:"1px solid #dce6df",borderRadius:12,background:"#fff",color:"#65736b",display:"grid",placeItems:"center",cursor:"pointer"}
+    style={controlsBelow
+      ?{position:"static",width:44,height:42,border:"1px solid #dce6df",borderRadius:12,background:"#fff",color:"#65736b",display:"grid",placeItems:"center",cursor:"pointer",flex:"0 0 auto"}
       :{position:"absolute",right:58,top:10,width:38,height:42,border:0,borderRadius:12,background:"transparent",color:"#7b877f",display:"grid",placeItems:"center",cursor:"pointer"}}
   ><X size={21}/></button>;
 
@@ -72,10 +72,10 @@ export default function VoiceTaskInput({value,onChange,lang="uk",placeholder,cla
     onClick={speech.listening?stopVoice:startVoice}
     aria-label={label}
     title={speech.supported?label:(lang==="uk"?"На цьому телефоні скористайтеся диктуванням клавіатури":"Use keyboard dictation on this phone")}
-    style={compactMobile?{position:"static",width:40,height:40,flex:"0 0 auto"}:undefined}
+    style={controlsBelow?{position:"static",width:44,height:42,flex:"0 0 auto"}:undefined}
   >{speech.listening?<MicOff size={21}/>:<Mic size={21}/>}</button>;
 
-  return <div className={`voiceTaskInput ${className}`.trim()}>
+  return <div className={`voiceTaskInput ${controlsBelow?"controlsBelow":""} ${className}`.trim()}>
     <Input
       autoFocus={autoFocus}
       required
@@ -83,16 +83,21 @@ export default function VoiceTaskInput({value,onChange,lang="uk",placeholder,cla
       onChange={manualChange}
       placeholder={placeholder}
       aria-label={lang==="uk"?"Опишіть вашу задачу":"Describe your task"}
-      style={compactMobile?undefined:{paddingRight:value?104:58}}
+      style={controlsBelow?{paddingRight:16}: {paddingRight:value?104:58}}
     />
-    {compactMobile?<div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,padding:"0 10px 9px"}}>
-      {value&&clearButton}
-      {micButton}
+
+    {controlsBelow?<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,padding:"8px 10px 9px",borderTop:"1px solid #edf1ee",background:"#fafcfb"}}>
+      <small className={`voiceStatus ${speech.listening?"listening":""}`} style={{minWidth:0,flex:1,margin:0}}>{status}</small>
+      <div style={{display:"flex",alignItems:"center",gap:8,flex:"0 0 auto"}}>
+        {value&&clearButton}
+        {micButton}
+      </div>
     </div>:<>
       {value&&clearButton}
       {micButton}
+      <small className={`voiceStatus ${speech.listening?"listening":""}`}>{status}</small>
     </>}
-    <small className={`voiceStatus ${speech.listening?"listening":""}`}>{status}</small>
+
     {speech.error&&<small className="voiceError">{speech.error}</small>}
   </div>;
 }
