@@ -1,4 +1,4 @@
-import {ClipboardList,HeartHandshake,IdCard,MessageCircleMore,Search} from "lucide-react";
+import {HeartHandshake,IdCard,MessageCircleMore,Search,Sparkles} from "lucide-react";
 import {NavLink,useLocation} from "react-router-dom";
 
 export default function BottomNav({lang="uk"}){
@@ -8,7 +8,7 @@ export default function BottomNav({lang="uk"}){
   const items=[
     {to:"/",label:uk?"Пошук":"Search",icon:Search},
     {to:"/needs",label:uk?"Потреби":"Needs",icon:HeartHandshake,featured:true},
-    {to:"/requests",label:uk?"Запити":"Requests",icon:ClipboardList},
+    {to:"/matches",label:uk?"Збіги":"Matches",icon:Sparkles,featured:true},
     {to:"/profile",label:uk?"Можливості":"Opportunities",icon:IdCard,featured:true},
     {to:"/chat",label:uk?"Чат":"Chat",icon:MessageCircleMore}
   ];
