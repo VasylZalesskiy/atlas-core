@@ -7,241 +7,49 @@ import {searchPassportProfiles} from "../services/passportSearch";
 import "../styles/needs.css";
 
 const emptyNeeds=[];
-const needAliases={
-  tomatoes:["томати","томат","помідори","помідор","tomatoes","tomato"]
-};
-
-function isoDate(offset=0){
-  const date=new Date();
-  date.setHours(12,0,0,0);
-  date.setDate(date.getDate()+offset);
-  return date.toISOString().slice(0,10);
-}
-
+const needAliases={tomatoes:["томати","томат","помідори","помідор","tomatoes","tomato"]};
+function isoDate(offset=0){const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+offset);return date.toISOString().slice(0,10)}
 function normalize(value){return String(value||"").toLowerCase().trim()}
-
-function formatDateRange(from,to,uk){
-  const locale=uk?"uk-UA":"en-GB";
-  const formatter=new Intl.DateTimeFormat(locale,{day:"numeric",month:"short",year:"numeric"});
-  const start=from?formatter.format(new Date(`${from}T12:00:00`)):"—";
-  const end=to?formatter.format(new Date(`${to}T12:00:00`)):"—";
-  return `${start} — ${end}`;
-}
-
-function friendlyNeedError(error,uk){
-  const text=String(error?.message||error||"");
-  if(/atlas_needs|atlas_need_groups|atlas_need_items|relation .*atlas_need.*does not exist/i.test(text))return uk?"Сховище потреб ще не активоване в Atlas.":"Needs storage is not active in Atlas yet.";
-  if(/date-range-invalid/i.test(text))return uk?"Дата завершення не може бути раніше дати початку.":"The end date cannot be before the start date.";
-  if(/quantity-invalid/i.test(text))return uk?"Вкажіть правильну кількість.":"Enter a valid quantity.";
-  return text||(uk?"Не вдалося виконати дію.":"The action could not be completed.");
-}
+function formatDateRange(from,to,uk){const locale=uk?"uk-UA":"en-GB";const formatter=new Intl.DateTimeFormat(locale,{day:"numeric",month:"short",year:"numeric"});const start=from?formatter.format(new Date(`${from}T12:00:00`)):"—";const end=to?formatter.format(new Date(`${to}T12:00:00`)):"—";return `${start} — ${end}`}
+function friendlyNeedError(error,uk){const text=String(error?.message||error||"");if(/atlas_needs|atlas_need_groups|atlas_need_items|relation .*atlas_need.*does not exist/i.test(text))return uk?"Сховище потреб ще не активоване в Atlas.":"Needs storage is not active in Atlas yet.";if(/date-range-invalid/i.test(text))return uk?"Дата завершення не може бути раніше дати початку.":"The end date cannot be before the start date.";if(/quantity-invalid/i.test(text))return uk?"Вкажіть правильну кількість.":"Enter a valid quantity.";return text||(uk?"Не вдалося виконати дію.":"The action could not be completed.")}
 
 export default function NeedManager({passportId,passportSlug="",passportCity="",initialNeeds=emptyNeeds,lang="uk"}){
   const uk=lang!=="en";
-  const [needs,setNeeds]=useState(()=>initialNeeds);
-  const [groups,setGroups]=useState([]);
-  const [catalogItems,setCatalogItems]=useState([]);
-  const [catalogLoading,setCatalogLoading]=useState(true);
-  const [form,setForm]=useState({groupKey:"",itemKey:"",unit:"кг",quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7)});
-  const [adding,setAdding]=useState(false);
-  const [busyId,setBusyId]=useState("");
-  const [confirmDeleteId,setConfirmDeleteId]=useState("");
-  const [notice,setNotice]=useState("");
-  const [error,setError]=useState("");
-  const [matchesByNeed,setMatchesByNeed]=useState({});
-
+  const [needs,setNeeds]=useState(()=>initialNeeds);const [groups,setGroups]=useState([]);const [catalogItems,setCatalogItems]=useState([]);const [catalogLoading,setCatalogLoading]=useState(true);const [form,setForm]=useState({groupKey:"",itemKey:"",unit:"кг",quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7)});const [adding,setAdding]=useState(false);const [busyId,setBusyId]=useState("");const [confirmDeleteId,setConfirmDeleteId]=useState("");const [notice,setNotice]=useState("");const [error,setError]=useState("");const [matchesByNeed,setMatchesByNeed]=useState({});
   const openCount=needs.filter(item=>item.status==="not_received").length;
   const itemOptions=useMemo(()=>catalogItems.filter(item=>item.group_key===form.groupKey),[catalogItems,form.groupKey]);
   const selectedItem=catalogItems.find(item=>item.group_key===form.groupKey&&item.item_key===form.itemKey)||null;
   const catalogLookup=useMemo(()=>new Map(catalogItems.map(item=>[`${item.group_key}:${item.item_key}`,item])),[catalogItems]);
   const groupLookup=useMemo(()=>new Map(groups.map(group=>[group.group_key,group])),[groups]);
 
-  useEffect(()=>{
-    let alive=true;
-    setCatalogLoading(true);
-    loadNeedCatalog().then(catalog=>{
-      if(!alive)return;
-      setGroups(catalog.groups);setCatalogItems(catalog.items);
-      const firstGroup=catalog.groups.find(group=>group.is_active);
-      const firstItem=catalog.items.find(item=>item.group_key===firstGroup?.group_key&&item.is_active);
-      setForm(value=>({...value,groupKey:firstGroup?.group_key||"",itemKey:firstItem?.item_key||"",unit:firstItem?.unit||"кг"}));
-    }).catch(e=>{if(alive)setError(friendlyNeedError(e,uk))}).finally(()=>{if(alive)setCatalogLoading(false)});
-    return()=>{alive=false};
-  },[uk]);
+  useEffect(()=>{let alive=true;setCatalogLoading(true);loadNeedCatalog().then(catalog=>{if(!alive)return;setGroups(catalog.groups);setCatalogItems(catalog.items);const firstGroup=catalog.groups.find(group=>group.is_active);const firstItem=catalog.items.find(item=>item.group_key===firstGroup?.group_key&&item.is_active);setForm(value=>({...value,groupKey:firstGroup?.group_key||"",itemKey:firstItem?.item_key||"",unit:firstItem?.unit||"кг"}))}).catch(e=>{if(alive)setError(friendlyNeedError(e,uk))}).finally(()=>{if(alive)setCatalogLoading(false)});return()=>{alive=false}},[uk]);
 
-  useEffect(()=>{
-    let alive=true;
-    if(catalogLoading)return()=>{alive=false};
-    const today=isoDate();
-    const activeNeeds=needs.filter(item=>item.status==="not_received"&&(!item.needed_until||item.needed_until>=today));
-    if(!activeNeeds.length){setMatchesByNeed({});return()=>{alive=false}}
+  useEffect(()=>{let alive=true;if(catalogLoading)return()=>{alive=false};const today=isoDate();const activeNeeds=needs.filter(item=>item.status==="not_received"&&(!item.needed_until||item.needed_until>=today));if(!activeNeeds.length){setMatchesByNeed({});return()=>{alive=false}}setMatchesByNeed(current=>{const next={...current};activeNeeds.forEach(item=>{delete next[item.id]});return next});Promise.all(activeNeeds.map(async item=>{const catalogItem=catalogLookup.get(`${item.group_key}:${item.item_key}`);const itemUk=catalogItem?.name_uk||item.item_key;const itemEn=catalogItem?.name_en||itemUk;const aliases=needAliases[item.item_key]||[];const terms=[itemUk,itemEn,...aliases].map(normalize).filter(Boolean);const plan={goal:`${itemUk} ${item.quantity||""} ${item.unit||""}`.trim(),passport_search:{terms,capability_description:uk?`має ${itemUk}`:`has ${itemEn}`}};const {matches}=await searchPassportProfiles(plan,{limit:8});const filtered=(matches||[]).filter(match=>match.slug&&match.slug!==passportSlug&&match.opportunity_id).sort((a,b)=>{const aLocal=passportCity&&normalize(a.city)===normalize(passportCity)?1:0;const bLocal=passportCity&&normalize(b.city)===normalize(passportCity)?1:0;return bLocal-aLocal||Number(b.score||0)-Number(a.score||0)}).slice(0,3);return [item.id,filtered]})).then(entries=>{if(alive)setMatchesByNeed(Object.fromEntries(entries))}).catch(()=>{if(alive)setMatchesByNeed({})});return()=>{alive=false}},[needs,catalogLoading,catalogLookup,passportSlug,passportCity,uk]);
 
-    setMatchesByNeed(current=>{
-      const next={...current};
-      activeNeeds.forEach(item=>{delete next[item.id]});
-      return next;
-    });
-
-    Promise.all(activeNeeds.map(async item=>{
-      const catalogItem=catalogLookup.get(`${item.group_key}:${item.item_key}`);
-      const itemUk=catalogItem?.name_uk||item.item_key;
-      const itemEn=catalogItem?.name_en||itemUk;
-      const aliases=needAliases[item.item_key]||[];
-      const terms=[itemUk,itemEn,...aliases].map(normalize).filter(Boolean);
-      const plan={
-        goal:`${itemUk} ${item.quantity||""} ${item.unit||""}`.trim(),
-        passport_search:{terms,capability_description:uk?`має ${itemUk}`:`has ${itemEn}`}
-      };
-      const {matches}=await searchPassportProfiles(plan,{limit:8});
-      const filtered=(matches||[])
-        .filter(match=>match.slug&&match.slug!==passportSlug)
-        .sort((a,b)=>{
-          const aLocal=passportCity&&normalize(a.city)===normalize(passportCity)?1:0;
-          const bLocal=passportCity&&normalize(b.city)===normalize(passportCity)?1:0;
-          return bLocal-aLocal||Number(b.score||0)-Number(a.score||0);
-        })
-        .slice(0,3);
-      return [item.id,filtered];
-    })).then(entries=>{if(alive)setMatchesByNeed(Object.fromEntries(entries))}).catch(()=>{if(alive)setMatchesByNeed({})});
-
-    return()=>{alive=false};
-  },[needs,catalogLoading,catalogLookup,passportSlug,passportCity,uk]);
-
-  function chooseGroup(option){
-    if(!option.is_active)return;
-    const firstItem=catalogItems.find(item=>item.group_key===option.group_key&&item.is_active);
-    setForm(value=>({...value,groupKey:option.group_key,itemKey:firstItem?.item_key||"",unit:firstItem?.unit||"кг"}));
-  }
-
-  function chooseItem(option){
-    if(!option.is_active)return;
-    setForm(value=>({...value,itemKey:option.item_key,unit:option.unit}));
-  }
-
-  async function submitNeed(event){
-    event.preventDefault();
-    if(adding)return;
-    setError("");setNotice("");setAdding(true);
-    try{
-      const added=await addMyNeed(passportId,form);
-      setNeeds(items=>[added,...items]);
-      setForm(value=>({...value,quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7)}));
-      const itemName=uk?(selectedItem?.name_uk||"Товар"):(selectedItem?.name_en||selectedItem?.name_uk||"Item");
-      setNotice(uk?`✓ Потребу «${itemName}» додано. Atlas перевіряє, чи є відповідні можливості.`:`✓ “${itemName}” was added. Atlas is checking for matching opportunities.`);
-    }catch(e){setError(friendlyNeedError(e,uk))}finally{setAdding(false)}
-  }
-
-  async function changeStatus(item,status){
-    if(busyId)return;
-    setBusyId(item.id);setError("");setNotice("");
-    try{
-      const updated=await updateMyNeedStatus(item.id,status);
-      setNeeds(items=>items.map(value=>value.id===item.id?{...value,...updated}:value));
-      setNotice(status==="received"?(uk?"✓ Позначено як отримано.":"✓ Marked as received."):(uk?"Потребу знову позначено як не отриману.":"The need is marked as not received again."));
-    }catch(e){setError(friendlyNeedError(e,uk))}finally{setBusyId("")}
-  }
-
-  async function removeNeed(id){
-    if(busyId)return;
-    setBusyId(id);setError("");setNotice("");
-    try{
-      await deleteMyNeed(id);
-      setNeeds(items=>items.filter(item=>item.id!==id));
-      setConfirmDeleteId("");
-      setNotice(uk?"Потребу видалено.":"Need deleted.");
-    }catch(e){setError(friendlyNeedError(e,uk))}finally{setBusyId("")}
-  }
+  function chooseGroup(option){if(!option.is_active)return;const firstItem=catalogItems.find(item=>item.group_key===option.group_key&&item.is_active);setForm(value=>({...value,groupKey:option.group_key,itemKey:firstItem?.item_key||"",unit:firstItem?.unit||"кг"}))}
+  function chooseItem(option){if(!option.is_active)return;setForm(value=>({...value,itemKey:option.item_key,unit:option.unit}))}
+  async function submitNeed(event){event.preventDefault();if(adding)return;setError("");setNotice("");setAdding(true);try{const added=await addMyNeed(passportId,form);setNeeds(items=>[added,...items]);setForm(value=>({...value,quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7)}));const itemName=uk?(selectedItem?.name_uk||"Товар"):(selectedItem?.name_en||selectedItem?.name_uk||"Item");setNotice(uk?`✓ Потребу «${itemName}» додано. Atlas перевіряє можливості.`:`✓ “${itemName}” was added. Atlas is checking opportunities.`)}catch(e){setError(friendlyNeedError(e,uk))}finally{setAdding(false)}}
+  async function changeStatus(item,status){if(busyId)return;setBusyId(item.id);setError("");setNotice("");try{const updated=await updateMyNeedStatus(item.id,status);setNeeds(items=>items.map(value=>value.id===item.id?{...value,...updated}:value));setNotice(status==="received"?(uk?"✓ Позначено як отримано.":"✓ Marked as received."):(uk?"Потребу знову активовано.":"The need is active again."))}catch(e){setError(friendlyNeedError(e,uk))}finally{setBusyId("")}}
+  async function removeNeed(id){if(busyId)return;setBusyId(id);setError("");setNotice("");try{await deleteMyNeed(id);setNeeds(items=>items.filter(item=>item.id!==id));setConfirmDeleteId("");setNotice(uk?"Потребу видалено.":"Need deleted.")}catch(e){setError(friendlyNeedError(e,uk))}finally{setBusyId("")}}
 
   return <section className="needsWorkspace" id="passport-needs">
-    <div className="needsHeading">
-      <div className="needsHeadingIcon"><Leaf size={24}/></div>
-      <div>
-        <div className="needsEyebrow">ATLAS · {uk?"ПАСПОРТ ПОТРЕБ":"NEEDS PASSPORT"}</div>
-        <h2>{uk?"Мої потреби":"My needs"}</h2>
-        <p>{uk?"Додайте конкретну потребу. Atlas одразу перевірить Паспорти можливостей і покаже збіги.":"Add a specific need. Atlas immediately checks Opportunity Passports and shows matches."}</p>
-      </div>
-      <div className="needsHeadingTools"><div className="needsPilotBadge">{uk?"Atlas Match активний":"Atlas Match active"}</div><Link to="/admin/catalog" className="needsAdminLink"><Settings2 size={15}/>{uk?"Керування":"Manage"}</Link></div>
-    </div>
+    <div className="needsHeading"><div className="needsHeadingIcon"><Leaf size={24}/></div><div><div className="needsEyebrow">ATLAS · {uk?"ПАСПОРТ ПОТРЕБ":"NEEDS PASSPORT"}</div><h2>{uk?"Мої потреби":"My needs"}</h2><p>{uk?"Додайте потребу. Atlas одразу перевірить Паспорти можливостей і запропонує зв’язок.":"Add a need. Atlas checks Opportunity Passports and offers a connection."}</p></div><div className="needsHeadingTools"><div className="needsPilotBadge">{uk?"Atlas Match активний":"Atlas Match active"}</div><Link to="/admin/catalog" className="needsAdminLink"><Settings2 size={15}/>{uk?"Керування":"Manage"}</Link></div></div>
 
     <form className="needComposer" onSubmit={submitNeed}>
-      <div className="needStep">
-        <div className="needStepTitle"><span>1</span><div><strong>{uk?"Оберіть групу":"Choose a group"}</strong><small>{uk?"Активні групи доступні для вибору":"Active groups are available to select"}</small></div></div>
-        <div className="needGroupGrid">
-          {catalogLoading&&<div className="needCatalogLoading">{uk?"Завантажую каталог…":"Loading catalog…"}</div>}
-          {!catalogLoading&&groups.map(option=><button key={option.group_key} type="button" disabled={!option.is_active} className={`needChoice ${form.groupKey===option.group_key?"selected":""}`} onClick={()=>chooseGroup(option)}>
-            <span className="needChoiceIcon" aria-hidden="true">{option.icon}</span>
-            <span><strong>{uk?option.name_uk:(option.name_en||option.name_uk)}</strong><small>{option.is_active?(uk?"Доступно":"Available"):(uk?"Неактивно":"Inactive")}</small></span>
-            {option.is_active?<Check size={17}/>:<LockKeyhole size={15}/>} 
-          </button>)}
-        </div>
-      </div>
-
-      <div className="needStep">
-        <div className="needStepTitle"><span>2</span><div><strong>{uk?"Що саме потрібно?":"What exactly do you need?"}</strong><small>{uk?"Товари залежать від обраної групи":"Items depend on the selected group"}</small></div></div>
-        <div className="needItemGrid">
-          {!catalogLoading&&itemOptions.length===0&&<div className="needCatalogLoading">{uk?"У цій групі ще немає товарів.":"There are no items in this group yet."}</div>}
-          {itemOptions.map(option=><button key={option.item_key} type="button" disabled={!option.is_active} className={`needItem ${form.itemKey===option.item_key?"selected":""}`} onClick={()=>chooseItem(option)}>
-            <span aria-hidden="true">{option.icon}</span><strong>{uk?option.name_uk:(option.name_en||option.name_uk)}</strong>{!option.is_active&&<small>{uk?"Неактивно":"Inactive"}</small>}
-          </button>)}
-        </div>
-      </div>
-
-      <div className="needStep">
-        <div className="needStepTitle"><span>3</span><div><strong>{uk?"Кількість та актуальність":"Quantity and validity"}</strong><small>{uk?"Коли ви можете отримати потребу":"When you can receive it"}</small></div></div>
-        <div className="needDetailsGrid">
-          <label className="needQuantityLabel"><span><Scale size={16}/>{uk?"Кількість":"Quantity"}</span><div><input type="number" min="0.1" max="1000000" step="0.1" inputMode="decimal" required value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})} placeholder="0"/><b>{selectedItem?.unit||form.unit}</b></div></label>
-          <label><span><CalendarRange size={16}/>{uk?"Можна отримати з":"Can receive from"}</span><input type="date" required value={form.neededFrom} onChange={e=>setForm({...form,neededFrom:e.target.value,neededUntil:e.target.value>form.neededUntil?e.target.value:form.neededUntil})}/></label>
-          <label><span><CalendarRange size={16}/>{uk?"Можна отримати по":"Can receive until"}</span><input type="date" required min={form.neededFrom} value={form.neededUntil} onChange={e=>setForm({...form,neededUntil:e.target.value})}/></label>
-        </div>
-      </div>
-
-      <div className="needComposerFooter">
-        <div><Clock3 size={17}/><span>{uk?"Після завершення дати потреба автоматично перестане бути актуальною.":"After the end date, the need automatically stops being current."}</span></div>
-        <button className="needAddButton" disabled={adding||!form.quantity||!form.groupKey||!form.itemKey}><Plus size={19}/>{adding?(uk?"Додаю…":"Adding…"):(uk?"Додати потребу":"Add need")}</button>
-      </div>
+      <div className="needStep"><div className="needStepTitle"><span>1</span><div><strong>{uk?"Оберіть групу":"Choose a group"}</strong><small>{uk?"Активні групи доступні для вибору":"Active groups are available to select"}</small></div></div><div className="needGroupGrid">{catalogLoading&&<div className="needCatalogLoading">{uk?"Завантажую каталог…":"Loading catalog…"}</div>}{!catalogLoading&&groups.map(option=><button key={option.group_key} type="button" disabled={!option.is_active} className={`needChoice ${form.groupKey===option.group_key?"selected":""}`} onClick={()=>chooseGroup(option)}><span className="needChoiceIcon" aria-hidden="true">{option.icon}</span><span><strong>{uk?option.name_uk:(option.name_en||option.name_uk)}</strong><small>{option.is_active?(uk?"Доступно":"Available"):(uk?"Неактивно":"Inactive")}</small></span>{option.is_active?<Check size={17}/>:<LockKeyhole size={15}/>}</button>)}</div></div>
+      <div className="needStep"><div className="needStepTitle"><span>2</span><div><strong>{uk?"Що саме потрібно?":"What exactly do you need?"}</strong><small>{uk?"Товари залежать від обраної групи":"Items depend on the selected group"}</small></div></div><div className="needItemGrid">{!catalogLoading&&itemOptions.length===0&&<div className="needCatalogLoading">{uk?"У цій групі ще немає товарів.":"There are no items in this group yet."}</div>}{itemOptions.map(option=><button key={option.item_key} type="button" disabled={!option.is_active} className={`needItem ${form.itemKey===option.item_key?"selected":""}`} onClick={()=>chooseItem(option)}><span aria-hidden="true">{option.icon}</span><strong>{uk?option.name_uk:(option.name_en||option.name_uk)}</strong>{!option.is_active&&<small>{uk?"Неактивно":"Inactive"}</small>}</button>)}</div></div>
+      <div className="needStep"><div className="needStepTitle"><span>3</span><div><strong>{uk?"Кількість та актуальність":"Quantity and validity"}</strong><small>{uk?"Коли ви можете отримати потребу":"When you can receive it"}</small></div></div><div className="needDetailsGrid"><label className="needQuantityLabel"><span><Scale size={16}/>{uk?"Кількість":"Quantity"}</span><div><input type="number" min="0.1" max="1000000" step="0.1" inputMode="decimal" required value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})} placeholder="0"/><b>{selectedItem?.unit||form.unit}</b></div></label><label><span><CalendarRange size={16}/>{uk?"Можна отримати з":"Can receive from"}</span><input type="date" required value={form.neededFrom} onChange={e=>setForm({...form,neededFrom:e.target.value,neededUntil:e.target.value>form.neededUntil?e.target.value:form.neededUntil})}/></label><label><span><CalendarRange size={16}/>{uk?"Можна отримати по":"Can receive until"}</span><input type="date" required min={form.neededFrom} value={form.neededUntil} onChange={e=>setForm({...form,neededUntil:e.target.value})}/></label></div></div>
+      <div className="needComposerFooter"><div><Clock3 size={17}/><span>{uk?"Після завершення дати потреба автоматично перестане бути актуальною.":"After the end date, the need automatically stops being current."}</span></div><button className="needAddButton" disabled={adding||!form.quantity||!form.groupKey||!form.itemKey}><Plus size={19}/>{adding?(uk?"Додаю…":"Adding…"):(uk?"Додати потребу":"Add need")}</button></div>
     </form>
 
     {(error||notice)&&<div className={`needMessage ${error?"errorState":"successState"}`} role="status" aria-live="polite">{error||notice}</div>}
+    <div className="needsListHeading"><div><h3>{uk?"Додані потреби":"Added needs"}</h3><p>{uk?"Atlas автоматично звіряє активні потреби з можливостями людей.":"Atlas automatically matches active needs with people's opportunities."}</p></div><span>{openCount} {uk?"не отримано":"not received"}</span></div>
 
-    <div className="needsListHeading">
-      <div><h3>{uk?"Додані потреби":"Added needs"}</h3><p>{uk?"Atlas автоматично звіряє активні потреби з можливостями людей.":"Atlas automatically matches active needs with people's opportunities."}</p></div>
-      <span>{openCount} {uk?"не отримано":"not received"}</span>
-    </div>
-
-    <div className="needsList">
-      {needs.length===0&&<div className="needsEmpty"><Leaf size={24}/><strong>{uk?"Потреб ще немає":"No needs yet"}</strong><span>{uk?"Перша потреба з’явиться тут після додавання.":"Your first need will appear here after you add it."}</span></div>}
-      {needs.map(item=>{
-        const received=item.status==="received";
-        const deleting=confirmDeleteId===item.id;
-        const catalogItem=catalogLookup.get(`${item.group_key}:${item.item_key}`);
-        const catalogGroup=groupLookup.get(item.group_key);
-        const itemName=uk?(catalogItem?.name_uk||item.item_key):(catalogItem?.name_en||catalogItem?.name_uk||item.item_key);
-        const groupName=uk?(catalogGroup?.name_uk||item.group_key):(catalogGroup?.name_en||catalogGroup?.name_uk||item.group_key);
-        const matches=matchesByNeed[item.id];
-        return <article className={`needRecord ${received?"received":""}`} key={item.id}>
-          <div className="needRecordProduct"><span aria-hidden="true">{catalogItem?.icon||"📦"}</span><div><small>{groupName.toLocaleUpperCase(uk?"uk-UA":"en-GB")}</small><h4>{itemName}</h4></div></div>
-          <div className="needRecordMeta"><div><Scale size={16}/><span><small>{uk?"Кількість":"Quantity"}</small><strong>{Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} {item.unit}</strong></span></div><div><CalendarRange size={16}/><span><small>{uk?"Актуальність":"Validity"}</small><strong>{formatDateRange(item.needed_from,item.needed_until,uk)}</strong></span></div></div>
-
-          {!received&&<div style={{gridColumn:"1/-1",marginTop:4,padding:14,border:"1px solid #cfe4d7",borderRadius:16,background:matches?.length?"#eef9f2":"#f8faf9"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,color:"#08753f",fontWeight:900,fontSize:13}}><Sparkles size={17}/>{uk?"ATLAS MATCH":"ATLAS MATCH"}</div>
-            {matches===undefined?<div style={{marginTop:7,color:"#66746c",fontSize:13}}>{uk?"Перевіряю Паспорти можливостей…":"Checking Opportunity Passports…"}</div>:matches.length===0?<div style={{marginTop:7,color:"#66746c",fontSize:13}}>{uk?"Зараз відповідних можливостей у Паспортaх не знайдено.":"No matching opportunities are available in Passports right now."}</div>:<>
-              <div style={{marginTop:6,fontSize:14,fontWeight:900,color:"#143c27"}}>{uk?`Є ${matches.length} відповідн${matches.length===1?"а можливість":"і можливості"}`:`${matches.length} matching opportunit${matches.length===1?"y":"ies"}`}</div>
-              <div style={{display:"grid",gap:8,marginTop:10}}>{matches.map(match=><Link key={`${item.id}-${match.slug}`} to={`/p/${match.slug}`} style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"center",padding:"10px 12px",border:"1px solid #d8e8de",borderRadius:13,background:"#fff"}}>
-                <div style={{minWidth:0}}><strong style={{display:"block",fontSize:14,color:"#173526",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{match.headline||match.name}</strong><span style={{display:"flex",alignItems:"center",gap:5,marginTop:3,color:"#68766e",fontSize:12}}>{match.city&&<><MapPin size={13}/>{match.city}</>} {match.name&&` · ${match.name}`}</span></div>
-                <span style={{display:"flex",alignItems:"center",gap:4,color:"#08753f",fontSize:12,fontWeight:900}}>{uk?"Відкрити":"Open"}<ArrowRight size={14}/></span>
-              </Link>)}</div>
-            </>}
-          </div>}
-
-          <div className="needRecordActions">
-            <div className="needStatus" role="group" aria-label={uk?"Статус потреби":"Need status"}>
-              <button type="button" className={!received?"active":""} disabled={busyId===item.id} onClick={()=>changeStatus(item,"not_received")}><Clock3 size={15}/>{uk?"Не отримано":"Not received"}</button>
-              <button type="button" className={received?"active receivedActive":""} disabled={busyId===item.id} onClick={()=>changeStatus(item,"received")}><PackageCheck size={15}/>{uk?"Отримано":"Received"}</button>
-            </div>
-            {deleting?<div className="needDeleteConfirm"><span>{uk?"Точно видалити?":"Delete it?"}</span><button type="button" disabled={busyId===item.id} onClick={()=>removeNeed(item.id)}><Check size={16}/>{uk?"Так":"Yes"}</button><button type="button" onClick={()=>setConfirmDeleteId("")}><X size={16}/></button></div>:<button className="needDeleteButton" type="button" title={uk?"Видалити потребу":"Delete need"} onClick={()=>setConfirmDeleteId(item.id)}><Trash2 size={18}/></button>}
-          </div>
-        </article>;
-      })}
-    </div>
+    <div className="needsList">{needs.length===0&&<div className="needsEmpty"><Leaf size={24}/><strong>{uk?"Потреб ще немає":"No needs yet"}</strong><span>{uk?"Перша потреба з’явиться тут після додавання.":"Your first need will appear here after you add it."}</span></div>}{needs.map(item=>{const received=item.status==="received";const deleting=confirmDeleteId===item.id;const catalogItem=catalogLookup.get(`${item.group_key}:${item.item_key}`);const catalogGroup=groupLookup.get(item.group_key);const itemName=uk?(catalogItem?.name_uk||item.item_key):(catalogItem?.name_en||catalogItem?.name_uk||item.item_key);const groupName=uk?(catalogGroup?.name_uk||item.group_key):(catalogGroup?.name_en||catalogGroup?.name_uk||item.group_key);const matches=matchesByNeed[item.id];const needText=`${Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} ${item.unit} ${itemName}`;return <article className={`needRecord ${received?"received":""}`} key={item.id}>
+      <div className="needRecordProduct"><span aria-hidden="true">{catalogItem?.icon||"📦"}</span><div><small>{groupName.toLocaleUpperCase(uk?"uk-UA":"en-GB")}</small><h4>{itemName}</h4></div></div>
+      <div className="needRecordMeta"><div><Scale size={16}/><span><small>{uk?"Кількість":"Quantity"}</small><strong>{Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} {item.unit}</strong></span></div><div><CalendarRange size={16}/><span><small>{uk?"Актуальність":"Validity"}</small><strong>{formatDateRange(item.needed_from,item.needed_until,uk)}</strong></span></div></div>
+      {!received&&<div style={{gridColumn:"1/-1",marginTop:4,padding:matches?.length?18:14,border:matches?.length?"2px solid #58b87a":"1px solid #cfe4d7",borderRadius:16,background:matches?.length?"#eaf8ef":"#f8faf9",boxShadow:matches?.length?"0 8px 24px rgba(10,120,62,.08)":"none"}}><div style={{display:"flex",alignItems:"center",gap:8,color:"#08753f",fontWeight:900,fontSize:13}}><Sparkles size={17}/>{matches?.length?(uk?"ATLAS ЗНАЙШОВ РІШЕННЯ":"ATLAS FOUND A SOLUTION"):(uk?"ATLAS MATCH":"ATLAS MATCH")}</div>{matches===undefined?<div style={{marginTop:7,color:"#66746c",fontSize:13}}>{uk?"Перевіряю Паспорти можливостей…":"Checking Opportunity Passports…"}</div>:matches.length===0?<div style={{marginTop:7,color:"#66746c",fontSize:13}}>{uk?"Зараз відповідних можливостей не знайдено. Atlas перевірятиме знову, коли з’являться нові можливості.":"No matching opportunities are available right now."}</div>:<><div style={{marginTop:7,fontSize:17,fontWeight:900,color:"#143c27"}}>{uk?`Є ${matches.length} відповідн${matches.length===1?"а можливість":"і можливості"}`:`${matches.length} matching opportunit${matches.length===1?"y":"ies"}`}</div><div style={{display:"grid",gap:8,marginTop:12}}>{matches.map(match=><Link key={`${item.id}-${match.slug}`} to={`/p/${match.slug}?opportunity=${encodeURIComponent(match.opportunity_id)}&need=${encodeURIComponent(needText)}`} style={{display:"grid",gridTemplateColumns:"1fr auto",gap:10,alignItems:"center",padding:"12px 13px",border:"1px solid #cce5d5",borderRadius:13,background:"#fff"}}><div style={{minWidth:0}}><strong style={{display:"block",fontSize:15,color:"#173526",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{match.headline||match.name}</strong><span style={{display:"flex",alignItems:"center",gap:5,marginTop:4,color:"#68766e",fontSize:12}}>{match.city&&<><MapPin size={13}/>{match.city}</>} {match.name&&` · ${match.name}`}</span></div><span style={{display:"flex",alignItems:"center",gap:5,color:"#fff",background:"#0b8c48",borderRadius:10,padding:"9px 11px",fontSize:12,fontWeight:900}}>{uk?"Зв’язатися":"Contact"}<ArrowRight size={14}/></span></Link>)}</div></>}</div>}
+      <div className="needRecordActions"><div className="needStatus" role="group" aria-label={uk?"Статус потреби":"Need status"}><button type="button" className={!received?"active":""} disabled={busyId===item.id} onClick={()=>changeStatus(item,"not_received")}><Clock3 size={15}/>{uk?"Не отримано":"Not received"}</button><button type="button" className={received?"active receivedActive":""} disabled={busyId===item.id} onClick={()=>changeStatus(item,"received")}><PackageCheck size={15}/>{uk?"Отримано":"Received"}</button></div>{deleting?<div className="needDeleteConfirm"><span>{uk?"Точно видалити?":"Delete it?"}</span><button type="button" disabled={busyId===item.id} onClick={()=>removeNeed(item.id)}><Check size={16}/>{uk?"Так":"Yes"}</button><button type="button" onClick={()=>setConfirmDeleteId("")}><X size={16}/></button></div>:<button className="needDeleteButton" type="button" title={uk?"Видалити потребу":"Delete need"} onClick={()=>setConfirmDeleteId(item.id)}><Trash2 size={18}/></button>}</div>
+    </article>})}</div>
   </section>;
 }
