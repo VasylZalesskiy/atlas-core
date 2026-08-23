@@ -13,6 +13,7 @@ const flowSteps={
   uk:["Збіг","Запит","Домовились","Виконано","Завершено"],
   en:["Match","Request","Agreed","Done","Closed"]
 };
+const activeStatuses=new Set(["pending","accepted","provided"]);
 
 function normalize(value){return String(value||"").toLowerCase().trim()}
 function needLabel(item,uk){
@@ -43,6 +44,16 @@ function flowStatus(flow,uk){
   if(flow.status==="cancelled")return uk?"Рішення скасовано":"Solution cancelled";
   return flow.status;
 }
+function resultStatus(flow,uk){
+  if(!flow)return "";
+  if(flow.status==="pending")return flow.is_initiator?(uk?"Запит надіслано · очікуємо":"Request sent · waiting"):(uk?"Потрібна ваша відповідь ↑":"Your response is needed ↑");
+  if(flow.status==="accepted")return uk?"✓ Прийнято · в роботі":"✓ Accepted · in progress";
+  if(flow.status==="provided")return uk?"Надано · очікує підтвердження":"Provided · awaiting confirmation";
+  return flowStatus(flow,uk);
+}
+function findActiveFlow(flows,opportunityId,needId=null){
+  return flows.find(flow=>activeStatuses.has(flow.status)&&flow.opportunity_id===opportunityId&&(needId?flow.need_id===needId:!flow.need_id))||null;
+}
 
 export default function MatchSearch({lang="uk"}){
   const uk=lang!=="en";
@@ -67,7 +78,7 @@ export default function MatchSearch({lang="uk"}){
     return needs.filter(item=>item.status==="not_received"&&(!item.needed_until||item.needed_until>=today));
   },[needs]);
   const activeOpportunities=useMemo(()=>opportunities.filter(item=>item.is_active),[opportunities]);
-  const activeFlows=useMemo(()=>flows.filter(item=>!["completed","declined","cancelled"].includes(item.status)),[flows]);
+  const activeFlows=useMemo(()=>flows.filter(item=>activeStatuses.has(item.status)),[flows]);
   const closedFlows=useMemo(()=>flows.filter(item=>["completed","declined","cancelled"].includes(item.status)).slice(0,5),[flows]);
 
   async function reloadFlows(){
@@ -94,6 +105,14 @@ export default function MatchSearch({lang="uk"}){
     }).catch(cause=>{if(alive)setError(String(cause?.message||cause||"Помилка"))}).finally(()=>{if(alive)setLoading(false)});
     return()=>{alive=false};
   },[uk]);
+
+  useEffect(()=>{
+    if(!activeFlows.length)return;
+    const refresh=()=>loadSolutionFlows().then(setFlows).catch(()=>{});
+    const timer=window.setInterval(refresh,8000);
+    window.addEventListener("focus",refresh);
+    return()=>{window.clearInterval(timer);window.removeEventListener("focus",refresh)};
+  },[activeFlows.length]);
 
   function chooseMode(next){setMode(next);setResults([]);setSearched(false);setError("");setNotice("")}
   function chooseNeed(id){setSelectedNeedId(id);const item=activeNeeds.find(value=>value.id===id);if(item)setQuery(needQuery(item,uk))}
@@ -126,6 +145,8 @@ export default function MatchSearch({lang="uk"}){
 
   async function startRequest(item){
     if(!item.opportunity_id||flowBusy)return;
+    const existing=findActiveFlow(flows,item.opportunity_id,selectedNeedId||null);
+    if(existing)return;
     setFlowBusy(item.opportunity_id);setError("");setNotice("");
     try{
       const selectedNeed=activeNeeds.find(value=>value.id===selectedNeedId);
@@ -138,6 +159,8 @@ export default function MatchSearch({lang="uk"}){
 
   async function sendOffer(item){
     if(!selectedOpportunityId||flowBusy)return;
+    const existing=findActiveFlow(flows,selectedOpportunityId,item.need_id);
+    if(existing)return;
     setFlowBusy(item.need_id);setError("");setNotice("");
     try{
       const result=await offerOpportunityToNeed({opportunityId:selectedOpportunityId,needId:item.need_id});
@@ -214,16 +237,22 @@ export default function MatchSearch({lang="uk"}){
       <div className="matchResultsTitle"><div><Sparkles size={20}/><strong>{uk?"Знайдені збіги":"Found matches"}</strong></div>{searched&&!searching&&<span>{results.length}</span>}</div>
       {!searched&&!searching&&<div className="matchBlank">{uk?"Запустіть пошук — Atlas покаже актуальні збіги.":"Run a search and Atlas will show current matches."}</div>}
       {searched&&!searching&&results.length===0&&<div className="matchBlank">{uk?"Зараз збігів не знайдено. Можна змінити запит і перевірити ще раз.":"No matches found right now. Change the query and try again."}</div>}
-      {mode==="need"&&results.map(item=><article className="matchResultCard" key={`${item.slug}-${item.opportunity_id||item.headline}`}>
-        <div className="matchResultCopy"><span className="matchFoundBadge">{uk?"МОЖЛИВІСТЬ":"OPPORTUNITY"}</span><strong>{item.headline||item.name}</strong><small>{item.city&&<><MapPin size={13}/>{item.city}</>} {item.name&&` · ${item.name}`}</small></div>
-        {item.opportunity_id?<button className="matchAction actionButton" disabled={flowBusy===item.opportunity_id} onClick={()=>startRequest(item)}>{flowBusy===item.opportunity_id?(uk?"Запускаю…":"Starting…"):(uk?"Почати вирішення":"Start solving")}<ArrowRight size={16}/></button>:<Link className="matchAction secondaryAction" to={`/p/${item.slug}`}>{uk?"Відкрити паспорт":"Open Passport"}<ArrowRight size={16}/></Link>}
-      </article>)}
-      {mode==="opportunity"&&results.map(item=><article className="matchResultCard" key={item.need_id}>
-        <div className="matchResultCopy"><span className="matchFoundBadge needBadge">{uk?"ПОТРЕБА":"NEED"}</span><strong>{needLabel(item,uk)}</strong><small>{item.city&&<><MapPin size={13}/>{item.city}</>} {item.display_name&&` · ${item.display_name}`} {item.needed_until&&` · ${uk?"до":"until"} ${formatDate(item.needed_until,uk)}`}</small>{item.coverage==="full"&&<em>{uk?"Вашої кількості достатньо для цієї потреби":"Your available quantity can fully cover this need"}</em>}{item.coverage==="partial"&&<em>{uk?"Можливе часткове покриття потреби":"This opportunity may partially cover the need"}</em>}</div>
-        <button className="matchAction actionButton" disabled={flowBusy===item.need_id} onClick={()=>sendOffer(item)}>{flowBusy===item.need_id?(uk?"Надсилаю…":"Sending…"):(uk?"Запропонувати допомогу":"Offer help")}<ArrowRight size={16}/></button>
-      </article>)}
+      {mode==="need"&&results.map(item=>{
+        const existing=item.opportunity_id?findActiveFlow(flows,item.opportunity_id,selectedNeedId||null):null;
+        return <article className="matchResultCard" key={`${item.slug}-${item.opportunity_id||item.headline}`}>
+          <div className="matchResultCopy"><span className="matchFoundBadge">{uk?"МОЖЛИВІСТЬ":"OPPORTUNITY"}</span><strong>{item.headline||item.name}</strong><small>{item.city&&<><MapPin size={13}/>{item.city}</>} {item.name&&` · ${item.name}`}</small>{existing&&<b className={`resultFlowStatus flow-${existing.status}`}>{resultStatus(existing,uk)}</b>}</div>
+          {item.opportunity_id?(existing?<button className="matchAction actionButton matchLockedAction" type="button" disabled><CheckCircle2 size={16}/>{resultStatus(existing,uk)}</button>:<button className="matchAction actionButton" disabled={flowBusy===item.opportunity_id} onClick={()=>startRequest(item)}>{flowBusy===item.opportunity_id?(uk?"Запускаю…":"Starting…"):(uk?"Почати вирішення":"Start solving")}<ArrowRight size={16}/></button>):<Link className="matchAction secondaryAction" to={`/p/${item.slug}`}>{uk?"Відкрити паспорт":"Open Passport"}<ArrowRight size={16}/></Link>}
+        </article>;
+      })}
+      {mode==="opportunity"&&results.map(item=>{
+        const existing=findActiveFlow(flows,selectedOpportunityId,item.need_id);
+        return <article className="matchResultCard" key={item.need_id}>
+          <div className="matchResultCopy"><span className="matchFoundBadge needBadge">{uk?"ПОТРЕБА":"NEED"}</span><strong>{needLabel(item,uk)}</strong><small>{item.city&&<><MapPin size={13}/>{item.city}</>} {item.display_name&&` · ${item.display_name}`} {item.needed_until&&` · ${uk?"до":"until"} ${formatDate(item.needed_until,uk)}`}</small>{item.coverage==="full"&&<em>{uk?"Вашої кількості достатньо для цієї потреби":"Your available quantity can fully cover this need"}</em>}{item.coverage==="partial"&&<em>{uk?"Можливе часткове покриття потреби":"This opportunity may partially cover the need"}</em>}{existing&&<b className={`resultFlowStatus flow-${existing.status}`}>{resultStatus(existing,uk)}</b>}</div>
+          {existing?<button className="matchAction actionButton matchLockedAction" type="button" disabled><CheckCircle2 size={16}/>{resultStatus(existing,uk)}</button>:<button className="matchAction actionButton" disabled={flowBusy===item.need_id} onClick={()=>sendOffer(item)}>{flowBusy===item.need_id?(uk?"Надсилаю…":"Sending…"):(uk?"Запропонувати допомогу":"Offer help")}<ArrowRight size={16}/></button>}
+        </article>;
+      })}
     </section>
 
-    <div className="matchPrivacy"><Clock3 size={14}/>{uk?"Після прийняття Atlas відкриває тимчасову кімнату для домовленості. Приватні контакти не беруть участі в пошуку.":"After acceptance, Atlas opens a temporary room for coordination. Private contacts are not used in search."}</div>
+    <div className="matchPrivacy"><Clock3 size={14}/>{uk?"Статус активного запиту оновлюється автоматично. Після прийняття Atlas відкриває тимчасову кімнату для домовленості.":"Active request status refreshes automatically. After acceptance, Atlas opens a temporary room for coordination."}</div>
   </section></main>;
 }
