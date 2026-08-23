@@ -13,6 +13,7 @@ import Chat from "./pages/Chat";
 import Market from "./pages/Market";
 import Requests from "./pages/Requests";
 import Needs from "./pages/Needs";
+import MatchSearch from "./pages/MatchSearch";
 import ShareApp from "./pages/ShareApp";
 import CatalogAdmin from "./pages/CatalogAdmin";
 import dict from "./data/translations";
@@ -29,6 +30,7 @@ export default function App(){
         <Route path="/" element={<Home t={t} lang={lang}/>}/>
         <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
         <Route path="/needs" element={<Needs lang={lang}/>}/>
+        <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
         <Route path="/share" element={<ShareApp lang={lang}/>}/>
         <Route path="/requests" element={<Requests lang={lang}/>}/>
         <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
