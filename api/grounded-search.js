@@ -65,18 +65,22 @@ async function groundedSearch({goal,query,language="uk",domain="",locationText="
   }finally{clearTimeout(timer)}
 }
 
-function toResults({answer,sources,language}){
+function toResults({answer,sources,language,domain}){
   if(!answer)return [];
   const uk=language!=="en";
-  const primary=sources[0]||null;
+  const health=domain==="health";
   const answerResult={
     title:uk?"Відповідь Atlas з інтернету":"Atlas web answer",
     snippet:answer,
-    url:primary?.url||"",
+    // Keep the synthesized answer itself inside Atlas. Source links are shown as
+    // separate result cards so the main action is reading the answer, not leaving Atlas.
+    url:"",
     source_type:"grounded_web",
-    source_name:"Atlas · Google Search",
+    source_name:uk?"Atlas · Інтернет":"Atlas · Web",
     source_group:"grounded-web",
-    result_kind:"web_answer",
+    // Existing Solution UI treats concrete listings as resolved. Reuse that state
+    // for grounded non-medical answers without allowing web text to resolve health cases.
+    result_kind:health?"web_answer":"listing",
     price_text:"",
     location_text:"",
     quantity_tonnes:null,
@@ -122,7 +126,7 @@ export default async function handler(req,res){
 
   const grounded=await groundedSearch({goal,query,language,domain,locationText});
   return send(res,200,{
-    results:toResults({...grounded,language}),
+    results:toResults({...grounded,language,domain}),
     configured:grounded.configured,
     search_status:grounded.answer?"grounded-answer":grounded.reason,
     source_count:grounded.sources.length,
