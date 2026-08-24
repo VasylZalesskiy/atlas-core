@@ -88,7 +88,7 @@ function passportCandidate(profile,lang){
   };
 }
 
-function placeCandidate(place,route,lang){
+function placeCandidate(place,route,lang,{resolved=true}={}){
   return {
     ...place,
     kind:"place",
@@ -97,7 +97,7 @@ function placeCandidate(place,route,lang){
     description:[place.typeLabel,place.address].filter(Boolean).join(" · "),
     distanceKm:route?.distanceKm??place.straightDistanceKm,
     route,
-    resolved:true
+    resolved
   };
 }
 
@@ -110,6 +110,9 @@ function internetCandidate(item,index,lang){
     description:item.snippet||"",
     url:item.url,
     priceText:item.price_text||"",
+    priceValue:item.price_value==null?"":String(item.price_value),
+    priceUnit:item.price_unit||"",
+    currency:item.currency||"UAH",
     locationText:item.location_text||"",
     quantityTonnes:Number.isFinite(Number(item.quantity_tonnes))?Number(item.quantity_tonnes):null,
     quantityText:item.quantity_text||"",
@@ -184,6 +187,9 @@ function CandidateAction({candidate,origin,lang}){
       {candidate.googleMapsUrl&&<a className="chainAction" href={candidate.googleMapsUrl} target="_blank" rel="noreferrer"><Navigation size={16}/>{lang==="uk"?`Маршрут до ${candidate.source}`:`Route to ${candidate.source}`}</a>}
       <a className="chainAction secondaryAction" href={candidate.url} target="_blank" rel="noreferrer"><ExternalLink size={16}/>{lang==="uk"?`Товар в ${candidate.source}`:`Product at ${candidate.source}`}</a>
     </div>;
+    if(candidate.resultKind==="store_option_pending")return <div className="chainActions">
+      <a className="chainAction secondaryAction" href={candidate.url} target="_blank" rel="noreferrer"><ExternalLink size={16}/>{lang==="uk"?`Уточнити в ${candidate.source}`:`Confirm with ${candidate.source}`}</a>
+    </div>;
     const actionLabel=candidate.resultKind==="maps_search"
       ?"Google Maps"
       :candidate.resultKind==="search_page"
@@ -234,8 +240,9 @@ function candidatePriority(candidate,task){
     :140+Math.min(40,candidate.matchScore);
   if(candidate?.kind==="external"&&candidate.resultKind==="store_option")return 480;
   if(candidate?.kind==="external"&&candidate.resultKind==="listing")return 450;
-  if(candidate?.kind==="place")return 400;
+  if(candidate?.kind==="place")return candidate.resolved?400:190;
   if(candidate?.kind==="direct")return 360;
+  if(candidate?.kind==="external"&&candidate.resultKind==="store_option_pending")return 180;
   if(candidate?.kind==="external"&&candidate.resultKind==="search_page"){
     const sourceBonus={OLX:30,Rozetka:25,"Prom.ua":20}[candidate.source]||0;
     return 300+sourceBonus;
@@ -256,8 +263,8 @@ function recommendationReason(candidate,lang){
     ?"Конкретне місце поруч із маршрутом і контактами."
     :"A specific nearby place with route and contact details.";
   if(candidate?.resultKind==="store_option")return lang==="uk"
-    ?"Конкретний товар уже є в каталозі магазину; далі — перевірити потрібний залишок і їхати."
-    :"A concrete product is already in the store catalogue; next confirm the required stock and go.";
+    ?"Конкретний товар і достатній поточний залишок підтверджені джерелом."
+    :"The concrete product and sufficient current stock are confirmed by the source.";
   if(candidate?.resultKind==="search_page")return lang==="uk"
     ?"Прямий перехід до актуальних пропозицій без повторного введення запиту."
     :"A direct jump to current offers without retyping the request.";
@@ -351,6 +358,7 @@ function SolutionChain({chain,index,origin,lang}){
                 {alternative.priceText&&<span>{alternative.priceText}</span>}
                 {alternative.city&&<span><MapPin size={13}/>{alternative.city}</span>}
               </div>
+              {alternative.verificationText&&<small className="chainVerification">{alternative.verificationText}</small>}
             </div>
             <CandidateAction candidate={alternative} origin={origin} lang={lang}/>
           </div>)}
@@ -528,9 +536,10 @@ export default function Solution({lang}){
     Promise.all(searchable.map(async step=>{
       try{
         const places=await searchNearbyPlaces(origin,step.nearby_query,{lang,limit:2,signal:controller.signal});
+        const commerceStep=sourceForInternetStep(step,[],0)==="marketplace";
         const candidates=await Promise.all(places.slice(0,2).map(async(place,index)=>{
           const route=index===0?await getDrivingRoute(origin,place,{lang,signal:controller.signal}).catch(()=>null):null;
-          return placeCandidate(place,route,lang);
+          return placeCandidate(place,route,lang,{resolved:!commerceStep});
         }));
         return {stepId:step.id,candidates,error:false};
       }catch(error){
@@ -642,8 +651,9 @@ export default function Solution({lang}){
       return candidatePriority(b,activeTask)-candidatePriority(a,activeTask);
     });
   },[rankedCandidates,sortMode,activeTask]);
-  const recommendedCandidate=sortedCandidates[0]||null;
-  const recommendedAlternatives=sortedCandidates.slice(1,5);
+  const resolvedCandidates=sortedCandidates.filter(candidate=>candidate.resolved);
+  const recommendedCandidate=resolvedCandidates[0]||null;
+  const recommendedAlternatives=resolvedCandidates.slice(1,5);
   const structuredPriceCount=rankedCandidates.filter(candidate=>structuredPrice(candidate)).length;
 
   const chains=useMemo(()=>{
@@ -666,12 +676,12 @@ export default function Solution({lang}){
     if(searchScope==="nearby")return [{
       ...build("nearby"),
       title:lang==="uk"?"Паспорти + варіанти поруч":"Passports + nearby options",
-      description:lang==="uk"?"Люди Atlas мають пріоритет; відсутні ланки доповнено місцевими сервісами.":"Atlas people have priority; missing links are completed with local services."
+      description:lang==="uk"?"Люди Atlas мають пріоритет; місцеві варіанти позначаються готовими лише коли вони справді завершують потрібну дію.":"Atlas people have priority; nearby options are marked ready only when they actually complete the required action."
     }];
     if(searchScope==="internet")return [{
       ...build("internet"),
-      title:lang==="uk"?"Паспорти + весь інтернет":"Passports + the wider internet",
-      description:lang==="uk"?"Паспорти мають пріоритет; відсутні ланки доповнено маркетплейсами та перевіреними джерелами.":"Passports have priority; missing links are completed with marketplaces and verified sources."
+      title:lang==="uk"?"Паспорти + конкретні онлайн-пропозиції":"Passports + concrete online offers",
+      description:lang==="uk"?"Паспорти мають пріоритет; Atlas показує конкретні пропозиції та окремо позначає те, що ще потребує підтвердження.":"Passports have priority; Atlas shows concrete offers and separately marks options that still require confirmation."
     }];
     return [{
       ...build("nearby"),
@@ -679,8 +689,8 @@ export default function Solution({lang}){
       description:lang==="uk"?"Практичний місцевий ланцюжок із пріоритетом можливостей людей Atlas.":"A practical local chain prioritizing Atlas people's capabilities."
     },{
       ...build("internet",{preferExternal:true}),
-      title:lang==="uk"?"Інтернет-альтернатива":"Internet alternative",
-      description:lang==="uk"?"Окремий ланцюжок для порівняння з пропозиціями маркетплейсів і мережі.":"A separate chain for comparison with marketplace and web results."
+      title:lang==="uk"?"OVI та інтернет-альтернатива":"OVI and online alternative",
+      description:lang==="uk"?"Конкретні пропозиції показуються окремо від варіантів, що ще потребують підтвердження.":"Concrete offers are separated from options that still require confirmation."
     }];
   },[searchScope,steps,passportByStep,nearbyByStep,internetByStep,lang]);
 
@@ -792,10 +802,10 @@ export default function Solution({lang}){
         </div>
         <div className="scopeButtons" role="group" aria-label={lang==="uk"?"Де шукати":"Where to search"}>
           <button className={searchScope==="nearby"?"active":""} type="button" onClick={()=>chooseSearchScope("nearby")} disabled={!passportsChecked} aria-pressed={searchScope==="nearby"}>
-            <MapPin size={21}/><span><strong>{lang==="uk"?"Поруч":"Nearby"}</strong><small>{lang==="uk"?"Магазини та маршрут":"Stores and route"}</small></span>
+            <MapPin size={21}/><span><strong>{lang==="uk"?"Поруч":"Nearby"}</strong><small>{lang==="uk"?"Місця та маршрут":"Places and route"}</small></span>
           </button>
           <button className={searchScope==="internet"?"active":""} type="button" onClick={()=>chooseSearchScope("internet")} disabled={!passportsChecked} aria-pressed={searchScope==="internet"}>
-            <Globe2 size={21}/><span><strong>{lang==="uk"?"В інтернеті":"Online"}</strong><small>{lang==="uk"?"АТБ і маркетплейси":"ATB and marketplaces"}</small></span>
+            <Globe2 size={21}/><span><strong>{lang==="uk"?"В інтернеті":"Online"}</strong><small>{lang==="uk"?"OVI + конкретні пропозиції":"OVI + concrete offers"}</small></span>
           </button>
           <button className={searchScope==="both"?"active":""} type="button" onClick={()=>chooseSearchScope("both")} disabled={!passportsChecked} aria-pressed={searchScope==="both"}>
             <Search size={21}/><span><strong>{lang==="uk"?"Поруч + інтернет":"Nearby + online"}</strong><small>{lang==="uk"?"Порівняти всі варіанти":"Compare all options"}</small></span>
@@ -816,24 +826,24 @@ export default function Solution({lang}){
         <div>
           <strong>{lang==="uk"?"Шукаю конкретні варіанти":"Finding concrete options"}</strong>
           <span>{healthTask
-            ?(lang==="uk"?"Atlas перевіряє медичні можливості та заклади поруч.":"Atlas is checking medical capabilities and nearby care.")
-            :(lang==="uk"?"Atlas сам перевіряє Паспорти, пропозиції поруч і маркетплейси.":"Atlas is automatically checking Passports, nearby options and marketplaces.")}</span>
+            ?(lang==="uk"?"Atlas перевіряє медичні заклади поруч.":"Atlas is checking nearby medical care.")
+            :(lang==="uk"?"Atlas перевіряє Паспорти, конкретні пропозиції та варіанти поруч.":"Atlas is checking Passports, concrete offers and nearby options.")}</span>
         </div>
       </div>}
 
       {(searchScope==="nearby"||searchScope==="both")&&!origin&&!originLoading&&<div className="simpleGeoPrompt">
-        <div><strong>{healthTask?(lang==="uk"?"Знайти конкретну медичну допомогу й маршрут":"Find concrete medical care and a route"):(lang==="uk"?"Додати найближчі магазини й маршрут":"Add nearby stores and a route")}</strong><span>{lang==="uk"?"Координати потрібні лише для пошуку поруч і не зберігаються.":"Coordinates are used only for nearby search and are not stored."}</span></div>
+        <div><strong>{healthTask?(lang==="uk"?"Знайти конкретну медичну допомогу й маршрут":"Find concrete medical care and a route"):(lang==="uk"?"Додати варіанти поруч і маршрут":"Add nearby options and a route")}</strong><span>{lang==="uk"?"Координати потрібні лише для пошуку поруч і не зберігаються.":"Coordinates are used only for nearby search and are not stored."}</span></div>
         <button className="primary" type="button" onClick={ensureOrigin}><MapPin size={18}/>{healthTask?(lang==="uk"?"Знайти допомогу поруч":"Find nearby care"):(lang==="uk"?"Додати мою локацію":"Add my location")}</button>
       </div>}
 
       {originError&&<div className="simpleEmpty">{lang==="uk"?"Не вдалося визначити цю локацію. Вкажіть місто на головній сторінці або дозвольте геолокацію.":"Could not resolve this location. Enter a city on the home page or allow geolocation."}</div>}
 
       {!plan?.clarification?.required&&!recommendedCandidate&&!solutionBusy&&<div className="simpleEmpty">
-        {lang==="uk"?"Надійного готового варіанта поки не знайдено. Atlas не показує загальні статті як рішення.":"No reliable ready option was found. Atlas does not present generic articles as a solution."}
+        {lang==="uk"?"Надійного готового варіанта поки не знайдено. Нижче Atlas може показати конкретні часткові варіанти, але не називатиме їх вирішеною задачею.":"No reliable ready option was found. Atlas may show concrete partial options below, but will not call them a solved task."}
       </div>}
 
-      {recommendedCandidate&&chains.length>0&&<details className="solutionDetails">
-        <summary>{lang==="uk"?"Повний ланцюжок і перевірені джерела":"Full chain and checked sources"}</summary>
+      {chains.length>0&&<details className="solutionDetails" open={!recommendedCandidate}>
+        <summary>{lang==="uk"?"Повний ланцюжок, часткові варіанти та джерела":"Full chain, partial options and sources"}</summary>
         <div className="solutionChains">{chains.map((chain,index)=><SolutionChain key={chain.mode} chain={chain} index={index} origin={origin} lang={lang}/>)}</div>
       </details>}
 
