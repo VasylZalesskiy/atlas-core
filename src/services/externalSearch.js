@@ -1,5 +1,4 @@
 import {buildMarketplaceShortcuts} from "../../api/_search-utils.js";
-import {searchOviForTask} from "./oviSearchBridge";
 
 function isConcreteExternalResult(item){
   return ["listing","store_option","store_option_pending"].includes(item?.result_kind);
@@ -19,25 +18,15 @@ function uniqueResults(items){
   });
 }
 
-function orderedResults(oviResults,otherResults){
-  const readyOvi=oviResults.filter(item=>item.result_kind==="store_option");
-  const pendingOvi=oviResults.filter(item=>item.result_kind==="store_option_pending");
-  return uniqueResults([...readyOvi,...otherResults,...pendingOvi]);
-}
-
 export async function searchExternalSources(plan,{lang="uk",signal}={}){
   const searches=(plan?.external_searches||[]).filter(item=>["web","marketplace","official"].includes(item?.source));
   if(!searches.length)return [];
 
-  // OVI is checked in parallel with marketplace retrieval. Sufficient stock is
-  // a solved result; insufficient stock is kept only as a concrete partial option.
   const wantsMarketplace=searches.some(item=>item.source==="marketplace");
-  const oviPromise=wantsMarketplace
-    ?searchOviForTask(plan?.goal||searches[0]?.query||"",{lang}).catch(()=>[])
-    :Promise.resolve([]);
 
   // Search shortcuts are useful internally, but they are NOT an Atlas solution.
-  // Only concrete listings/store options may reach the result UI.
+  // Only concrete listings/store options may reach the result UI. Businesses,
+  // including OVI, participate through normal Atlas passports at this stage.
   const marketplaceFallback=()=>wantsMarketplace
     ?concreteOnly(buildMarketplaceShortcuts({
       goal:plan?.goal||"",
@@ -61,12 +50,9 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
       }),
       signal
     });
-    const [data,oviResults]=await Promise.all([
-      response.json().catch(()=>({})),
-      oviPromise
-    ]);
+    const data=await response.json().catch(()=>({}));
     if(!response.ok){
-      const fallback=orderedResults(oviResults,marketplaceFallback());
+      const fallback=uniqueResults(marketplaceFallback());
       if(fallback.length)return fallback;
       const error=new Error(data?.error||"external-search-unavailable");
       error.details=data?.details||"";
@@ -74,11 +60,10 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
       throw error;
     }
     const results=concreteOnly(data?.results);
-    return orderedResults(oviResults,results.length?results:marketplaceFallback());
+    return uniqueResults(results.length?results:marketplaceFallback());
   }catch(error){
     if(error?.name==="AbortError")throw error;
-    const oviResults=await oviPromise;
-    const fallback=orderedResults(oviResults,marketplaceFallback());
+    const fallback=uniqueResults(marketplaceFallback());
     if(fallback.length)return fallback;
     throw error;
   }
