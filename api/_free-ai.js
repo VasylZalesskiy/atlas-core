@@ -29,7 +29,20 @@ export async function getFreeAiStatus(){
 
 export async function runFreeAiResponse({instructions,input,maxOutputTokens=2600,timeoutMs=15000,json=true}={}){
   const key=apiKey();
-  if(!key)throw Object.assign(new Error("free-ai-key-unavailable"),{code:"free-ai-key-unavailable"});
+  if(!key){
+    // For normal Atlas Brain JSON planning, a missing free-tier key is an
+    // expected operating mode, not a runtime failure. Let brain.js select the
+    // deterministic fallback without emitting an error-level log. Diagnostics
+    // still throw so /api/brain?test=1 reports the missing key truthfully.
+    if(json){
+      return {
+        data:{status:"incomplete",incomplete_details:{reason:"free-ai-key-unavailable"},output_text:""},
+        model:GEMINI_MODEL,
+        status:await getFreeAiStatus()
+      };
+    }
+    throw Object.assign(new Error("free-ai-key-unavailable"),{code:"free-ai-key-unavailable"});
+  }
 
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),timeoutMs);
