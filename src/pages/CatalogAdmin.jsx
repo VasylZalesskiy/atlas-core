@@ -9,7 +9,7 @@ import "../styles/catalogAdmin.css";
 
 const units=["кг","шт","л","т","м","м²","м³","уп"];
 const blankGroup={nameUk:"",nameEn:"",icon:"📦",isActive:false,sortOrder:100};
-const blankItem={nameUk:"",nameEn:"",icon:"📦",unit:"кг",isActive:false,sortOrder:100};
+const blankItem={nameUk:"",nameEn:"",icon:"📦",unit:"кг",isActive:false,sortOrder:100,canonicalCode:"",familyCode:""};
 
 function friendlyError(error){
   const text=String(error?.message||error||"");
@@ -17,6 +17,7 @@ function friendlyError(error){
   if(/rate limit|over_email_send_rate_limit/i.test(text))return "Лист уже надсилався. Зачекайте приблизно хвилину й спробуйте ще раз.";
   if(/not authorized|email.*not.*allowed/i.test(text))return "Supabase поки не дозволяє надсилати листи на цю адресу. Потрібно дозволити її в налаштуваннях пошти проєкту.";
   if(/row-level security|42501|permission denied/i.test(text))return "Цей email не має прав адміністратора каталогу.";
+  if(/duplicate key|23505/i.test(text))return "Такий код Atlas уже використовується іншим товаром.";
   if(/foreign key|23503/i.test(text))return "Цей запис уже використовується. Його можна вимкнути, але не видалити.";
   if(/atlas_need_groups|atlas_need_items|atlas_catalog_admins|relation .* does not exist/i.test(text))return "Керований каталог ще не активований у базі Atlas.";
   return text||"Не вдалося виконати дію.";
@@ -71,6 +72,7 @@ export default function CatalogAdmin(){
   const visibleItems=useMemo(()=>items.filter(item=>item.group_key===selectedGroup),[items,selectedGroup]);
   const activeGroupCount=groups.filter(group=>group.is_active).length;
   const activeItemCount=items.filter(item=>item.is_active).length;
+  const codedItemCount=items.filter(item=>item.canonical_code).length;
 
   async function sendLink(event){
     event.preventDefault();if(sendingLink)return;
@@ -119,7 +121,7 @@ export default function CatalogAdmin(){
 
   function beginItemEdit(item){
     setEditingItem(item.item_key);setConfirmDelete("");
-    setItemForm({nameUk:item.name_uk,nameEn:item.name_en,icon:item.icon,unit:item.unit,isActive:item.is_active,sortOrder:item.sort_order});
+    setItemForm({nameUk:item.name_uk,nameEn:item.name_en,icon:item.icon,unit:item.unit,isActive:item.is_active,sortOrder:item.sort_order,canonicalCode:item.canonical_code||"",familyCode:item.family_code||""});
     document.getElementById("catalog-item-form")?.scrollIntoView({behavior:"smooth",block:"center"});
   }
 
@@ -138,7 +140,7 @@ export default function CatalogAdmin(){
   async function toggleItem(item){
     setBusy(`item-${item.item_key}`);setError("");setNotice("");
     try{
-      await updateCatalogItem(item.group_key,item.item_key,{nameUk:item.name_uk,nameEn:item.name_en,icon:item.icon,unit:item.unit,isActive:!item.is_active,sortOrder:item.sort_order});
+      await updateCatalogItem(item.group_key,item.item_key,{nameUk:item.name_uk,nameEn:item.name_en,icon:item.icon,unit:item.unit,isActive:!item.is_active,sortOrder:item.sort_order,canonicalCode:item.canonical_code||"",familyCode:item.family_code||""});
       setNotice(item.is_active?"Товар вимкнено.":"Товар активовано для користувачів.");await refreshCatalog();
     }catch(e){setError(friendlyError(e))}finally{setBusy("")}
   }
@@ -169,11 +171,11 @@ export default function CatalogAdmin(){
 
   return <main className="catalogAdminPage"><section className="catalogAdminShell">
     <header className="catalogAdminHeader">
-      <div><Link className="catalogBack" to="/profile"><ArrowLeft size={18}/>До Паспортa</Link><span className="catalogEyebrow">ATLAS · АДМІНІСТРАТОР</span><h1>Каталог потреб</h1><p>Створюйте групи й товари та керуйте тим, що доступно користувачам.</p></div>
+      <div><Link className="catalogBack" to="/profile"><ArrowLeft size={18}/>До Паспортa</Link><span className="catalogEyebrow">ATLAS · АДМІНІСТРАТОР</span><h1>Спільний каталог Atlas ↔ OVI</h1><p>Одна назва й один код товару дають Atlas можливість одразу звіряти потребу з реальною пропозицією OVI.</p></div>
       <div className="catalogAdminIdentity"><ShieldCheck size={20}/><span><small>Захищений вхід</small><strong>{user?.email}</strong></span><button type="button" onClick={signOut} disabled={busy==="logout"} title="Вийти"><LogOut size={18}/></button></div>
     </header>
 
-    <div className="catalogStats"><div><Layers3/><span><small>Групи</small><strong>{groups.length}</strong><b>{activeGroupCount} активні</b></span></div><div><PackagePlus/><span><small>Товари</small><strong>{items.length}</strong><b>{activeItemCount} активні</b></span></div><div><ShieldCheck/><span><small>Доступ</small><strong>1</strong><b>адміністратор</b></span></div></div>
+    <div className="catalogStats"><div><Layers3/><span><small>Групи</small><strong>{groups.length}</strong><b>{activeGroupCount} активні</b></span></div><div><PackagePlus/><span><small>Товари</small><strong>{items.length}</strong><b>{activeItemCount} активні</b></span></div><div><KeyRound/><span><small>Коди Atlas</small><strong>{codedItemCount}</strong><b>синхронізуються з OVI</b></span></div></div>
 
     {(error||notice)&&<div className={`catalogMessage ${error?"errorState":"successState"}`} role="status" aria-live="polite">{error||notice}</div>}
 
@@ -196,13 +198,13 @@ export default function CatalogAdmin(){
         <div className="catalogPanelTitle"><div><span>02</span><div><h2>Товари</h2><p>{selectedGroupRecord?`${selectedGroupRecord.icon} ${selectedGroupRecord.name_uk}`:"Спочатку створіть групу"}</p></div></div>{catalogLoading&&<RefreshCw className="spin" size={18}/>}</div>
         <form id="catalog-item-form" className="catalogEditor" onSubmit={saveItem}>
           <div className="catalogEditorHeading"><PackagePlus size={20}/><strong>{editingItem?"Редагувати товар":"Додати новий товар"}</strong></div>
-          <div className="catalogFormGrid itemFormGrid"><label className="iconField"><span>Значок</span><input value={itemForm.icon} onChange={e=>setItemForm({...itemForm,icon:e.target.value})} maxLength={8}/></label><label><span>Назва українською</span><input required disabled={!selectedGroup} value={itemForm.nameUk} onChange={e=>setItemForm({...itemForm,nameUk:e.target.value})} placeholder="Наприклад: Морква"/></label><label><span>Назва англійською</span><input disabled={!selectedGroup} value={itemForm.nameEn} onChange={e=>setItemForm({...itemForm,nameEn:e.target.value})} placeholder="Carrots"/></label><label><span>Одиниця</span><select value={itemForm.unit} onChange={e=>setItemForm({...itemForm,unit:e.target.value})}>{units.map(unit=><option key={unit}>{unit}</option>)}</select></label><label className="orderField"><span>Порядок</span><input type="number" min="0" max="10000" value={itemForm.sortOrder} onChange={e=>setItemForm({...itemForm,sortOrder:e.target.value})}/></label></div>
+          <div className="catalogFormGrid itemFormGrid"><label className="iconField"><span>Значок</span><input value={itemForm.icon} onChange={e=>setItemForm({...itemForm,icon:e.target.value})} maxLength={8}/></label><label><span>Назва українською</span><input required disabled={!selectedGroup} value={itemForm.nameUk} onChange={e=>setItemForm({...itemForm,nameUk:e.target.value})} placeholder="Наприклад: Помідор червоний"/></label><label><span>Назва англійською</span><input disabled={!selectedGroup} value={itemForm.nameEn} onChange={e=>setItemForm({...itemForm,nameEn:e.target.value})} placeholder="Red tomato"/></label><label><span>Код Atlas</span><input disabled={!selectedGroup} value={itemForm.canonicalCode} onChange={e=>setItemForm({...itemForm,canonicalCode:e.target.value.toUpperCase()})} placeholder="VEG-TOMATO-RED"/></label><label><span>Родинний код</span><input disabled={!selectedGroup} value={itemForm.familyCode} onChange={e=>setItemForm({...itemForm,familyCode:e.target.value.toUpperCase()})} placeholder="VEG-TOMATO"/></label><label><span>Одиниця</span><select value={itemForm.unit} onChange={e=>setItemForm({...itemForm,unit:e.target.value})}>{units.map(unit=><option key={unit}>{unit}</option>)}</select></label><label className="orderField"><span>Порядок</span><input type="number" min="0" max="10000" value={itemForm.sortOrder} onChange={e=>setItemForm({...itemForm,sortOrder:e.target.value})}/></label></div>
           <label className="catalogSwitch"><input type="checkbox" checked={itemForm.isActive} onChange={e=>setItemForm({...itemForm,isActive:e.target.checked})}/><span></span><b>Одразу активувати для користувачів</b></label>
           <div className="catalogFormActions"><button className="catalogSaveButton" disabled={busy==="item-save"||!selectedGroup}><Save size={17}/>{editingItem?"Зберегти зміни":"Додати товар"}</button>{editingItem&&<button className="catalogCancelButton" type="button" onClick={resetItemForm}><X size={17}/>Скасувати</button>}</div>
         </form>
         <div className="catalogRows">{visibleItems.length===0&&<div className="catalogEmpty"><PackagePlus size={24}/><span>У цій групі ще немає товарів.</span></div>}{visibleItems.map(item=>{
           const deleting=confirmDelete===`item-${item.item_key}`;
-          return <article key={item.item_key} className={item.is_active?"active":"inactive"}><span className="catalogRowIcon">{item.icon}</span><div><strong>{item.name_uk}</strong><small>{item.name_en||"Без англійської назви"} · {item.unit}</small></div><span className="catalogState">{item.is_active?"Активний":"Вимкнений"}</span><div className="catalogRowActions"><button type="button" title={item.is_active?"Вимкнути":"Активувати"} disabled={busy===`item-${item.item_key}`} onClick={()=>toggleItem(item)}><Power size={16}/></button><button type="button" title="Редагувати" onClick={()=>beginItemEdit(item)}><Edit3 size={16}/></button>{deleting?<><button className="dangerConfirm" type="button" onClick={()=>removeItem(item)}><Check size={15}/></button><button type="button" onClick={()=>setConfirmDelete("")}><X size={15}/></button></>:<button type="button" title="Видалити" onClick={()=>setConfirmDelete(`item-${item.item_key}`)}><Trash2 size={16}/></button>}</div></article>;
+          return <article key={item.item_key} className={item.is_active?"active":"inactive"}><span className="catalogRowIcon">{item.icon}</span><div><strong>{item.name_uk}</strong><small>{item.canonical_code||"Без коду Atlas"}{item.family_code?` · ${item.family_code}`:""} · {item.unit}</small></div><span className="catalogState">{item.is_active?"Активний":"Вимкнений"}</span><div className="catalogRowActions"><button type="button" title={item.is_active?"Вимкнути":"Активувати"} disabled={busy===`item-${item.item_key}`} onClick={()=>toggleItem(item)}><Power size={16}/></button><button type="button" title="Редагувати" onClick={()=>beginItemEdit(item)}><Edit3 size={16}/></button>{deleting?<><button className="dangerConfirm" type="button" onClick={()=>removeItem(item)}><Check size={15}/></button><button type="button" onClick={()=>setConfirmDelete("")}><X size={15}/></button></>:<button type="button" title="Видалити" onClick={()=>setConfirmDelete(`item-${item.item_key}`)}><Trash2 size={16}/></button>}</div></article>;
         })}</div>
       </section>
     </div>
