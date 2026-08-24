@@ -1,5 +1,6 @@
 import {
-  buildMarketplaceShortcuts,extractRequestedTonnes,hostname,isProductTransaction,rankMarketplaceResults
+  buildMarketplaceShortcuts,extractListingQuantityTonnes,extractPriceText,extractRequestedTonnes,
+  hostname,inferSourceType,isProductTransaction,rankMarketplaceResults,resultKind,sourceGroupsFor,sourceName
 } from "./_search-utils.js";
 
 function send(res,status,body){
@@ -11,38 +12,184 @@ function send(res,status,body){
 function cleanText(value){return String(value||"").replace(/\s+/g," ").trim()}
 function logAnalytics(event,data={}){console.log(JSON.stringify({level:"info",message:"atlas-analytics",event,...data}))}
 
-function webSearchAction(query,{official=false,language="uk"}={}){
-  const searchQuery=official?`site:gov.ua ${query}`:query;
-  const url=`https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
+function decodeEntities(value){
+  return String(value||"")
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,"$1")
+    .replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'")
+    .replace(/&lt;/g,"<").replace(/&gt;/g,">")
+    .replace(/&#(\d+);/g,(_,code)=>String.fromCodePoint(Number(code)||32))
+    .replace(/&#x([0-9a-f]+);/gi,(_,code)=>String.fromCodePoint(parseInt(code,16)||32));
+}
+
+function stripHtml(value){return cleanText(decodeEntities(String(value||"").replace(/<[^>]+>/g," ")))}
+
+function safeHttpUrl(value){
+  try{
+    const url=new URL(decodeEntities(value));
+    if(!/^https?:$/.test(url.protocol))return "";
+    return url.toString();
+  }catch{return ""}
+}
+
+function unwrapDuckUrl(value){
+  const url=safeHttpUrl(value.startsWith("//")?`https:${value}`:value);
+  if(!url)return "";
+  try{
+    const parsed=new URL(url);
+    if(/duckduckgo\.com$/i.test(parsed.hostname)&&parsed.pathname.startsWith("/l/")){
+      return safeHttpUrl(decodeURIComponent(parsed.searchParams.get("uddg")||""));
+    }
+  }catch{}
+  return url;
+}
+
+async function fetchText(url,{language="uk",timeoutMs=5200}={}){
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  try{
+    const response=await fetch(url,{
+      headers:{
+        "User-Agent":"Mozilla/5.0 (compatible; AtlasSolutionBot/1.0; +https://atlas-core-two.vercel.app/)",
+        "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language":language==="uk"?"uk-UA,uk;q=0.9,en;q=0.6":"en-US,en;q=0.9"
+      },
+      signal:controller.signal
+    });
+    if(!response.ok)throw new Error(`search-http-${response.status}`);
+    return await response.text();
+  }finally{clearTimeout(timer)}
+}
+
+function parseBingRss(xml){
+  const items=[];
+  const blocks=String(xml||"").match(/<item>[\s\S]*?<\/item>/gi)||[];
+  for(const block of blocks){
+    const title=stripHtml(block.match(/<title>([\s\S]*?)<\/title>/i)?.[1]||"");
+    const link=safeHttpUrl(stripHtml(block.match(/<link>([\s\S]*?)<\/link>/i)?.[1]||""));
+    const snippet=stripHtml(block.match(/<description>([\s\S]*?)<\/description>/i)?.[1]||"");
+    if(title&&link)items.push({title,url:link,snippet});
+  }
+  return items;
+}
+
+function parseDuckHtml(html){
+  const anchors=[...String(html||"").matchAll(/<a[^>]+class="[^"]*result__a[^"]*"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
+  const snippets=[...String(html||"").matchAll(/<(?:a|div)[^>]+class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/(?:a|div)>/gi)];
+  return anchors.map((match,index)=>({
+    title:stripHtml(match[2]),
+    url:unwrapDuckUrl(match[1]),
+    snippet:stripHtml(snippets[index]?.[1]||"")
+  })).filter(item=>item.title&&item.url);
+}
+
+async function liveWebSearch(query,{language="uk",limit=8}={}){
+  const q=cleanText(query).slice(0,450);
+  if(!q)return [];
+  const out=[];
+  try{
+    const rss=await fetchText(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}&setlang=${language==="uk"?"uk-UA":"en-US"}`,{language});
+    out.push(...parseBingRss(rss));
+  }catch{}
+  if(out.length<3){
+    try{
+      const html=await fetchText(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,{language});
+      out.push(...parseDuckHtml(html));
+    }catch{}
+  }
+  const seen=new Set();
+  return out.filter(item=>{
+    const host=hostname(item.url);
+    if(!host||/^(?:www\.)?(?:bing\.com|duckduckgo\.com)$/i.test(host))return false;
+    const key=item.url.replace(/[#?].*$/,"_");
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  }).slice(0,limit);
+}
+
+function concreteSearchResult(item,{sourceGroup="open-web",language="uk",official=false,commerce=false}={}){
+  const text=`${item.title} ${item.snippet}`;
+  const type=inferSourceType(item.url);
+  const kind=commerce?resultKind(item.url):(official||type==="official"?"official_result":"web_result");
   return {
-    title:official
-      ?(language==="uk"?"Пошук в офіційних джерелах":"Search official sources")
-      :(language==="uk"?"Пошук у відкритому інтернеті":"Search the open web"),
-    snippet:language==="uk"
-      ?"Готовий пошук без вигаданих результатів — перевірте актуальність інформації у відкритому джерелі"
-      :"Prepared search without invented results — verify current information in the source",
-    url,
-    source_type:official?"official":"web",
-    source_name:"Google Search",
-    source_group:official?"official-web":"open-web",
-    result_kind:"search_page",
-    price_text:"",
+    title:item.title,
+    snippet:item.snippet,
+    url:item.url,
+    source_type:official?"official":type,
+    source_name:sourceName(item.url),
+    source_group:sourceGroup,
+    result_kind:kind,
+    price_text:extractPriceText(text),
     location_text:"",
-    quantity_tonnes:null,
+    quantity_tonnes:extractListingQuantityTonnes(text),
     quantity_text:"",
-    verification_text:language==="uk"?"Це посилання на пошук, а не твердження про знайдений результат":"This is a search link, not a claim that a result was found"
+    verification_text:language==="uk"
+      ?"Atlas знайшов цю конкретну сторінку у веб-пошуку. Перевірте актуальність деталей у першоджерелі."
+      :"Atlas found this concrete page in web search. Confirm current details at the source."
   };
+}
+
+function uniqueResults(items){
+  const seen=new Set();
+  return items.filter(item=>{
+    const key=(item?.url||"").replace(/[#?].*$/,"_")||`${item?.source_name}:${item?.title}`;
+    if(seen.has(key))return false;
+    seen.add(key);return true;
+  });
+}
+
+async function searchCommerce({goal,query,domain,locationText,language}){
+  const groups=sourceGroupsFor({source:"marketplace",goal,query,domain}).slice(0,4);
+  const searches=groups.map(async group=>{
+    const domains=(group.domains||[]).slice(0,5);
+    const domainFilter=domains.length?` (${domains.map(value=>`site:${value}`).join(" OR ")})`:"";
+    const found=await liveWebSearch(`${query}${domainFilter}`,{language,limit:7});
+    return found.map(item=>concreteSearchResult(item,{sourceGroup:group.id,language,commerce:true}))
+      .filter(item=>item.result_kind==="listing");
+  });
+  let live=[];
+  try{live=(await Promise.all(searches)).flat()}catch{}
+  live=uniqueResults(live);
+  if(live.length)return rankMarketplaceResults(live,{requestedTonnes:extractRequestedTonnes(`${goal} ${query}`),limit:12});
+  return rankMarketplaceResults(buildMarketplaceShortcuts({goal,query,locationText,language}),{
+    requestedTonnes:extractRequestedTonnes(`${goal} ${query}`),limit:12
+  });
+}
+
+async function searchGeneral(allowed,{language}){
+  const groups=await Promise.all(allowed.map(async item=>{
+    const official=item.source==="official";
+    const query=official?`site:gov.ua ${item.query}`:item.query;
+    const found=await liveWebSearch(query,{language,limit:6});
+    return found.map(result=>concreteSearchResult(result,{
+      sourceGroup:official?"official-web":"open-web",language,official,commerce:false
+    }));
+  }));
+  return uniqueResults(groups.flat()).slice(0,12);
+}
+
+async function runSearch({goal,domain,locationText,language,allowed}){
+  const commerceTask=allowed.some(item=>item.source==="marketplace")||isProductTransaction(`${goal} ${domain} ${allowed.map(item=>item.query).join(" ")}`);
+  if(commerceTask){
+    const marketplaceQuery=allowed.find(item=>item.source==="marketplace")?.query||allowed[0]?.query||goal;
+    const results=await searchCommerce({goal,query:marketplaceQuery,domain,locationText,language});
+    return {results,commerceTask};
+  }
+  return {results:await searchGeneral(allowed,{language}),commerceTask};
 }
 
 export default async function handler(req,res){
   const startedAt=Date.now();
   if(req.method==="GET"){
-    return send(res,200,{
+    const q=cleanText(req.query?.q).slice(0,450);
+    if(!q)return send(res,200,{
       status:"atlas-external-search-endpoint-online",
-      mode:"zero-cost-actions",
+      mode:"live-zero-cost-web-search",
       paid_search_disabled:true,
-      sources:["marketplace-links","google-maps-links","google-search-links"]
+      sources:["bing-rss","duckduckgo-html-fallback"]
     });
+    const language=req.query?.lang==="en"?"en":"uk";
+    const {results}=await runSearch({goal:q,domain:"",locationText:"",language,allowed:[{source:"web",query:q,reason:"debug"}]});
+    return send(res,200,{results,search_status:"live-web-results",attempts:1,paid_search_disabled:true});
   }
   if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
 
@@ -61,26 +208,17 @@ export default async function handler(req,res){
 
   if(!goal||!allowed.length)return send(res,200,{results:[],sources_checked:[],search_status:"no-searches",attempts:0});
 
-  const commerceTask=allowed.some(item=>item.source==="marketplace")||isProductTransaction(`${goal} ${domain} ${allowed.map(item=>item.query).join(" ")}`);
-  let results=[];
-  if(commerceTask){
-    const marketplaceQuery=allowed.find(item=>item.source==="marketplace")?.query||allowed[0]?.query||goal;
-    results=buildMarketplaceShortcuts({goal,query:marketplaceQuery,locationText,language});
-    results=rankMarketplaceResults(results,{requestedTonnes:extractRequestedTonnes(`${goal} ${marketplaceQuery}`),limit:12});
-  }else{
-    results=allowed.map(item=>webSearchAction(item.query,{official:item.source==="official",language}));
-  }
-
+  const {results,commerceTask}=await runSearch({goal,domain,locationText,language,allowed});
   const sourcesChecked=[...new Set(results.map(result=>hostname(result.url)).filter(Boolean))];
   logAnalytics("atlas_external_search_completed",{
-    mode:"zero-cost-actions",commerce:commerceTask,result_count:results.length,duration_ms:Date.now()-startedAt
+    mode:"live-zero-cost-web-search",commerce:commerceTask,result_count:results.length,duration_ms:Date.now()-startedAt
   });
   return send(res,200,{
     results,
     sources_checked:sourcesChecked,
     requested_quantity_tonnes:extractRequestedTonnes(`${goal} ${allowed.map(item=>item.query).join(" ")}`),
-    search_status:commerceTask?"prepared-marketplace-actions":"prepared-web-actions",
-    attempts:0,
+    search_status:results.length?"live-results":"no-live-results",
+    attempts:1,
     paid_search_disabled:true
   });
 }
