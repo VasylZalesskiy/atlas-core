@@ -9,6 +9,7 @@ function send(res,status,body){
 function clean(value,limit=4000){return String(value||"").replace(/\s+/g," ").trim().slice(0,limit)}
 function safeUrl(value){try{const url=new URL(String(value||""));return /^https?:$/.test(url.protocol)?url.toString():""}catch{return ""}}
 function host(url){try{return new URL(url).hostname.replace(/^www\./,"")}catch{return ""}}
+function geminiKey(){return String(process.env.GEMINI_FREE_TIER_API_KEY||process.env.GEMINI_API_KEY||process.env.GOOGLE_API_KEY||"").trim()}
 
 function collectGrounding(data){
   const candidate=data?.candidates?.[0];
@@ -37,7 +38,7 @@ function promptFor({goal,query,language,domain,locationText}){
 }
 
 async function groundedSearch({goal,query,language="uk",domain="",locationText=""}){
-  const key=String(process.env.GEMINI_FREE_TIER_API_KEY||"").trim();
+  const key=geminiKey();
   if(!key)return {configured:false,answer:"",sources:[],reason:"key-unavailable"};
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),12000);
@@ -72,14 +73,10 @@ function toResults({answer,sources,language,domain}){
   const answerResult={
     title:uk?"Відповідь Atlas з інтернету":"Atlas web answer",
     snippet:answer,
-    // Keep the synthesized answer itself inside Atlas. Source links are shown as
-    // separate result cards so the main action is reading the answer, not leaving Atlas.
     url:"",
     source_type:"grounded_web",
     source_name:uk?"Atlas · Інтернет":"Atlas · Web",
     source_group:"grounded-web",
-    // Existing Solution UI treats concrete listings as resolved. Reuse that state
-    // for grounded non-medical answers without allowing web text to resolve health cases.
     result_kind:health?"web_answer":"listing",
     price_text:"",
     location_text:"",
@@ -107,7 +104,7 @@ function toResults({answer,sources,language,domain}){
 export default async function handler(req,res){
   if(req.method==="GET")return send(res,200,{
     status:"atlas-grounded-search-endpoint-online",
-    configured:Boolean(String(process.env.GEMINI_FREE_TIER_API_KEY||"").trim()),
+    configured:Boolean(geminiKey()),
     model:MODEL,
     provider:"gemini-google-search-grounding"
   });
@@ -122,7 +119,7 @@ export default async function handler(req,res){
   const language=body.language==="en"?"en":"uk";
   const domain=clean(body.domain,120);
   const locationText=clean(body.location_text,180);
-  if(!goal||!query)return send(res,200,{results:[],configured:Boolean(process.env.GEMINI_FREE_TIER_API_KEY),search_status:"no-query"});
+  if(!goal||!query)return send(res,200,{results:[],configured:Boolean(geminiKey()),search_status:"no-query"});
 
   const grounded=await groundedSearch({goal,query,language,domain,locationText});
   return send(res,200,{
