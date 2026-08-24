@@ -1,6 +1,6 @@
 import {
   buildMarketplaceShortcuts,extractListingQuantityTonnes,extractPriceText,extractRequestedTonnes,
-  hostname,inferSourceType,isProductTransaction,rankMarketplaceResults,resultKind,sourceGroupsFor,sourceName
+  hostname,inferSourceType,isProductTransaction,marketplaceSearchTerm,rankMarketplaceResults,resultKind,sourceGroupsFor,sourceName
 } from "./_search-utils.js";
 
 function send(res,status,body){
@@ -137,13 +137,38 @@ function uniqueResults(items){
   });
 }
 
+function hostMatchesDomain(url,domain){
+  const host=hostname(url);
+  const target=String(domain||"").replace(/^www\./,"").toLowerCase();
+  return Boolean(host&&target&&(host===target||host.endsWith(`.${target}`)));
+}
+
+function commerceTargets(groups,limit=6){
+  const targets=[];
+  let depth=0;
+  while(targets.length<limit){
+    let added=false;
+    for(const group of groups){
+      const domain=group.domains?.[depth];
+      if(!domain)continue;
+      targets.push({group,domain});added=true;
+      if(targets.length>=limit)break;
+    }
+    if(!added)break;
+    depth+=1;
+  }
+  return targets;
+}
+
 async function searchCommerce({goal,query,domain,locationText,language}){
   const groups=sourceGroupsFor({source:"marketplace",goal,query,domain}).slice(0,4);
-  const searches=groups.map(async group=>{
-    const domains=(group.domains||[]).slice(0,5);
-    const domainFilter=domains.length?` (${domains.map(value=>`site:${value}`).join(" OR ")})`:"";
-    const found=await liveWebSearch(`${query}${domainFilter}`,{language,limit:7});
-    return found.map(item=>concreteSearchResult(item,{sourceGroup:group.id,language,commerce:true}))
+  const term=marketplaceSearchTerm(query)||marketplaceSearchTerm(goal)||cleanText(query||goal);
+  const targets=commerceTargets(groups,6);
+  const searches=targets.map(async({group,domain:targetDomain})=>{
+    const found=await liveWebSearch(`${term} site:${targetDomain}`,{language,limit:6});
+    return found
+      .filter(item=>hostMatchesDomain(item.url,targetDomain))
+      .map(item=>concreteSearchResult(item,{sourceGroup:group.id,language,commerce:true}))
       .filter(item=>item.result_kind==="listing");
   });
   let live=[];
@@ -162,7 +187,7 @@ async function searchGeneral(allowed,{language}){
     const found=await liveWebSearch(query,{language,limit:6});
     return found.map(result=>concreteSearchResult(result,{
       sourceGroup:official?"official-web":"open-web",language,official,commerce:false
-    }));
+    })).filter(result=>!official||inferSourceType(result.url)==="official");
   }));
   return uniqueResults(groups.flat()).slice(0,12);
 }
@@ -189,7 +214,7 @@ export default async function handler(req,res){
     });
     const language=req.query?.lang==="en"?"en":"uk";
     const {results}=await runSearch({goal:q,domain:"",locationText:"",language,allowed:[{source:"web",query:q,reason:"debug"}]});
-    return send(res,200,{results,search_status:"live-web-results",attempts:1,paid_search_disabled:true});
+    return send(res,200,{results,search_status:results.length?"live-web-results":"no-live-results",attempts:1,paid_search_disabled:true});
   }
   if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
 
