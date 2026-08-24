@@ -1,12 +1,12 @@
 import {buildMarketplaceShortcuts} from "../../api/_search-utils.js";
 import {searchOviForTask} from "./oviSearchBridge";
 
-function isActionableExternalResult(item){
-  return ["listing","store_option"].includes(item?.result_kind);
+function isConcreteExternalResult(item){
+  return ["listing","store_option","store_option_pending"].includes(item?.result_kind);
 }
 
-function actionableOnly(items){
-  return (Array.isArray(items)?items:[]).filter(isActionableExternalResult);
+function concreteOnly(items){
+  return (Array.isArray(items)?items:[]).filter(isConcreteExternalResult);
 }
 
 function uniqueResults(items){
@@ -19,23 +19,27 @@ function uniqueResults(items){
   });
 }
 
+function orderedResults(oviResults,otherResults){
+  const readyOvi=oviResults.filter(item=>item.result_kind==="store_option");
+  const pendingOvi=oviResults.filter(item=>item.result_kind==="store_option_pending");
+  return uniqueResults([...readyOvi,...otherResults,...pendingOvi]);
+}
+
 export async function searchExternalSources(plan,{lang="uk",signal}={}){
   const searches=(plan?.external_searches||[]).filter(item=>["web","marketplace","official"].includes(item?.source));
   if(!searches.length)return [];
 
-  // OVI is a first-party concrete commercial source. It is checked in parallel
-  // with marketplace retrieval, but only stock-backed offers are allowed to
-  // enter Atlas as a solved result.
+  // OVI is checked in parallel with marketplace retrieval. Sufficient stock is
+  // a solved result; insufficient stock is kept only as a concrete partial option.
   const wantsMarketplace=searches.some(item=>item.source==="marketplace");
   const oviPromise=wantsMarketplace
     ?searchOviForTask(plan?.goal||searches[0]?.query||"",{lang}).catch(()=>[])
     :Promise.resolve([]);
 
-  // Search shortcuts are useful as internal fallbacks, but they are NOT a solved
-  // Atlas result. A user should never receive "go search on Google/OLX" as the
-  // best answer. Only concrete listings/store options can enter solution ranking.
+  // Search shortcuts are useful internally, but they are NOT an Atlas solution.
+  // Only concrete listings/store options may reach the result UI.
   const marketplaceFallback=()=>wantsMarketplace
-    ?actionableOnly(buildMarketplaceShortcuts({
+    ?concreteOnly(buildMarketplaceShortcuts({
       goal:plan?.goal||"",
       query:searches.find(item=>item.source==="marketplace")?.query||plan?.goal||"",
       locationText:plan?.location_text||"",
@@ -62,19 +66,19 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
       oviPromise
     ]);
     if(!response.ok){
-      const fallback=uniqueResults([...oviResults,...marketplaceFallback()]);
+      const fallback=orderedResults(oviResults,marketplaceFallback());
       if(fallback.length)return fallback;
       const error=new Error(data?.error||"external-search-unavailable");
       error.details=data?.details||"";
       error.status=response.status;
       throw error;
     }
-    const results=actionableOnly(data?.results);
-    return uniqueResults([...oviResults,...(results.length?results:marketplaceFallback())]);
+    const results=concreteOnly(data?.results);
+    return orderedResults(oviResults,results.length?results:marketplaceFallback());
   }catch(error){
     if(error?.name==="AbortError")throw error;
     const oviResults=await oviPromise;
-    const fallback=uniqueResults([...oviResults,...marketplaceFallback()]);
+    const fallback=orderedResults(oviResults,marketplaceFallback());
     if(fallback.length)return fallback;
     throw error;
   }
