@@ -1,5 +1,6 @@
 import supabase from "./supabase";
 import {ensureAtlasSession} from "./passportStore";
+import {decodeOpportunityText} from "./opportunityCodec";
 
 async function invoke(action,payload={}){
   if(!supabase)throw new Error("supabase-unavailable");
@@ -10,9 +11,15 @@ async function invoke(action,payload={}){
   return data||{};
 }
 
+function decodeFlow(flow){
+  if(!flow?.opportunity)return flow;
+  const decoded=decodeOpportunityText(flow.opportunity.text,flow.opportunity.kind);
+  return {...flow,opportunity:{...flow.opportunity,...decoded}};
+}
+
 export async function loadSolutionFlows(){
   const data=await invoke("list");
-  return Array.isArray(data.flows)?data.flows:[];
+  return Array.isArray(data.flows)?data.flows.map(decodeFlow):[];
 }
 
 export async function startOpportunityRequest({opportunityId,needId=null,message=""}){
