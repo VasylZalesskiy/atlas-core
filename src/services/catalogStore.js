@@ -11,6 +11,10 @@ function cleanText(value,max=120){
   return String(value||"").trim().slice(0,max);
 }
 
+function cleanCode(value){
+  return cleanText(value,64).toUpperCase().replace(/[^A-Z0-9-]/g,"-").replace(/-+/g,"-").replace(/^-|-$/g,"");
+}
+
 function makeKey(prefix){
   return `${prefix}-${crypto.randomUUID().replace(/-/g,"").slice(0,12)}`;
 }
@@ -24,7 +28,7 @@ export async function loadNeedCatalog(){
   if(!supabase)throw fail("supabase-unavailable");
   const [groupResult,itemResult]=await Promise.all([
     supabase.from("atlas_need_groups").select("group_key,name_uk,name_en,icon,is_active,sort_order,created_at,updated_at").order("sort_order",{ascending:true}).order("name_uk",{ascending:true}),
-    supabase.from("atlas_need_items").select("group_key,item_key,name_uk,name_en,icon,unit,is_active,sort_order,created_at,updated_at").order("sort_order",{ascending:true}).order("name_uk",{ascending:true})
+    supabase.from("atlas_need_items").select("group_key,item_key,name_uk,name_en,icon,unit,is_active,sort_order,canonical_code,family_code,created_at,updated_at").order("sort_order",{ascending:true}).order("name_uk",{ascending:true})
   ]);
   if(groupResult.error)throw groupResult.error;
   if(itemResult.error)throw itemResult.error;
@@ -104,7 +108,7 @@ export async function deleteCatalogGroup(groupKey){
   if(error)throw error;
 }
 
-export async function addCatalogItem({groupKey,nameUk,nameEn,icon,unit,isActive,sortOrder}){
+export async function addCatalogItem({groupKey,nameUk,nameEn,icon,unit,isActive,sortOrder,canonicalCode,familyCode}){
   const client=requireAdminClient();
   const payload={
     group_key:groupKey,
@@ -114,7 +118,9 @@ export async function addCatalogItem({groupKey,nameUk,nameEn,icon,unit,isActive,
     icon:cleanText(icon,8)||"📦",
     unit:cleanText(unit,12)||"шт",
     is_active:Boolean(isActive),
-    sort_order:Number.isFinite(Number(sortOrder))?Number(sortOrder):100
+    sort_order:Number.isFinite(Number(sortOrder))?Number(sortOrder):100,
+    canonical_code:cleanCode(canonicalCode)||null,
+    family_code:cleanCode(familyCode)||null
   };
   if(!payload.group_key)throw fail("group-required");
   if(!payload.name_uk)throw fail("name-required");
@@ -123,7 +129,7 @@ export async function addCatalogItem({groupKey,nameUk,nameEn,icon,unit,isActive,
   return data;
 }
 
-export async function updateCatalogItem(groupKey,itemKey,{nameUk,nameEn,icon,unit,isActive,sortOrder}){
+export async function updateCatalogItem(groupKey,itemKey,{nameUk,nameEn,icon,unit,isActive,sortOrder,canonicalCode,familyCode}){
   const client=requireAdminClient();
   const payload={
     name_uk:cleanText(nameUk,80),
@@ -132,6 +138,8 @@ export async function updateCatalogItem(groupKey,itemKey,{nameUk,nameEn,icon,uni
     unit:cleanText(unit,12)||"шт",
     is_active:Boolean(isActive),
     sort_order:Number.isFinite(Number(sortOrder))?Number(sortOrder):100,
+    canonical_code:cleanCode(canonicalCode)||null,
+    family_code:cleanCode(familyCode)||null,
     updated_at:new Date().toISOString()
   };
   if(!payload.name_uk)throw fail("name-required");
