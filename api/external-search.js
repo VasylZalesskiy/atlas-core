@@ -43,13 +43,15 @@ function unwrapDuckUrl(value){
   return url;
 }
 
-async function fetchText(url,{language="uk",timeoutMs=5200}={}){
+async function fetchText(url,{language="uk",timeoutMs=5200,browserLike=false}={}){
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),timeoutMs);
   try{
     const response=await fetch(url,{
       headers:{
-        "User-Agent":"Mozilla/5.0 (compatible; AtlasSolutionBot/1.0; +https://atlas-core-two.vercel.app/)",
+        "User-Agent":browserLike
+          ?"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+          :"Mozilla/5.0 (compatible; AtlasSolutionBot/1.0; +https://atlas-core-two.vercel.app/)",
         "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         "Accept-Language":language==="uk"?"uk-UA,uk;q=0.9,en;q=0.6":"en-US,en;q=0.9"
       },
@@ -80,6 +82,35 @@ function parseDuckHtml(html){
     url:unwrapDuckUrl(match[1]),
     snippet:stripHtml(snippets[index]?.[1]||"")
   })).filter(item=>item.title&&item.url);
+}
+
+function googleResultUrl(raw){
+  const value=decodeEntities(raw||"");
+  if(value.startsWith("/url?")){
+    try{
+      const parsed=new URL(`https://www.google.com${value}`);
+      return safeHttpUrl(parsed.searchParams.get("q")||parsed.searchParams.get("url")||"");
+    }catch{return ""}
+  }
+  return safeHttpUrl(value);
+}
+
+function parseGoogleHtml(html){
+  const text=String(html||"");
+  const items=[];
+  const direct=/<a[^>]+href="(https?:\/\/[^"#]+)"[^>]*>[\s\S]{0,700}?<h3[^>]*>([\s\S]*?)<\/h3>/gi;
+  const redirect=/<a[^>]+href="(\/url\?[^"#]+)"[^>]*>[\s\S]{0,700}?<h3[^>]*>([\s\S]*?)<\/h3>/gi;
+  for(const pattern of [direct,redirect]){
+    for(const match of text.matchAll(pattern)){
+      const url=googleResultUrl(match[1]);
+      const title=stripHtml(match[2]);
+      if(!url||!title)continue;
+      const tail=text.slice((match.index||0)+match[0].length,(match.index||0)+match[0].length+1800);
+      const snippet=stripHtml(tail.match(/<(?:div|span)[^>]+class="[^"]*(?:VwiC3b|yXK7lf|aCOpRe)[^"]*"[^>]*>([\s\S]*?)<\/(?:div|span)>/i)?.[1]||"");
+      items.push({title,url,snippet});
+    }
+  }
+  return items;
 }
 
 const SEARCH_STOP=new Set([
@@ -122,7 +153,7 @@ function filterSearchResults(items,query,{expectedDomain="",limit=8}={}){
     .filter(item=>!expectedDomain||hostMatchesDomain(item.url,expectedDomain))
     .filter(item=>{
       const host=hostname(item.url);
-      if(!host||/^(?:www\.)?(?:bing\.com|duckduckgo\.com)$/i.test(host))return false;
+      if(!host||/^(?:www\.)?(?:bing\.com|duckduckgo\.com|google\.com)$/i.test(host))return false;
       const key=item.url.replace(/[#?].*$/,"_");
       if(seen.has(key))return false;
       seen.add(key);return true;
@@ -147,12 +178,19 @@ async function liveWebSearch(query,{language="uk",limit=8,expectedDomain=""}={})
   if(filtered.length>=Math.min(3,limit))return filtered;
 
   try{
+    const google=await fetchText(`https://www.google.com/search?hl=${language==="uk"?"uk":"en"}&gl=${language==="uk"?"ua":"us"}&num=10&filter=0&q=${encodeURIComponent(q)}`,{language,browserLike:true});
+    out.push(...parseGoogleHtml(google));
+  }catch{}
+
+  filtered=filterSearchResults(out,q,{expectedDomain,limit});
+  if(filtered.length>=Math.min(3,limit))return filtered;
+
+  try{
     const rss=await fetchText(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}&setlang=${language==="uk"?"uk-UA":"en-US"}&cc=${language==="uk"?"UA":"US"}`,{language});
     out.push(...parseBingRss(rss));
   }catch{}
 
-  filtered=filterSearchResults(out,q,{expectedDomain,limit});
-  return filtered;
+  return filterSearchResults(out,q,{expectedDomain,limit});
 }
 
 function concreteSearchResult(item,{sourceGroup="open-web",language="uk",official=false,commerce=false}={}){
@@ -252,7 +290,7 @@ export default async function handler(req,res){
       status:"atlas-external-search-endpoint-online",
       mode:"live-zero-cost-web-search",
       paid_search_disabled:true,
-      sources:["duckduckgo-html","bing-rss-fallback"],
+      sources:["duckduckgo-html","google-html","bing-rss-fallback"],
       relevance_filter:true
     });
     const language=req.query?.lang==="en"?"en":"uk";
