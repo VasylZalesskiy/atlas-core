@@ -17,6 +17,22 @@ function boxFor(lat,lon,radiusKm){
   return `${lon-dLon},${lat+dLat},${lon+dLon},${lat-dLat}`;
 }
 
+function practicalNearbyQuery(query,lang){
+  const q=String(query||"").trim();
+  const text=q.toLowerCase();
+  const uk=lang!=="en";
+  if(/пробил\w*\s+колес|спустил\w*\s+колес|прокол\w*\s+колес|шиномонтаж|flat\s+tire|flat\s+tyre|puncture/i.test(text)){
+    return uk?"шиномонтаж":"tyre repair";
+  }
+  if(/евакуатор|зламал\w*\s+авто|машин\w*\s+не\s+завод|tow\s+truck|car\s+won.?t\s+start|car\s+broken/i.test(text)){
+    return uk?"автодопомога евакуатор":"roadside assistance tow truck";
+  }
+  if(/аптек|ліки\s+поруч|pharmacy|drugstore/i.test(text)){
+    return uk?"аптека":"pharmacy";
+  }
+  return q;
+}
+
 function normalizePlace(item,origin,fallbackName){
   const latitude=toNumber(item?.lat);
   const longitude=toNumber(item?.lon);
@@ -48,7 +64,7 @@ async function nominatimSearch(params,signal){
 
 export async function searchNearbyPlaces(location,query,{lang="uk",radiusKm=30,limit=5,signal}={}){
   if(!location)throw new Error("location-required");
-  const q=String(query||"").trim();
+  const q=practicalNearbyQuery(query,lang);
   if(!q)return [];
   const origin={latitude:Number(location.latitude),longitude:Number(location.longitude)};
   const params=new URLSearchParams({
