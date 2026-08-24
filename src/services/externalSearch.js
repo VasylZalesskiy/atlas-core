@@ -1,4 +1,5 @@
 import {buildMarketplaceShortcuts} from "../../api/_search-utils.js";
+import {searchOviForTask} from "./oviSearchBridge";
 
 function isActionableExternalResult(item){
   return ["listing","store_option"].includes(item?.result_kind);
@@ -8,14 +9,32 @@ function actionableOnly(items){
   return (Array.isArray(items)?items:[]).filter(isActionableExternalResult);
 }
 
+function uniqueResults(items){
+  const seen=new Set();
+  return items.filter(item=>{
+    const key=`${item?.source_name||item?.source_type||""}:${item?.url||""}:${item?.title||""}`;
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export async function searchExternalSources(plan,{lang="uk",signal}={}){
   const searches=(plan?.external_searches||[]).filter(item=>["web","marketplace","official"].includes(item?.source));
   if(!searches.length)return [];
 
+  // OVI is a first-party concrete commercial source. It is checked in parallel
+  // with marketplace retrieval, but only stock-backed offers are allowed to
+  // enter Atlas as a solved result.
+  const wantsMarketplace=searches.some(item=>item.source==="marketplace");
+  const oviPromise=wantsMarketplace
+    ?searchOviForTask(plan?.goal||searches[0]?.query||"",{lang}).catch(()=>[])
+    :Promise.resolve([]);
+
   // Search shortcuts are useful as internal fallbacks, but they are NOT a solved
   // Atlas result. A user should never receive "go search on Google/OLX" as the
   // best answer. Only concrete listings/store options can enter solution ranking.
-  const marketplaceFallback=()=>searches.some(item=>item.source==="marketplace")
+  const marketplaceFallback=()=>wantsMarketplace
     ?actionableOnly(buildMarketplaceShortcuts({
       goal:plan?.goal||"",
       query:searches.find(item=>item.source==="marketplace")?.query||plan?.goal||"",
@@ -38,9 +57,12 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
       }),
       signal
     });
-    const data=await response.json().catch(()=>({}));
+    const [data,oviResults]=await Promise.all([
+      response.json().catch(()=>({})),
+      oviPromise
+    ]);
     if(!response.ok){
-      const fallback=marketplaceFallback();
+      const fallback=uniqueResults([...oviResults,...marketplaceFallback()]);
       if(fallback.length)return fallback;
       const error=new Error(data?.error||"external-search-unavailable");
       error.details=data?.details||"";
@@ -48,10 +70,11 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
       throw error;
     }
     const results=actionableOnly(data?.results);
-    return results.length?results:marketplaceFallback();
+    return uniqueResults([...oviResults,...(results.length?results:marketplaceFallback())]);
   }catch(error){
     if(error?.name==="AbortError")throw error;
-    const fallback=marketplaceFallback();
+    const oviResults=await oviPromise;
+    const fallback=uniqueResults([...oviResults,...marketplaceFallback()]);
     if(fallback.length)return fallback;
     throw error;
   }
