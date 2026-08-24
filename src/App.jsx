@@ -1,5 +1,5 @@
-import {useMemo,useState} from "react";
-import {Routes,Route,useLocation} from "react-router-dom";
+import {useEffect,useMemo,useState} from "react";
+import {Navigate,Routes,Route,useLocation} from "react-router-dom";
 import {Analytics} from "@vercel/analytics/react";
 import {SpeedInsights} from "@vercel/speed-insights/react";
 import Header from "./components/Header";
@@ -19,12 +19,20 @@ import CatalogAdmin from "./pages/CatalogAdmin";
 import dict from "./data/translations";
 
 export default function App(){
-  const [lang,setLang]=useState("uk");
+  const [lang,setLang]=useState(()=>{
+    try{return localStorage.getItem("atlas-language")==="en"?"en":"uk"}catch{return "uk"}
+  });
   const t=useMemo(()=>dict[lang],[lang]);
   const location=useLocation();
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
+
+  useEffect(()=>{
+    try{localStorage.setItem("atlas-language",lang)}catch{}
+    document.documentElement.lang=lang;
+  },[lang]);
+
   return <>
-    {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
+    {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
       <Header lang={lang} setLang={setLang}/>
       <Routes>
         <Route path="/" element={<Home t={t} lang={lang}/>}/>
@@ -37,6 +45,7 @@ export default function App(){
         <Route path="/chat" element={<Chat/>}/>
         <Route path="/market" element={<Market/>}/>
         <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
+        <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>
       <BottomNav lang={lang}/>
       <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
