@@ -5,6 +5,17 @@ function normalize(value){
   return String(value||"").toLowerCase().replace(/[.,!?;:()]/g," ").replace(/\s+/g," ").trim();
 }
 
+function isMedicalPlan(plan){
+  const text=normalize([
+    plan?.goal,
+    plan?.originalGoal,
+    plan?.normalizedGoal,
+    plan?.passport_search?.capability_description,
+    ...(Array.isArray(plan?.passport_search?.terms)?plan.passport_search.terms:[])
+  ].filter(Boolean).join(" "));
+  return /медич|лікар|медик|фельдшер|парамедик|doctor|medical|medic|paramedic|family doctor/.test(text);
+}
+
 function termsFromPlan(plan){
   const explicit=Array.isArray(plan?.passport_search?.terms)?plan.passport_search.terms:[];
   const capability=normalize(plan?.passport_search?.capability_description||"");
@@ -137,8 +148,13 @@ async function searchLegacyProfiles(plan,{limit}){
  * First-stage Atlas retrieval: real Opportunity Passports.
  * Profession, skills and active opportunities are searchable.
  * Private contact data lives in atlas_private_contacts and is never selected here.
+ *
+ * Medical exception: Atlas currently has no credential-verification field for
+ * passports. Until verified professional status exists, medical queries MUST
+ * NOT recommend an unverified self-declared profile as a care provider.
  */
 export async function searchPassportProfiles(plan,{limit=5}={}){
+  if(isMedicalPlan(plan))return {matches:[],error:"unverified-medical-passports-disabled"};
   if(!supabase)return {matches:[],error:"supabase-unavailable"};
 
   try{
