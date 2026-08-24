@@ -43,6 +43,13 @@ function friendlyError(error){
   return text||"Не вдалося виконати дію.";
 }
 
+function cleanRequestMessage(value){
+  return String(value||"")
+    .replace(/[\u200B-\u200D\u2060\u2062\u2063\uFEFF]*ATLAS_META:[^\r\n]*/gu,"")
+    .replace(/\n{3,}/g,"\n\n")
+    .trim();
+}
+
 function OpportunityFields({value,onChange,textareaRef,compact=false}){
   const paid=value.paymentType==="paid";
   return <div className="opportunityFields">
@@ -93,7 +100,8 @@ export default function Profile(){
 
   const shareUrl=useMemo(()=>passport?.slug?`${window.location.origin}/p/${passport.slug}`:"",[passport?.slug]);
   const activeCount=opportunities.filter(item=>item.is_active).length;
-  const pendingCount=requests.filter(item=>item.status==="pending").length;
+  const pendingRequests=useMemo(()=>requests.filter(item=>item.status==="pending"),[requests]);
+  const pendingCount=pendingRequests.length;
 
   useEffect(()=>{
     let alive=true;
@@ -255,7 +263,7 @@ export default function Profile(){
 
       <section className="incomingRequests">
         <div className="sectionTitle"><div><span>ЗАПИТИ</span><h2><Inbox size={21}/>Вхідні{pendingCount?` · ${pendingCount}`:""}</h2></div></div>
-        {requests.length===0?<p className="groupEmpty">Поки немає запитів.</p>:requests.map(item=><article key={item.id}><div><strong>{item.requester_name||"Користувач Atlas"}</strong>{item.opportunity?.text&&<span>{item.opportunity.text}</span>}<p>{item.message}</p></div>{item.status==="pending"?<div><button className="primary" disabled={busyId===item.id} onClick={()=>answerRequest(item.id,"accepted")}><CheckCircle2 size={16}/>Прийняти</button><button className="secondary" disabled={busyId===item.id} onClick={()=>answerRequest(item.id,"declined")}><X size={16}/>Відхилити</button></div>:<b>{item.status==="accepted"?"Прийнято":"Відхилено"}</b>}</article>)}
+        {pendingRequests.length===0?<p className="groupEmpty">Нових запитів немає.</p>:pendingRequests.map(item=><article key={item.id}><div><strong>{item.requester_name||"Користувач Atlas"}</strong>{item.opportunity?.text&&<span>{item.opportunity.text}</span>}<p style={{overflowWrap:"anywhere"}}>{cleanRequestMessage(item.message)}</p></div><div><button className="primary" disabled={busyId===item.id} onClick={()=>answerRequest(item.id,"accepted")}><CheckCircle2 size={16}/>Прийняти</button><button className="secondary" disabled={busyId===item.id} onClick={()=>answerRequest(item.id,"declined")}><X size={16}/>Відхилити</button></div></article>)}
       </section>
     </>}
 
