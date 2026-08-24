@@ -1,16 +1,27 @@
 import {buildMarketplaceShortcuts} from "../../api/_search-utils.js";
 
+function isActionableExternalResult(item){
+  return ["listing","store_option"].includes(item?.result_kind);
+}
+
+function actionableOnly(items){
+  return (Array.isArray(items)?items:[]).filter(isActionableExternalResult);
+}
+
 export async function searchExternalSources(plan,{lang="uk",signal}={}){
   const searches=(plan?.external_searches||[]).filter(item=>["web","marketplace","official"].includes(item?.source));
   if(!searches.length)return [];
 
+  // Search shortcuts are useful as internal fallbacks, but they are NOT a solved
+  // Atlas result. A user should never receive "go search on Google/OLX" as the
+  // best answer. Only concrete listings/store options can enter solution ranking.
   const marketplaceFallback=()=>searches.some(item=>item.source==="marketplace")
-    ?buildMarketplaceShortcuts({
+    ?actionableOnly(buildMarketplaceShortcuts({
       goal:plan?.goal||"",
       query:searches.find(item=>item.source==="marketplace")?.query||plan?.goal||"",
       locationText:plan?.location_text||"",
       language:lang
-    })
+    }))
     :[];
 
   try{
@@ -36,7 +47,7 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
       error.status=response.status;
       throw error;
     }
-    const results=Array.isArray(data?.results)?data.results:[];
+    const results=actionableOnly(data?.results);
     return results.length?results:marketplaceFallback();
   }catch(error){
     if(error?.name==="AbortError")throw error;
