@@ -6,6 +6,7 @@ import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
 import {saveAtlasFeedback} from "../services/feedbackStore";
 import {trackAtlas} from "../services/analytics";
+import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 
 const examples={
@@ -13,9 +14,14 @@ const examples={
   en:["I have stomach pain","I need a generator","I want to sell vegetables","I have a flat tire"]
 };
 
+const localTaskPattern=/поруч|де\s+знайти|потрібен|потрібна|потрібно|купити|придбати|оренду|пробило|болить|лікар|аптек|магазин|майстер|сервіс|таксі|достав|генератор|сьогодні|термінов|nearby|where\s+can\s+i\s+find|need|buy|rent|flat\s+tire|pain|doctor|pharmacy|store|repair|taxi|delivery|today|urgent/i;
+
+function taskMayNeedLocation(task){return localTaskPattern.test(String(task||""))}
+
 export default function Home({t,lang}){
   const [task,setTask]=useState("");
   const [where,setWhere]=useState("");
+  const [geoLocation,setGeoLocation]=useState(null);
   const [thinking,setThinking]=useState(false);
   const [activeStep,setActiveStep]=useState(0);
   const [feedback,setFeedback]=useState("");
@@ -26,17 +32,24 @@ export default function Home({t,lang}){
   useEffect(()=>{
     if(!thinking)return;
     const timer=setInterval(()=>setActiveStep(step=>Math.min(step+1,t.thinkingSteps.length-1)),480);
-    const done=setTimeout(()=>nav(solutionUrl(task,where)),850);
+    const done=setTimeout(()=>nav(solutionUrl(task,where),geoLocation?{state:{geoLocation}}:undefined),850);
     return()=>{clearInterval(timer);clearTimeout(done)};
-  },[thinking,nav,task,where,t.thinkingSteps.length]);
+  },[thinking,nav,task,where,geoLocation,t.thinkingSteps.length]);
 
-  function go(e){
+  async function go(e){
     e.preventDefault();
     const cleanTask=task.trim();
     if(!cleanTask)return;
+
+    let nextLocation=null;
+    if(!where.trim()&&taskMayNeedLocation(cleanTask)){
+      try{nextLocation=await getCurrentLocation()}catch{}
+    }
+    setGeoLocation(nextLocation);
+
     trackAtlas("Atlas Search Submitted",{
       language:lang,
-      location_provided:Boolean(where.trim()),
+      location_provided:Boolean(where.trim()||nextLocation),
       source:"home"
     });
     saveSearchHistory({task:cleanTask,where});
@@ -47,6 +60,7 @@ export default function Home({t,lang}){
   function newSearch(){
     setTask("");
     setWhere("");
+    setGeoLocation(null);
     setThinking(false);
     setActiveStep(0);
     window.setTimeout(()=>document.querySelector(".searchbox textarea")?.focus(),0);
