@@ -82,28 +82,77 @@ function parseDuckHtml(html){
   })).filter(item=>item.title&&item.url);
 }
 
-async function liveWebSearch(query,{language="uk",limit=8}={}){
+const SEARCH_STOP=new Set([
+  "який","яка","яке","які","як","що","де","коли","хто","для","мені","потрібно","потрібен","потрібна","потрібні",
+  "купити","куплю","продати","продам","знайти","україна","україні","україни","у","в","на","по","до","від","та","і","або",
+  "what","how","where","when","who","need","find","buy","sell","for","the","and","or","in","on","to","from","ukraine",
+  "site","com","ua","net","org"
+]);
+
+function relevanceTokens(query){
+  return String(query||"").toLowerCase()
+    .replace(/site:\S+/g," ")
+    .replace(/[^\p{L}\p{N}\s-]/gu," ")
+    .split(/\s+/)
+    .filter(word=>word.length>2&&!SEARCH_STOP.has(word)&&!/^[0-9]+(?:[.,][0-9]+)?$/.test(word))
+    .map(word=>word.length>5?word.slice(0,5):word)
+    .slice(0,8);
+}
+
+function resultRelevance(item,query){
+  const tokens=relevanceTokens(query);
+  if(!tokens.length)return 1;
+  const hay=`${item?.title||""} ${item?.snippet||""}`.toLowerCase();
+  let hits=0;
+  for(const token of tokens){if(hay.includes(token))hits+=1}
+  return hits;
+}
+
+function hostMatchesDomain(url,domain){
+  const host=hostname(url);
+  const target=String(domain||"").replace(/^www\./,"").toLowerCase();
+  return Boolean(host&&target&&(host===target||host.endsWith(`.${target}`)));
+}
+
+function filterSearchResults(items,query,{expectedDomain="",limit=8}={}){
+  const seen=new Set();
+  return (items||[])
+    .map(item=>({...item,relevance:resultRelevance(item,query)}))
+    .filter(item=>item.relevance>0)
+    .filter(item=>!expectedDomain||hostMatchesDomain(item.url,expectedDomain))
+    .filter(item=>{
+      const host=hostname(item.url);
+      if(!host||/^(?:www\.)?(?:bing\.com|duckduckgo\.com)$/i.test(host))return false;
+      const key=item.url.replace(/[#?].*$/,"_");
+      if(seen.has(key))return false;
+      seen.add(key);return true;
+    })
+    .sort((a,b)=>b.relevance-a.relevance)
+    .slice(0,limit)
+    .map(({relevance,...item})=>item);
+}
+
+async function liveWebSearch(query,{language="uk",limit=8,expectedDomain=""}={}){
   const q=cleanText(query).slice(0,450);
   if(!q)return [];
   const out=[];
+
   try{
-    const rss=await fetchText(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}&setlang=${language==="uk"?"uk-UA":"en-US"}`,{language});
+    const region=language==="uk"?"ua-uk":"us-en";
+    const html=await fetchText(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}&kl=${region}`,{language});
+    out.push(...parseDuckHtml(html));
+  }catch{}
+
+  let filtered=filterSearchResults(out,q,{expectedDomain,limit});
+  if(filtered.length>=Math.min(3,limit))return filtered;
+
+  try{
+    const rss=await fetchText(`https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}&setlang=${language==="uk"?"uk-UA":"en-US"}&cc=${language==="uk"?"UA":"US"}`,{language});
     out.push(...parseBingRss(rss));
   }catch{}
-  if(out.length<3){
-    try{
-      const html=await fetchText(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(q)}`,{language});
-      out.push(...parseDuckHtml(html));
-    }catch{}
-  }
-  const seen=new Set();
-  return out.filter(item=>{
-    const host=hostname(item.url);
-    if(!host||/^(?:www\.)?(?:bing\.com|duckduckgo\.com)$/i.test(host))return false;
-    const key=item.url.replace(/[#?].*$/,"_");
-    if(seen.has(key))return false;
-    seen.add(key);return true;
-  }).slice(0,limit);
+
+  filtered=filterSearchResults(out,q,{expectedDomain,limit});
+  return filtered;
 }
 
 function concreteSearchResult(item,{sourceGroup="open-web",language="uk",official=false,commerce=false}={}){
@@ -137,12 +186,6 @@ function uniqueResults(items){
   });
 }
 
-function hostMatchesDomain(url,domain){
-  const host=hostname(url);
-  const target=String(domain||"").replace(/^www\./,"").toLowerCase();
-  return Boolean(host&&target&&(host===target||host.endsWith(`.${target}`)));
-}
-
 function commerceTargets(groups,limit=6){
   const targets=[];
   let depth=0;
@@ -165,9 +208,8 @@ async function searchCommerce({goal,query,domain,locationText,language}){
   const term=marketplaceSearchTerm(query)||marketplaceSearchTerm(goal)||cleanText(query||goal);
   const targets=commerceTargets(groups,6);
   const searches=targets.map(async({group,domain:targetDomain})=>{
-    const found=await liveWebSearch(`${term} site:${targetDomain}`,{language,limit:6});
+    const found=await liveWebSearch(`${term} site:${targetDomain}`,{language,limit:6,expectedDomain:targetDomain});
     return found
-      .filter(item=>hostMatchesDomain(item.url,targetDomain))
       .map(item=>concreteSearchResult(item,{sourceGroup:group.id,language,commerce:true}))
       .filter(item=>item.result_kind==="listing");
   });
@@ -184,10 +226,10 @@ async function searchGeneral(allowed,{language}){
   const groups=await Promise.all(allowed.map(async item=>{
     const official=item.source==="official";
     const query=official?`site:gov.ua ${item.query}`:item.query;
-    const found=await liveWebSearch(query,{language,limit:6});
+    const found=await liveWebSearch(query,{language,limit:6,expectedDomain:official?"gov.ua":""});
     return found.map(result=>concreteSearchResult(result,{
       sourceGroup:official?"official-web":"open-web",language,official,commerce:false
-    })).filter(result=>!official||inferSourceType(result.url)==="official");
+    }));
   }));
   return uniqueResults(groups.flat()).slice(0,12);
 }
@@ -210,7 +252,8 @@ export default async function handler(req,res){
       status:"atlas-external-search-endpoint-online",
       mode:"live-zero-cost-web-search",
       paid_search_disabled:true,
-      sources:["bing-rss","duckduckgo-html-fallback"]
+      sources:["duckduckgo-html","bing-rss-fallback"],
+      relevance_filter:true
     });
     const language=req.query?.lang==="en"?"en":"uk";
     const {results}=await runSearch({goal:q,domain:"",locationText:"",language,allowed:[{source:"web",query:q,reason:"debug"}]});
