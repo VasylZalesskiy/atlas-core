@@ -1,7 +1,7 @@
 import {buildMarketplaceShortcuts} from "../../api/_search-utils.js";
 
 function isConcreteExternalResult(item){
-  return ["listing","store_option","store_option_pending"].includes(item?.result_kind);
+  return ["listing","store_option","store_option_pending","web_result","official_result"].includes(item?.result_kind);
 }
 
 function concreteOnly(items){
@@ -24,9 +24,8 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
 
   const wantsMarketplace=searches.some(item=>item.source==="marketplace");
 
-  // Search shortcuts are useful internally, but they are NOT an Atlas solution.
-  // Only concrete listings/store options may reach the result UI. Businesses,
-  // including OVI, participate through normal Atlas passports at this stage.
+  // Search shortcuts are only a last-resort fallback. Live concrete web pages
+  // from the Atlas server are preferred and can reach the result UI directly.
   const marketplaceFallback=()=>wantsMarketplace
     ?concreteOnly(buildMarketplaceShortcuts({
       goal:plan?.goal||"",
