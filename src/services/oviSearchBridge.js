@@ -45,24 +45,32 @@ function requestedQuantity(task,targetUnit){
 function oviResult(item,provider,lang){
   const uk=lang!=="en";
   const enough=Boolean(item.can_fulfill_from_stock);
-  if(!enough)return null;
   const available=Number(item.available_qty||0);
   const requested=Number(item.requested_qty||0);
+  const hasRequestedQuantity=requested>0;
+  const stockText=hasRequestedQuantity
+    ?`${available.toLocaleString(uk?"uk-UA":"en-GB")} ${item.unit} / ${requested.toLocaleString(uk?"uk-UA":"en-GB")} ${item.unit}`
+    :`${available.toLocaleString(uk?"uk-UA":"en-GB")} ${item.unit}`;
   return {
     title:item.name,
-    snippet:uk
-      ?`OVI має достатній поточний залишок: ${available.toLocaleString("uk-UA")} ${item.unit}${requested?` із потрібних ${requested.toLocaleString("uk-UA")} ${item.unit}`:""}.`
-      :`OVI has enough current stock: ${available.toLocaleString("en-GB")} ${item.unit}${requested?` of the requested ${requested.toLocaleString("en-GB")} ${item.unit}`:""}.`,
+    snippet:enough
+      ?(uk?`OVI має достатній поточний залишок: ${stockText}.`:`OVI has enough current stock: ${stockText}.`)
+      :(uk?`OVI має ціну, але поточного залишку недостатньо: ${stockText}. Потрібне підтвердження постачання.`:`OVI has a price, but current stock is insufficient: ${stockText}. Supply confirmation is required.`),
     url:"https://ovi-order-system.vercel.app/",
     source_type:"ovi",
     source_name:"OVI",
     source_group:"ovi-direct",
-    result_kind:"store_option",
+    result_kind:enough?"store_option":"store_option_pending",
     price_text:`${Number(item.price||0).toLocaleString(uk?"uk-UA":"en-GB",{minimumFractionDigits:2,maximumFractionDigits:2})} грн / ${item.unit}`,
+    price_value:Number(item.price||0),
+    price_unit:item.unit||"",
+    currency:"UAH",
     location_text:provider?.city||"",
     quantity_tonnes:item.unit==="кг"?available/1000:null,
-    quantity_text:`${available.toLocaleString(uk?"uk-UA":"en-GB")} ${item.unit}`,
-    verification_text:uk?"Залишок і ціна отримані безпосередньо з OVI.":"Stock and price were received directly from OVI.",
+    quantity_text:stockText,
+    verification_text:enough
+      ?(uk?"Залишок і ціна отримані безпосередньо з OVI.":"Stock and price were received directly from OVI.")
+      :(uk?"Ціна та поточний залишок отримані з OVI; потрібну кількість зараз не підтверджено.":"Price and current stock came from OVI; the requested quantity is not currently confirmed."),
     google_maps_url:""
   };
 }
@@ -87,6 +95,6 @@ export async function searchOviForTask(task,{lang="uk",location=null}={}){
       quantity,
       location:location?{lat:location.latitude,lng:location.longitude}:null
     });
-    return (data?.items||[]).map(item=>oviResult(item,data?.provider,lang)).filter(Boolean);
+    return (data?.items||[]).map(item=>oviResult(item,data?.provider,lang));
   }catch{return []}
 }
