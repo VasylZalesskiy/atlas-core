@@ -224,7 +224,7 @@ function uniqueResults(items){
   });
 }
 
-function commerceTargets(groups,limit=6){
+function commerceTargets(groups,limit=14){
   const targets=[];
   let depth=0;
   while(targets.length<limit){
@@ -244,7 +244,7 @@ function commerceTargets(groups,limit=6){
 async function searchCommerce({goal,query,domain,locationText,language}){
   const groups=sourceGroupsFor({source:"marketplace",goal,query,domain}).slice(0,4);
   const term=marketplaceSearchTerm(query)||marketplaceSearchTerm(goal)||cleanText(query||goal);
-  const targets=commerceTargets(groups,6);
+  const targets=commerceTargets(groups,14);
   const searches=targets.map(async({group,domain:targetDomain})=>{
     const found=await liveWebSearch(`${term} site:${targetDomain}`,{language,limit:6,expectedDomain:targetDomain});
     return found
@@ -254,9 +254,11 @@ async function searchCommerce({goal,query,domain,locationText,language}){
   let live=[];
   try{live=(await Promise.all(searches)).flat()}catch{}
   live=uniqueResults(live);
-  if(live.length)return rankMarketplaceResults(live,{requestedTonnes:extractRequestedTonnes(`${goal} ${query}`),limit:12});
-  return rankMarketplaceResults(buildMarketplaceShortcuts({goal,query,locationText,language}),{
-    requestedTonnes:extractRequestedTonnes(`${goal} ${query}`),limit:12
+  const prepared=buildMarketplaceShortcuts({goal,query,locationText,language});
+  const representedSources=new Set(live.map(item=>item.source_name).filter(Boolean));
+  const missingSources=prepared.filter(item=>!representedSources.has(item.source_name));
+  return rankMarketplaceResults([...live,...missingSources],{
+    requestedTonnes:extractRequestedTonnes(`${goal} ${query}`),limit:16
   });
 }
 
