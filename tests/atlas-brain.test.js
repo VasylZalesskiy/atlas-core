@@ -12,6 +12,18 @@ test("fallback planner sends a bare 100 kg product need to stores and marketplac
   assert.equal(plan.external_searches.find(item=>item.source==="maps")?.mode,"nearby");
 });
 
+test("fallback planner recognizes bulk potatoes with numeric and written quantities",()=>{
+  for(const query of ["20 тонн картоплі","20 тон картоплі","двадцять тонн картоплі","двадцять тон картоплі"]){
+    const plan=createFallbackPlan(query,{lang:"uk"});
+    assert.equal(plan.intent,"buy",query);
+    assert.equal(plan.solution_scope,"transaction",query);
+    assert.equal(plan.domain,"agriculture",query);
+    assert.equal(plan.external_searches.find(item=>item.source==="marketplace")?.mode,"standard",query);
+    assert.match(plan.solution_steps[0].internet_query,/картоплі/,query);
+    assert.doesNotMatch(plan.solution_steps[0].nearby_query,/двадцять|тон/,query);
+  }
+});
+
 test("fallback planner triages a bodily symptom before searching",()=>{
   const plan=createFallbackPlan("болить живіт",{lang:"uk"});
   assert.equal(plan.domain,"health");
