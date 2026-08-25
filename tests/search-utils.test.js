@@ -44,19 +44,33 @@ test("uses stores, Rozetka and OLX for a 100 kg pea request",()=>{
   assert.ok(groups.flatMap(group=>group.domains).includes("olx.ua"));
 });
 
-test("puts ATB with product and Google Maps navigation before marketplace alternatives",()=>{
+test("covers known grocery stores and marketplaces for a retail product request",()=>{
   assert.equal(marketplaceSearchTerm("Потрібно купити 100 кг гороху"),"горох");
   assert.equal(marketplaceSearchTerm("горох україна горох продаж OLX Agroboard Prom.ua"),"горох");
   const shortcuts=buildMarketplaceShortcuts({query:"Потрібно купити 100 кг гороху",locationText:"Тернопіль"});
-  assert.deepEqual(shortcuts.map(item=>item.source_name),["АТБ","OLX","Rozetka","Prom.ua","Google Maps"]);
+  assert.deepEqual(new Set(shortcuts.map(item=>item.source_name)),new Set([
+    "АТБ","Сільпо","METRO","NOVUS","Auchan","Rozetka","OLX","Prom.ua","Flagma","Google Maps"
+  ]));
   const atb=shortcuts.find(item=>item.source_name==="АТБ");
   assert.equal(atb.result_kind,"store_option");
   assert.match(atb.url,/atbmarket\.com\/catalog\/395-krupi/);
   assert.match(atb.google_maps_url,/google\.com\/maps\/dir/);
   assert.match(decodeURIComponent(atb.google_maps_url),/АТБ Тернопіль/);
   assert.match(shortcuts.find(item=>item.source_name==="Rozetka").url,/rozetka\.com\.ua\/ua\/search/);
+  assert.match(shortcuts.find(item=>item.source_name==="Сільпо").url,/silpo\.ua\/search/);
+  assert.match(shortcuts.find(item=>item.source_name==="METRO").url,/metro\.zakaz\.ua\/uk\/search/);
+  assert.match(shortcuts.find(item=>item.source_name==="Flagma").url,/flagma\.ua\/uk\/products/);
   assert.match(shortcuts.find(item=>item.source_name==="Google Maps").url,/google\.com\/maps\/search/);
   assert.match(decodeURIComponent(shortcuts.find(item=>item.source_name==="Google Maps").url),/горох магазин Тернопіль/);
+});
+
+test("uses wholesale agriculture sources instead of retail chains for a bulk request",()=>{
+  const shortcuts=buildMarketplaceShortcuts({query:"Потрібно купити 20 тонн картоплі",locationText:"Тернопіль"});
+  assert.deepEqual(new Set(shortcuts.map(item=>item.source_name)),new Set([
+    "Flagma","Agro-Ukraine","Agrotorg","Agrotender","OLX","Prom.ua","Google Maps"
+  ]));
+  assert.equal(shortcuts.some(item=>["АТБ","Сільпо","METRO","NOVUS","Auchan"].includes(item.source_name)),false);
+  assert.match(decodeURIComponent(shortcuts.find(item=>item.source_name==="Agro-Ukraine").url),/site:agro-ukraine\.com картопля/);
 });
 
 test("treats a bare quantity and product as a commerce request",()=>{
@@ -78,3 +92,4 @@ test("ranks a concrete listing that covers the request above category and small 
   ],{requestedTonnes:20});
   assert.match(results[0].title,/100 тонн/);
 });
+
