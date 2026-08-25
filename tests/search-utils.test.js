@@ -7,8 +7,13 @@ import {
 
 test("extracts requested bulk quantity in tonnes",()=>{
   assert.equal(extractRequestedTonnes("Потрібно купити 20 тонн картоплі"),20);
+  assert.equal(extractRequestedTonnes("Потрібно купити 20 тон картоплі"),20);
+  assert.equal(extractRequestedTonnes("Потрібно купити 20 тонни картоплі"),20);
+  assert.equal(extractRequestedTonnes("Потрібно купити двадцять тонн картоплі"),20);
+  assert.equal(extractRequestedTonnes("Потрібно купити двадцять тон картоплі"),20);
   assert.equal(extractRequestedTonnes("Треба 20 т картоплі"),20);
   assert.equal(extractRequestedTonnes("Куплю 20000 кг картоплі"),20);
+  assert.equal(extractRequestedKilograms("Сто двадцять п'ять кг картоплі"),125);
 });
 
 test("preserves a 100 kg request instead of losing it below one tonne",()=>{
@@ -65,16 +70,20 @@ test("covers known grocery stores and marketplaces for a retail product request"
 });
 
 test("uses wholesale agriculture sources instead of retail chains for a bulk request",()=>{
-  const shortcuts=buildMarketplaceShortcuts({query:"Потрібно купити 20 тонн картоплі",locationText:"Тернопіль"});
-  assert.deepEqual(new Set(shortcuts.map(item=>item.source_name)),new Set([
-    "Flagma","Agro-Ukraine","Agrotorg","Agrotender","OLX","Prom.ua","Google Maps"
-  ]));
-  assert.equal(shortcuts.some(item=>["АТБ","Сільпо","METRO","NOVUS","Auchan"].includes(item.source_name)),false);
-  assert.match(decodeURIComponent(shortcuts.find(item=>item.source_name==="Agro-Ukraine").url),/site:agro-ukraine\.com картопля/);
+  for(const query of ["Потрібно купити 20 тонн картоплі","Потрібно купити двадцять тонн картоплі","20 тон картоплі"]){
+    const shortcuts=buildMarketplaceShortcuts({query,locationText:"Тернопіль"});
+    assert.deepEqual(new Set(shortcuts.map(item=>item.source_name)),new Set([
+      "Flagma","Agro-Ukraine","Agrotorg","Agrotender","OLX","Prom.ua","Google Maps"
+    ]));
+    assert.equal(shortcuts.some(item=>["АТБ","Сільпо","METRO","NOVUS","Auchan"].includes(item.source_name)),false);
+    assert.match(decodeURIComponent(shortcuts.find(item=>item.source_name==="Agro-Ukraine").url),/site:agro-ukraine\.com картопля/);
+  }
 });
 
 test("treats a bare quantity and product as a commerce request",()=>{
   assert.equal(isProductTransaction("100 кг гороху"),true);
+  assert.equal(isProductTransaction("20 тон картоплі"),true);
+  assert.equal(isProductTransaction("двадцять тонн картоплі"),true);
 });
 
 test("rejects generic prose pages as commerce solutions",()=>{
@@ -92,4 +101,3 @@ test("ranks a concrete listing that covers the request above category and small 
   ],{requestedTonnes:20});
   assert.match(results[0].title,/100 тонн/);
 });
-
