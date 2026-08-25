@@ -223,27 +223,12 @@ function hasContradictoryClarification(plan){
 }
 
 function planNeedsRecovery(plan,{locationAvailable=false}={}){
-  // A clarification is allowed to block only when Atlas genuinely cannot start
-  // a useful external action yet. If Brain already produced executable searches,
-  // saying “clarification required” is contradictory and must be rebuilt.
   if(hasContradictoryClarification(plan))return true;
   if(plan?.clarification?.required&&plan?.clarification?.question)return false;
-
-  // A destination route is not a nearby-place lookup. Atlas must resolve the
-  // named destination globally and route to it from the user's current point.
   if(plan?.solution_scope==="destination_route"&&!hasMapMode(plan,"destination"))return true;
-
-  // If location is materially required for a local action, Atlas must actually
-  // retrieve a nearby real-world option rather than only return articles/pages.
   if(plan?.solution_scope==="local_action"&&plan?.needs_location&&!hasMapMode(plan,"nearby"))return true;
   if(plan?.needs_location&&!hasSearch(plan,"maps"))return true;
-
-  // Channel-neutral mixed tasks must not collapse into web/delivery only.
-  // When Atlas itself classifies the task as mixed and the user's location is
-  // already known, a web retrieval path must be accompanied by a nearby path.
   if(plan?.solution_scope==="mixed"&&locationAvailable&&hasWebRetrieval(plan)&&!hasMapMode(plan,"nearby"))return true;
-
-  // Atlas must not stop after merely understanding the request.
   return !hasAnyRetrieval(plan);
 }
 
@@ -281,8 +266,6 @@ export async function analyzeAtlasQuery(query,{lang="uk",location=null,locationT
   let candidate=await requestBrainPlan(original,{lang,location,locationText,signal});
   if(!planNeedsRecovery(candidate,qualityContext))return candidate;
 
-  // Give Brain up to two chances to rebuild an invalid plan. Never return the
-  // original invalid plan merely because the first recovery was also invalid.
   for(let attempt=0;attempt<2;attempt+=1){
     const violation=recoveryInstruction(candidate,{lang,...qualityContext});
     const recoveryQuery=lang==="uk"
@@ -298,28 +281,31 @@ export async function analyzeAtlasQuery(query,{lang="uk",location=null,locationT
     }
   }
 
-  // If Brain still returns a contradictory clarification together with runnable
-  // searches, do not block the user with the question: keep the searches and
-  // let Atlas execute them. Structural map/channel checks above still apply.
   if(hasContradictoryClarification(candidate)){
-    candidate={
+    candidate={...candidate,clarification:{required:false,question:"",options:[]}};
+  }
+
+  // Important UX rule: a Passport miss must never leave the user with an empty screen.
+  // If Brain still has no nearby route, keep its useful web searches and enrich the plan
+  // with the deterministic fallback (nearby + marketplace) instead of hiding alternatives.
+  if(candidate?.solution_scope==="mixed"&&qualityContext.locationAvailable&&hasWebRetrieval(candidate)&&!hasMapMode(candidate,"nearby")){
+    const fallback=createFallbackPlan(original,{lang});
+    const searches=[...(candidate.external_searches||[]),...(fallback.external_searches||[])];
+    const uniqueSearches=searches.filter((item,index,array)=>item&&item.query&&array.findIndex(other=>other?.source===item.source&&other?.mode===item.mode&&other?.query===item.query)===index);
+    return {
       ...candidate,
-      clarification:{required:false,question:"",options:[]}
+      clarification:{required:false,question:"",options:[]},
+      external_searches:uniqueSearches,
+      solution_steps:Array.isArray(candidate.solution_steps)&&candidate.solution_steps.length?candidate.solution_steps:fallback.solution_steps,
+      result_strategy:lang==="uk"
+        ?"Спочатку Паспорти можливостей. Якщо точного збігу немає — показати найближчі можливості, варіанти поруч та відкритий пошук."
+        :"Opportunity Passports first. If there is no exact match, show the closest capabilities, nearby options and open search."
     };
   }
 
-  // If Brain still cannot produce a quality-valid channel-neutral plan, suppress
-  // misleading web-only fulfillment instead of pretending it is the full answer.
-  if(candidate?.solution_scope==="mixed"&&qualityContext.locationAvailable&&hasWebRetrieval(candidate)&&!hasMapMode(candidate,"nearby")){
-    return {
-      ...candidate,
-      external_searches:(candidate.external_searches||[]).filter(item=>!["web","marketplace","official"].includes(item?.source)),
-      clarification:{
-        required:true,
-        question:lang==="uk"?"Не вдалося надійно знайти локальні варіанти. Хочете, щоб Atlas поки показав онлайн/доставку?":"Local options could not be retrieved reliably. Should Atlas show online/delivery options for now?",
-        options:lang==="uk"?["Так, показати онлайн / доставку"]:["Yes, show online / delivery"]
-      }
-    };
+  if(!hasExternalRetrieval(candidate)&&!candidate?.clarification?.required){
+    const fallback=createFallbackPlan(original,{lang});
+    return {...candidate,...fallback,passport_search:candidate?.passport_search||fallback.passport_search};
   }
 
   return candidate;
