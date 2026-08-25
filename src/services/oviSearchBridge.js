@@ -1,5 +1,6 @@
 import {loadNeedCatalog} from "./catalogStore";
 import {getOviOffers} from "./oviOfferStore";
+import {extractRequestedKilograms} from "../../api/_search-utils.js";
 
 const STOP_WORDS=new Set([
   "потрібно","потрібен","потрібна","потрібні","треба","хочу","шукаю","знайти","купити","придбати","замовити",
@@ -24,8 +25,13 @@ function parseNumber(raw){
 }
 
 function requestedQuantity(task,targetUnit){
+  const weightKilograms=extractRequestedKilograms(task);
+  if(weightKilograms!==null){
+    if(targetUnit==="кг")return weightKilograms;
+    if(targetUnit==="т")return weightKilograms/1000;
+  }
   const text=clean(task);
-  const match=text.match(/(\d+(?:[\s.]\d{3})*(?:[.,]\d+)?)\s*(кг|kg|кілограм(?:ів|и|а)?|т|тонн(?:а|и|у)?|tonnes?|tons?|шт|штук(?:а|и)?|pcs?|pieces?)/iu);
+  const match=text.match(/(\d+(?:[\s.]\d{3})*(?:[.,]\d+)?)\s*(кг|kg|кілограм(?:ів|и|а)?|т|тон(?:н(?:а|и|у)?|а|и|у)?|tonnes?|tons?|шт|штук(?:а|и)?|pcs?|pieces?)/iu);
   if(!match)return 0;
   const value=parseNumber(match[1]);
   if(!value)return 0;
