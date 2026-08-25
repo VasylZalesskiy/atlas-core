@@ -112,7 +112,7 @@ export function sourceGroupsFor({source="web",goal="",query="",domain=""}={}){
     ];
     if(requestedKilograms!==null&&requestedKilograms<=250){
       return [
-        {id:"retail-stores",label:"магазини та маркетплейси",domains:["rozetka.com.ua","silpo.ua","metro.zakaz.ua","novus.zakaz.ua","prom.ua"]},
+        {id:"retail-stores",label:"магазини та маркетплейси",domains:["atbmarket.com","rozetka.com.ua","silpo.ua","metro.zakaz.ua","novus.zakaz.ua","auchan.zakaz.ua","prom.ua"]},
         {id:"olx",label:"OLX",domains:["olx.ua"]},
         ...bulk.slice(0,1)
       ];
@@ -120,7 +120,7 @@ export function sourceGroupsFor({source="web",goal="",query="",domain=""}={}){
     return bulk;
   }
   if(isProductTransaction(context))return [
-    {id:"retail-stores",label:"магазини та маркетплейси",domains:["rozetka.com.ua","silpo.ua","metro.zakaz.ua","novus.zakaz.ua","prom.ua"]},
+    {id:"retail-stores",label:"магазини та маркетплейси",domains:["atbmarket.com","rozetka.com.ua","silpo.ua","metro.zakaz.ua","novus.zakaz.ua","auchan.zakaz.ua","prom.ua"]},
     {id:"marketplaces",label:"маркетплейси",domains:["olx.ua","prom.ua","rozetka.com.ua"]},
     {id:"business-classifieds",label:"бізнес-оголошення",domains:["flagma.ua"]}
   ];
@@ -183,6 +183,33 @@ export function googleMapsDirectionsUrl(destination,locationText=""){
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(text)}`;
 }
 
+function googleSiteSearchUrl(domain,query){
+  return `https://www.google.com/search?q=${encodeURIComponent(`site:${domain} ${query}`)}`;
+}
+
+function sourceSearchShortcut({sourceName:displayName,url,term,locationText,language="uk",maps=false,sourceGroup="retail-stores"}){
+  const label=term.charAt(0).toUpperCase()+term.slice(1);
+  return {
+    title:`${label} — ${displayName}`,
+    snippet:language==="uk"
+      ?`Готовий пошук пропозицій за джерелом ${displayName} — відкрийте актуальні товари та перевірте ціну й наявність`
+      :`Prepared offer search for ${displayName} — open current products and confirm price and availability`,
+    url,
+    source_type:"marketplace",
+    source_name:displayName,
+    source_group:sourceGroup,
+    result_kind:"search_page",
+    price_text:"",
+    location_text:locationText,
+    quantity_tonnes:null,
+    quantity_text:"",
+    verification_text:language==="uk"
+      ?"Це готовий пошук за відомим джерелом; наявність, кількість, ціну й доставку потрібно підтвердити на сторінці продавця"
+      :"This is a prepared search in a known source; confirm availability, quantity, price and delivery on the seller page",
+    google_maps_url:maps?googleMapsSearchUrl(`${displayName} ${term}`,locationText):""
+  };
+}
+
 export function buildMarketplaceShortcuts({goal="",query="",locationText="",language="uk"}={}){
   const term=marketplaceSearchTerm(query)||marketplaceSearchTerm(goal)||String(query||goal||"").trim();
   if(!term)return [];
@@ -194,6 +221,8 @@ export function buildMarketplaceShortcuts({goal="",query="",locationText="",lang
     :"Prepared search — open current offers and confirm quantity, price and delivery with the seller";
   const requestedKilograms=extractRequestedKilograms(`${goal} ${query}`);
   const requestedAmount=requestedKilograms?`${requestedKilograms} кг`:language==="uk"?"потрібну кількість":"the required quantity";
+  const agriculture=isAgriculture(`${goal} ${query}`);
+  const retailQuantity=requestedKilograms===null||requestedKilograms<=250;
   const retailerOptions=/горох|peas?/i.test(term)?[{
     title:language==="uk"?"Горох 1 кг — АТБ":"Peas 1 kg — ATB",
     snippet:language==="uk"
@@ -213,13 +242,34 @@ export function buildMarketplaceShortcuts({goal="",query="",locationText="",lang
       :`The product is listed by ATB; confirm store-level stock for ${requestedAmount} before travelling.`,
     google_maps_url:googleMapsDirectionsUrl("АТБ",locationText)
   }]:[];
-  return [
-    ...retailerOptions,
+  const commonMarketplaces=[
     {title:`${label} — OLX`,snippet:language==="uk"?"Актуальні оголошення продавців на OLX":"Current seller listings on OLX",url:`https://www.olx.ua/uk/list/q-${olxSlug}/`,source_type:"marketplace",source_name:"OLX",source_group:"olx",result_kind:"search_page",price_text:"",location_text:locationText,quantity_tonnes:null,quantity_text:"",verification_text:verification},
     {title:`${label} — Rozetka`,snippet:language==="uk"?"Товари та продавці на Rozetka":"Products and sellers on Rozetka",url:`https://rozetka.com.ua/ua/search/?text=${encoded}`,source_type:"marketplace",source_name:"Rozetka",source_group:"retail-stores",result_kind:"search_page",price_text:"",location_text:locationText,quantity_tonnes:null,quantity_text:"",verification_text:verification,google_maps_url:googleMapsSearchUrl(`Rozetka ${term}`,locationText)},
     {title:`${label} — Prom.ua`,snippet:language==="uk"?"Пропозиції магазинів і постачальників на Prom.ua":"Shop and supplier offers on Prom.ua",url:`https://prom.ua/ua/search?search_term=${encoded}`,source_type:"marketplace",source_name:"Prom.ua",source_group:"retail-stores",result_kind:"search_page",price_text:"",location_text:locationText,quantity_tonnes:null,quantity_text:"",verification_text:verification},
-    {title:language==="uk"?`Магазини: ${term}`:`Stores: ${term}`,snippet:language==="uk"?"Відкрити магазини поблизу одразу в Google Maps":"Open nearby stores directly in Google Maps",url:googleMapsSearchUrl(term,locationText),source_type:"maps",source_name:"Google Maps",source_group:"maps",result_kind:"maps_search",price_text:"",location_text:locationText,quantity_tonnes:null,quantity_text:"",verification_text:language==="uk"?"Google Maps показує місця; наявність товару потрібно підтвердити у магазині":"Google Maps shows places; confirm product availability with the store"}
+    sourceSearchShortcut({sourceName:"Flagma",url:`https://flagma.ua/uk/products/q=${encoded}/`,term,locationText,language,sourceGroup:"business-classifieds"})
   ];
+  const retailStores=agriculture&&retailQuantity?[
+    ...(/горох|peas?/i.test(term)?[]:[sourceSearchShortcut({sourceName:"АТБ",url:googleSiteSearchUrl("atbmarket.com",term),term,locationText,language,maps:true})]),
+    sourceSearchShortcut({sourceName:"Сільпо",url:`https://silpo.ua/search?find=${encoded}`,term,locationText,language,maps:true}),
+    sourceSearchShortcut({sourceName:"METRO",url:`https://metro.zakaz.ua/uk/search/?q=${encoded}`,term,locationText,language,maps:true}),
+    sourceSearchShortcut({sourceName:"NOVUS",url:`https://novus.zakaz.ua/uk/search/?q=${encoded}`,term,locationText,language,maps:true}),
+    sourceSearchShortcut({sourceName:"Auchan",url:`https://auchan.zakaz.ua/uk/search/?q=${encoded}`,term,locationText,language,maps:true})
+  ]:[];
+  const bulkAgriculture=agriculture&&!retailQuantity?[
+    sourceSearchShortcut({sourceName:"Agro-Ukraine",url:googleSiteSearchUrl("agro-ukraine.com",term),term,locationText,language,sourceGroup:"agriculture"}),
+    sourceSearchShortcut({sourceName:"Agrotorg",url:googleSiteSearchUrl("agrotorg.net",term),term,locationText,language,sourceGroup:"agriculture"}),
+    sourceSearchShortcut({sourceName:"Agrotender",url:googleSiteSearchUrl("agrotender.com.ua",term),term,locationText,language,sourceGroup:"agriculture"})
+  ]:[];
+  const ordered=bulkAgriculture.length
+    ?[commonMarketplaces[3],...bulkAgriculture,commonMarketplaces[0],commonMarketplaces[2]]
+    :[...retailerOptions,...retailStores,commonMarketplaces[1],commonMarketplaces[0],commonMarketplaces[2],commonMarketplaces[3]];
+  return [...ordered,{
+    title:language==="uk"?`Магазини: ${term}`:`Stores: ${term}`,
+    snippet:language==="uk"?"Відкрити магазини поблизу одразу в Google Maps":"Open nearby stores directly in Google Maps",
+    url:googleMapsSearchUrl(term,locationText),source_type:"maps",source_name:"Google Maps",source_group:"maps",result_kind:"maps_search",
+    price_text:"",location_text:locationText,quantity_tonnes:null,quantity_text:"",
+    verification_text:language==="uk"?"Google Maps показує місця; наявність товару потрібно підтвердити у магазині":"Google Maps shows places; confirm product availability with the store"
+  }];
 }
 
 export function actionabilityScore(result,{requestedTonnes=null}={}){
@@ -249,3 +299,4 @@ export function rankMarketplaceResults(results,{requestedTonnes=null,limit=12}={
     .slice(0,limit)
     .map(({_score,_index,...result})=>result);
 }
+
