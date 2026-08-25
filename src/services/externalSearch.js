@@ -8,6 +8,14 @@ function concreteOnly(items){
   return (Array.isArray(items)?items:[]).filter(isConcreteExternalResult);
 }
 
+function preparedActions(items){
+  return (Array.isArray(items)?items:[]).filter(item=>["search_page","maps_search"].includes(item?.result_kind));
+}
+
+function usefulResults(items){
+  return uniqueResults([...concreteOnly(items),...preparedActions(items)]);
+}
+
 function uniqueResults(items){
   const seen=new Set();
   return items.filter(item=>{
@@ -47,21 +55,20 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
   if(!searches.length)return [];
 
   const wantsMarketplace=searches.some(item=>item.source==="marketplace");
+  const marketplaceFallback=()=>wantsMarketplace
+    ?buildMarketplaceShortcuts({
+      goal:plan?.goal||"",
+      query:searches.find(item=>item.source==="marketplace")?.query||plan?.goal||"",
+      locationText:plan?.location_text||"",
+      language:lang
+    })
+    :[];
 
   // First ask Atlas's grounded web-answer endpoint. When no Gemini grounding key
   // is configured (or Google grounding is temporarily unavailable), fall back
   // to the independent zero-cost retrieval endpoint below.
   const grounded=await groundedResults(plan,searches,{lang,signal});
-  if(grounded.length)return uniqueResults(grounded);
-
-  const marketplaceFallback=()=>wantsMarketplace
-    ?concreteOnly(buildMarketplaceShortcuts({
-      goal:plan?.goal||"",
-      query:searches.find(item=>item.source==="marketplace")?.query||plan?.goal||"",
-      locationText:plan?.location_text||"",
-      language:lang
-    }))
-    :[];
+  if(grounded.length)return uniqueResults([...grounded,...marketplaceFallback()]);
 
   try{
     const response=await fetch("/api/external-search",{
@@ -86,7 +93,7 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
       error.status=response.status;
       throw error;
     }
-    const results=concreteOnly(data?.results);
+    const results=usefulResults(data?.results);
     return uniqueResults(results.length?results:marketplaceFallback());
   }catch(error){
     if(error?.name==="AbortError")throw error;
