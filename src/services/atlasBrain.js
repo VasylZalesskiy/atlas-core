@@ -1,10 +1,12 @@
+import {extractRequestedKilograms,marketplaceSearchTerm} from "../../api/_search-utils.js";
+
 function cleanTerms(query){
   return [...new Set(String(query||"").toLowerCase().replace(/[.,!?;:()]/g," ").split(/\s+/).filter(word=>word.length>2))].slice(0,12);
 }
 
 function isProductNeed(value){
   const text=String(value||"");
-  const quantity=/\d+(?:[\s.]\d{3})*(?:[.,]\d+)?\s*(?:кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|т(?!\p{L})|тонн(?:а|и|у)?|tonnes?\b)/iu.test(text);
+  const quantity=extractRequestedKilograms(text)!==null;
   const transaction=/куп|придба|замов|потрібн|товар|продукт|постач|опт|гурт|buy|order|supplier|wholesale|bulk/i.test(text);
   return quantity||transaction;
 }
@@ -104,20 +106,7 @@ function createHealthPlan(query,lang){
 }
 
 function productSearchTerm(value){
-  const ignored=new Set([
-    "потрібно","потрібен","потрібна","потрібні","треба","хочу","шукаю","знайти","купити","придбати","замовити",
-    "мені","для","та","і","у","в","на","по","кг","kg","кілограм","кілограмів","тонна","тонни","тонн","т"
-  ]);
-  const aliases={гороху:"горох",гороха:"горох",картоплі:"картопля"};
-  return String(value||"").toLowerCase()
-    .replace(/\d+(?:[\s.]\d{3})*(?:[.,]\d+)?/g," ")
-    .replace(/[^\p{L}\p{N}\s-]/gu," ")
-    .split(/\s+/)
-    .filter(word=>word&&!ignored.has(word))
-    .map(word=>aliases[word]||word)
-    .slice(0,5)
-    .join(" ")
-    .trim();
+  return marketplaceSearchTerm(value);
 }
 
 export function createFallbackPlan(query,{lang="uk"}={}){
