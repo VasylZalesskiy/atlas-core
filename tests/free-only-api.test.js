@@ -124,6 +124,42 @@ test("external commerce search covers known grocery stores and marketplaces with
   }
 });
 
+test("bulk potato requests work through Brain and external search with digits or words",async()=>{
+  const originalFetch=globalThis.fetch;
+  const previous=process.env.GEMINI_FREE_TIER_API_KEY;
+  delete process.env.GEMINI_FREE_TIER_API_KEY;
+  globalThis.fetch=async()=>{throw new Error("unexpected-network-call")};
+  try{
+    for(const query of ["20 тон картоплі","двадцять тонн картоплі"]){
+      const brainRes=recorder();
+      await brainHandler({method:"POST",body:{query,language:"uk",location_text:"Тернопіль"},headers:{}},brainRes);
+      assert.equal(brainRes.statusCode,200,query);
+      assert.equal(brainRes.body.plan.intent,"buy",query);
+      assert.equal(brainRes.body.plan.solution_scope,"transaction",query);
+      assert.equal(brainRes.body.plan.external_searches.some(item=>item.source==="marketplace"),true,query);
+
+      const searchRes=recorder();
+      await externalSearchHandler({
+        method:"POST",
+        body:{
+          goal:query,
+          domain:"agriculture",
+          location_text:"Тернопіль",
+          language:"uk",
+          searches:[{source:"marketplace",query,reason:"придбати"}]
+        }
+      },searchRes);
+      assert.equal(searchRes.statusCode,200,query);
+      assert.deepEqual(new Set(searchRes.body.results.map(item=>item.source_name)),new Set([
+        "Flagma","Agro-Ukraine","Agrotorg","Agrotender","OLX","Prom.ua","Google Maps"
+      ]),query);
+    }
+  }finally{
+    globalThis.fetch=originalFetch;
+    if(previous===undefined)delete process.env.GEMINI_FREE_TIER_API_KEY;else process.env.GEMINI_FREE_TIER_API_KEY=previous;
+  }
+});
+
 test("paid Google Places API remains disabled even when a key exists",async()=>{
   const previous=process.env.GOOGLE_MAPS_API_KEY;
   process.env.GOOGLE_MAPS_API_KEY="must-not-be-used";
@@ -138,4 +174,3 @@ test("paid Google Places API remains disabled even when a key exists",async()=>{
     if(previous===undefined)delete process.env.GOOGLE_MAPS_API_KEY;else process.env.GOOGLE_MAPS_API_KEY=previous;
   }
 });
-
