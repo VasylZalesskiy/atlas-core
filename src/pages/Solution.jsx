@@ -478,6 +478,9 @@ export default function Solution({lang}){
   },[activeTask,brainLoading,stepsKey,passportRunKey]);
 
   const passportsChecked=Boolean(activeTask&&!passportLoading&&!brainLoading&&passportCheckedGoal===passportRunKey);
+  const exactPassportFound=useMemo(()=>passportGroups.some(group=>(group.matches||[]).some(match=>{
+    return passportMatchesTask(passportCandidate(match,lang),activeTask);
+  })),[passportGroups,lang,activeTask]);
 
   async function ensureOrigin(){
     if(origin)return origin;
@@ -502,6 +505,11 @@ export default function Solution({lang}){
 
   useEffect(()=>{
     if(!passportsChecked||plan?.clarification?.required||searchScope)return;
+    if(exactPassportFound){
+      setSearchScope("direct");
+      trackAtlas("Atlas Exact Passport Match Found",{language:lang});
+      return;
+    }
     const nextScope=automaticSearchScope(plan,steps);
     setSearchScope(nextScope);
     setNearbyError("");
@@ -512,7 +520,7 @@ export default function Solution({lang}){
       location_provided:Boolean(initialWhere||origin)
     });
     if((nextScope==="nearby"||nextScope==="both")&&initialWhere&&!origin&&!originLoading)ensureOrigin();
-  },[passportsChecked,plan,stepsKey,searchScope,initialWhere]);
+  },[passportsChecked,exactPassportFound,plan,stepsKey,searchScope,initialWhere]);
 
   useEffect(()=>{
     const controller=new AbortController();
@@ -593,7 +601,7 @@ export default function Solution({lang}){
           location_text:initialWhere,
           external_searches:[{source,mode:"standard",query:step.internet_query,reason:step.purpose}]
         },{lang,signal:controller.signal});
-        return {stepId:step.id,candidates:results.slice(0,5).map((item,resultIndex)=>internetCandidate(item,resultIndex,lang)),error:false};
+        return {stepId:step.id,candidates:results.slice(0,10).map((item,resultIndex)=>internetCandidate(item,resultIndex,lang)),error:false};
       }catch(error){
         if(error?.name==="AbortError")throw error;
         return {stepId:step.id,candidates:[],error:true};
@@ -652,8 +660,13 @@ export default function Solution({lang}){
     });
   },[rankedCandidates,sortMode,activeTask]);
   const resolvedCandidates=sortedCandidates.filter(candidate=>candidate.resolved);
-  const recommendedCandidate=resolvedCandidates[0]||null;
-  const recommendedAlternatives=resolvedCandidates.slice(1,5);
+  const preparedCandidates=sortedCandidates.filter(candidate=>candidate?.kind==="external"&&["search_page","maps_search"].includes(candidate.resultKind));
+  const actionableCandidates=[
+    ...resolvedCandidates,
+    ...preparedCandidates.filter(candidate=>!resolvedCandidates.includes(candidate))
+  ];
+  const recommendedCandidate=actionableCandidates[0]||null;
+  const recommendedAlternatives=actionableCandidates.slice(1,10);
   const structuredPriceCount=rankedCandidates.filter(candidate=>structuredPrice(candidate)).length;
 
   const chains=useMemo(()=>{
@@ -827,7 +840,7 @@ export default function Solution({lang}){
           <strong>{lang==="uk"?"Шукаю конкретні варіанти":"Finding concrete options"}</strong>
           <span>{healthTask
             ?(lang==="uk"?"Atlas перевіряє медичні заклади поруч.":"Atlas is checking nearby medical care.")
-            :(lang==="uk"?"Atlas перевіряє Паспорти, конкретні пропозиції та варіанти поруч.":"Atlas is checking Passports, concrete offers and nearby options.")}</span>
+            :(lang==="uk"?"Atlas спочатку перевіряє Паспорти, а без точного збігу автоматично шукає у відомих магазинах і маркетплейсах.":"Atlas checks Passports first, then automatically searches known stores and marketplaces when there is no exact match.")}</span>
         </div>
       </div>}
 
