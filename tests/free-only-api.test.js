@@ -99,7 +99,7 @@ test("Brain uses only the dedicated Gemini free-tier key",async()=>{
   }
 });
 
-test("external commerce search returns ATB, OLX, Rozetka, Prom and Google Maps without an API call",async()=>{
+test("external commerce search covers known grocery stores and marketplaces without an API call",async()=>{
   const originalFetch=globalThis.fetch;
   globalThis.fetch=async()=>{throw new Error("unexpected-network-call")};
   try{
@@ -116,7 +116,9 @@ test("external commerce search returns ATB, OLX, Rozetka, Prom and Google Maps w
     },res);
     assert.equal(res.statusCode,200);
     assert.equal(res.body.paid_search_disabled,true);
-    assert.deepEqual(new Set(res.body.results.map(item=>item.source_name)),new Set(["АТБ","OLX","Rozetka","Prom.ua","Google Maps"]));
+    assert.deepEqual(new Set(res.body.results.map(item=>item.source_name)),new Set([
+      "АТБ","Сільпо","METRO","NOVUS","Auchan","Rozetka","OLX","Prom.ua","Flagma","Google Maps"
+    ]));
   }finally{
     globalThis.fetch=originalFetch;
   }
@@ -136,3 +138,4 @@ test("paid Google Places API remains disabled even when a key exists",async()=>{
     if(previous===undefined)delete process.env.GOOGLE_MAPS_API_KEY;else process.env.GOOGLE_MAPS_API_KEY=previous;
   }
 });
+
