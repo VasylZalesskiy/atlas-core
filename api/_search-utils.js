@@ -48,10 +48,82 @@ function normalizedNumber(value){
   return Number.isFinite(number)&&number>0?number:null;
 }
 
+const UK_NUMBER_WORD_VALUES=new Map(Object.entries({
+  "нуль":0,"нульова":0,"один":1,"одна":1,"одне":1,"одну":1,"перший":1,
+  "два":2,"дві":2,"три":3,"чотири":4,"пять":5,"шість":6,"сім":7,"вісім":8,"девять":9,
+  "десять":10,"одинадцять":11,"дванадцять":12,"тринадцять":13,"чотирнадцять":14,
+  "пятнадцять":15,"шістнадцять":16,"сімнадцять":17,"вісімнадцять":18,"девятнадцять":19,
+  "двадцять":20,"двадцяти":20,"тридцять":30,"тридцяти":30,"сорок":40,
+  "пятдесят":50,"шістдесят":60,"сімдесят":70,"вісімдесят":80,"девяносто":90,
+  "сто":100,"двісті":200,"триста":300,"чотириста":400,"пятсот":500,
+  "шістсот":600,"сімсот":700,"вісімсот":800,"девятсот":900
+}));
+
+const UK_NUMBER_SCALES=new Map([
+  ["тисяча",1000],["тисячі",1000],["тисяч",1000],
+  ["мільйон",1000000],["мільйони",1000000],["мільйонів",1000000]
+]);
+
+function normalizeQuantityWord(value){
+  return String(value||"").toLowerCase().replace(/[’ʼ']/g,"").replace(/[^\p{L}]/gu,"");
+}
+
+function parseUkrainianNumberWords(words){
+  let total=0;
+  let current=0;
+  let recognized=false;
+  for(const raw of words){
+    const word=normalizeQuantityWord(raw);
+    if(word==="і"||word==="й")continue;
+    if(UK_NUMBER_WORD_VALUES.has(word)){
+      current+=UK_NUMBER_WORD_VALUES.get(word);
+      recognized=true;
+      continue;
+    }
+    const scale=UK_NUMBER_SCALES.get(word);
+    if(scale){
+      total+=(current||1)*scale;
+      current=0;
+      recognized=true;
+      continue;
+    }
+    return null;
+  }
+  const value=total+current;
+  return recognized&&value>0?value:null;
+}
+
+function weightUnitMultiplier(raw){
+  const unit=normalizeQuantityWord(raw);
+  if(["т","тон","тона","тони","тону","тонн","тонна","тонни","тонну","ton","tons","tonne","tonnes"].includes(unit))return 1000;
+  if(["кг","kg","кіло","кілограм","кілограма","кілограми","кілограмів"].includes(unit))return 1;
+  return null;
+}
+
+function collectWordQuantitiesKilograms(text){
+  const tokens=String(text||"").match(/[\p{L}’ʼ'-]+/gu)||[];
+  const quantities=[];
+  for(let index=0;index<tokens.length;index+=1){
+    const multiplier=weightUnitMultiplier(tokens[index]);
+    if(multiplier===null)continue;
+    let start=index-1;
+    let scanned=0;
+    while(start>=0&&scanned<8){
+      const word=normalizeQuantityWord(tokens[start]);
+      if(word!=="і"&&word!=="й"&&!UK_NUMBER_WORD_VALUES.has(word)&&!UK_NUMBER_SCALES.has(word))break;
+      start-=1;
+      scanned+=1;
+    }
+    const amount=parseUkrainianNumberWords(tokens.slice(start+1,index));
+    if(amount!==null)quantities.push(amount*multiplier);
+  }
+  return quantities;
+}
+
 function collectQuantitiesKilograms(text){
   const value=String(text||"").toLowerCase();
   const quantities=[];
-  const tonnes=/(\d+(?:[\s.]\d{3})*(?:[.,]\d+)?)\s*(?:тонн(?:а|и|у)?|тон(?!\p{L})|т(?!\p{L})|tonnes?\b)/giu;
+  const tonnes=/(\d+(?:[\s.]\d{3})*(?:[.,]\d+)?)\s*(?:тон(?:н(?:а|и|у)?|а|и|у)?(?!\p{L})|т(?!\p{L})|tonnes?\b|tons?\b)/giu;
   const kilograms=/(\d+(?:[\s.]\d{3})*(?:[.,]\d+)?)\s*(?:кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?)/giu;
   for(const match of value.matchAll(tonnes)){
     const amount=normalizedNumber(match[1]);
@@ -61,7 +133,7 @@ function collectQuantitiesKilograms(text){
     const amount=normalizedNumber(match[1]);
     if(amount)quantities.push(amount);
   }
-  return quantities;
+  return [...quantities,...collectWordQuantitiesKilograms(value)];
 }
 
 export function extractRequestedTonnes(text){
@@ -97,7 +169,7 @@ function isAgriculture(text){
 }
 
 export function isProductTransaction(text){
-  return /куп|прод|товар|продукт|постач|опт|гурт|тонн|кілограм|кг(?!\p{L})|достав|оренд|buy|sell|supplier|wholesale|bulk|product|delivery/iu.test(String(text||""));
+  return extractRequestedKilograms(text)!==null||/куп|прод|товар|продукт|постач|опт|гурт|кілограм|достав|оренд|buy|sell|supplier|wholesale|bulk|product|delivery/iu.test(String(text||""));
 }
 
 export function sourceGroupsFor({source="web",goal="",query="",domain=""}={}){
@@ -153,7 +225,14 @@ const SEARCH_STOP_WORDS=new Set([
   "знайти","доставка","доставкою","оптом","гуртом","мені","для","або","та","і","у","в","на","по",
   "продаж","оголошення","пропозиція","пропозиції","маркетплейс","україна","україні","ua","olx","rozetka","prom",
   "agroboard","agriaffaires","need","want","find","buy","sell","with","delivery","wholesale","marketplace","listing",
-  "ukraine","for","the","a","an"
+  "ukraine","for","the","a","an",
+  "нуль","один","одна","одне","одну","два","дві","три","чотири","п'ять","пʼять","пять","шість","сім","вісім","дев'ять","девʼять","девять",
+  "десять","одинадцять","дванадцять","тринадцять","чотирнадцять","п'ятнадцять","пʼятнадцять","пятнадцять","шістнадцять","сімнадцять","вісімнадцять","дев'ятнадцять","девʼятнадцять","девятнадцять",
+  "двадцять","двадцяти","тридцять","тридцяти","сорок","п'ятдесят","пʼятдесят","пятдесят","шістдесят","сімдесят","вісімдесят","дев'яносто","девʼяносто","девяносто",
+  "сто","двісті","триста","чотириста","п'ятсот","пʼятсот","пятсот","шістсот","сімсот","вісімсот","дев'ятсот","девʼятсот","девятсот",
+  "тисяча","тисячі","тисяч","мільйон","мільйони","мільйонів",
+  "т","тон","тона","тони","тону","тонн","тонна","тонни","тонну","кг","кілограм","кілограма","кілограми","кілограмів",
+  "ton","tons","tonne","tonnes","kg","kilogram","kilograms"
 ]);
 
 const SEARCH_WORD_ALIASES={гороху:"горох",гороха:"горох",картоплі:"картопля"};
@@ -161,7 +240,7 @@ const SEARCH_WORD_ALIASES={гороху:"горох",гороха:"горох",�
 export function marketplaceSearchTerm(text){
   const withoutQuantity=String(text||"")
     .toLowerCase()
-    .replace(/\d+(?:[\s.]*\d)*(?:[.,]\d+)?\s*(?:тонн(?:а|и|у)?|тон(?!\p{L})|т(?!\p{L})|кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|tonnes?\b)/giu," ")
+    .replace(/\d+(?:[\s.]*\d)*(?:[.,]\d+)?\s*(?:тон(?:н(?:а|и|у)?|а|и|у)?(?!\p{L})|т(?!\p{L})|кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|tonnes?\b|tons?\b)/giu," ")
     .replace(/[^\p{L}\p{N}\s-]/gu," ");
   const seen=new Set();
   const words=withoutQuantity.split(/\s+/).filter(Boolean).filter(word=>!SEARCH_STOP_WORDS.has(word)).map(word=>SEARCH_WORD_ALIASES[word]||word).filter(word=>{
@@ -299,4 +378,3 @@ export function rankMarketplaceResults(results,{requestedTonnes=null,limit=12}={
     .slice(0,limit)
     .map(({_score,_index,...result})=>result);
 }
-
