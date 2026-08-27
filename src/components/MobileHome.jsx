@@ -7,6 +7,23 @@ import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import "../styles/mobilePilot.css";
 
 function readImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
+function compressImage(file){return new Promise(async(resolve,reject)=>{
+  try{
+    const source=await readImage(file);
+    const img=new Image();
+    img.onload=()=>{
+      const maxSide=1280;
+      const scale=Math.min(1,maxSide/Math.max(img.width,img.height));
+      const width=Math.max(1,Math.round(img.width*scale));
+      const height=Math.max(1,Math.round(img.height*scale));
+      const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;
+      const ctx=canvas.getContext("2d");ctx.drawImage(img,0,0,width,height);
+      resolve(canvas.toDataURL("image/jpeg",0.78));
+    };
+    img.onerror=()=>reject(new Error("image-decode-failed"));
+    img.src=source;
+  }catch(error){reject(error)}
+})}
 
 export default function MobileHome({lang="uk"}){
   const uk=lang!=="en";
@@ -40,8 +57,8 @@ export default function MobileHome({lang="uk"}){
     if(!file)return;
     setVision(null);setVisionBusy(true);
     try{
-      const image=await readImage(file);
-      setPhoto(image);
+      const preview=await readImage(file);setPhoto(preview);
+      const image=await compressImage(file);
       const response=await fetch("/api/vision",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image,lang})});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data?.error||"vision-failed");
@@ -49,7 +66,10 @@ export default function MobileHome({lang="uk"}){
       if(data.task)setTask(data.task);
       else if(data.name)setTask(uk?`Знайти інформацію або рішення: ${data.name}`:`Find information or a solution: ${data.name}`);
     }catch(error){
-      setVision({error:true,note:uk?"Не вдалося розпізнати фото. Спробуйте інше фото.":"Could not recognize the photo. Try another photo."});
+      const message=String(error?.message||"");
+      setVision({error:true,note:uk
+        ?(message.includes("vision-not-configured")?"Розпізнавання фото ще не активоване на сервері.":"Не вдалося розпізнати фото. Спробуйте ще раз.")
+        :(message.includes("vision-not-configured")?"Photo recognition is not enabled on the server yet.":"Could not recognize the photo. Try again.")});
     }finally{setVisionBusy(false)}
   }
 
