@@ -4,6 +4,7 @@ import {Analytics} from "@vercel/analytics/react";
 import {SpeedInsights} from "@vercel/speed-insights/react";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
+import SolutionNavigation from "./components/SolutionNavigation";
 import PilotGate from "./components/PilotGate";
 import Home from "./pages/Home";
 import Solution from "./pages/Solution";
@@ -25,6 +26,7 @@ export default function App(){
   const t=useMemo(()=>dict[lang],[lang]);
   const location=useLocation();
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
+  const solutionRoute=location.pathname==="/solution";
 
   useEffect(()=>{
     try{localStorage.setItem("atlas-language",lang)}catch{}
@@ -34,6 +36,7 @@ export default function App(){
   return <>
     {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
       <Header lang={lang} setLang={setLang}/>
+      {solutionRoute&&<SolutionNavigation lang={lang}/>} 
       <Routes>
         <Route path="/" element={<Home t={t} lang={lang}/>}/>
         <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
