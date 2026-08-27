@@ -1,9 +1,11 @@
 import {useRef,useState} from "react";
-import {Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,Search,X} from "lucide-react";
+import {Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,Search,Share2,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
+import OnlinePresence from "./OnlinePresence";
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
+import {ATLAS_SHARE_URL,atlasShareText} from "../services/shareApp";
 import "../styles/mobilePilot.css";
 
 function readImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
@@ -52,6 +54,14 @@ export default function MobileHome({lang="uk"}){
   function quick(value){setTask(value);window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
   function clearPhoto(){setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value=""}
 
+  async function shareAtlas(){
+    const text=atlasShareText(lang);
+    if(navigator.share){
+      try{await navigator.share({title:"Atlas",text,url:ATLAS_SHARE_URL});return}catch(error){if(error?.name==="AbortError")return}
+    }
+    try{await navigator.clipboard.writeText(ATLAS_SHARE_URL);alert(uk?"Посилання Atlas скопійовано":"Atlas link copied")}catch{window.prompt(uk?"Скопіюйте посилання":"Copy the link",ATLAS_SHARE_URL)}
+  }
+
   async function choosePhoto(event){
     const file=event.target.files?.[0];
     if(!file)return;
@@ -75,6 +85,7 @@ export default function MobileHome({lang="uk"}){
 
   return <section className="mobilePilotHome">
     <div className="mobilePilotBrand">ATLAS</div>
+    <div className="mobilePilotStatusRow"><OnlinePresence lang={lang} compact/><button type="button" className="mobilePilotShare" onClick={shareAtlas}><Share2 size={15}/><span>{uk?"Поділитися":"Share"}</span></button></div>
     <h1>{uk?"Що потрібно?":"What do you need?"}</h1>
     <p>{uk?"Напишіть, скажіть або покажіть фото.":"Write, say it, or show a photo."}</p>
 
