@@ -5,6 +5,7 @@ import {SpeedInsights} from "@vercel/speed-insights/react";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import SolutionNavigation from "./components/SolutionNavigation";
+import MobileHome from "./components/MobileHome";
 import PilotGate from "./components/PilotGate";
 import Home from "./pages/Home";
 import Solution from "./pages/Solution";
@@ -38,7 +39,7 @@ export default function App(){
       <Header lang={lang} setLang={setLang}/>
       {solutionRoute&&<SolutionNavigation lang={lang}/>} 
       <Routes>
-        <Route path="/" element={<Home t={t} lang={lang}/>}/>
+        <Route path="/" element={<><Home t={t} lang={lang}/><MobileHome lang={lang}/></>}/>
         <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
         <Route path="/needs" element={<Needs lang={lang}/>}/>
         <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
