@@ -21,6 +21,9 @@ function practicalNearbyQuery(query,lang){
   const q=String(query||"").trim();
   const text=q.toLowerCase();
   const uk=lang!=="en";
+  if(/продуктов\w*\s+магазин|магазин\w*\s+продукт|супермаркет|grocer|grocery|supermarket/i.test(text)){
+    return uk?"супермаркет":"supermarket";
+  }
   if(/пробил\w*\s+колес|спустил\w*\s+колес|прокол\w*\s+колес|шиномонтаж|flat\s+tire|flat\s+tyre|puncture/i.test(text)){
     return uk?"шиномонтаж":"tyre repair";
   }
@@ -85,9 +88,6 @@ export async function searchNearbyPlaces(location,query,{lang="uk",radiusKm=30,l
     .sort((a,b)=>(a.straightDistanceKm??Infinity)-(b.straightDistanceKm??Infinity));
 }
 
-// Resolve a named destination globally rather than restricting the search to the
-// user's nearby radius. This is used for requests such as travelling to a city,
-// address, venue or other explicitly named destination.
 export async function searchDestination(location,query,{lang="uk",limit=3,signal}={}){
   const q=String(query||"").trim();
   if(!q)return [];
