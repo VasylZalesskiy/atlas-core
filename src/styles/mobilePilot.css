@@ -1,1 +1,519 @@
-.mobilePilotHome{display:none}.mobileHeaderNav{display:none}@media(max-width:760px){.bottomNav{display:none!important}.atlasHeader{height:52px!important;min-height:52px!important;padding:4px 8px!important;display:grid!important;grid-template-columns:58px minmax(0,1fr)!important;grid-template-areas:"brand nav"!important;gap:2px!important;align-items:center!important}.atlasHeader .brand{grid-area:brand;min-width:0;gap:0!important;font-size:14px!important;letter-spacing:.06em!important;justify-content:flex-start}.atlasHeader .brand b{display:none!important}.atlasHeader .brand span{display:block!important;white-space:nowrap}.atlasHeader .headerPageTitle,.atlasHeader .actions{display:none!important}.mobileHeaderNav{grid-area:nav;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;width:100%;min-width:0}.mobileHeaderNav a{width:auto!important;min-width:0!important;padding:4px 1px!important;border-radius:8px;color:#6c7871;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:8px!important;font-weight:800;line-height:1;overflow:hidden}.mobileHeaderNav a svg{width:17px;height:17px}.mobileHeaderNav a span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mobileHeaderNav a.active{background:#eaf7ef;color:#08723d}.home{display:none!important}.mobilePilotHome{display:flex;min-height:auto;padding:4px 12px 22px;flex-direction:column;justify-content:flex-start;background:#fff}.mobilePilotBrand{display:none}.mobilePilotStatusRow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:1px 0 3px}.atlasPresence{position:relative}.atlasPresenceButton,.mobilePilotShare{border:1px solid #dce7e0;background:#f8fbf9;color:#405148;border-radius:999px;min-height:31px;padding:6px 10px;display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:850}.atlasPresenceDot{width:7px;height:7px;border-radius:50%;background:#10a557;box-shadow:0 0 0 2px #ddf5e7;flex:0 0 auto}.atlasPresencePopup{position:absolute;left:0;top:36px;z-index:80;width:min(290px,calc(100vw - 28px));padding:10px;background:#fff;border:1px solid #dce7e0;border-radius:14px;box-shadow:0 16px 40px rgba(18,56,35,.18)}.atlasPresenceTitle{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}.atlasPresenceTitle>button{border:0;background:transparent;padding:4px;color:#6c7871}.atlasPresenceUser{display:flex;align-items:center;gap:8px;padding:7px 3px;border-top:1px solid #eef2ef}.atlasPresenceUser>div{display:grid;gap:1px}.atlasPresenceUser b{font-size:12px}.atlasPresenceUser small{font-size:10px;color:#718078}.atlasPresencePopup>p{font-size:12px;color:#718078;margin:8px 2px}.mobilePilotShare{cursor:pointer}.mobilePilotHome h1{font-size:28px;line-height:1.02;letter-spacing:-.04em;margin:2px 0 4px;color:#142219}.mobilePilotHome>p{font-size:12px;line-height:1.3;color:#66736b;margin:0 0 8px;max-width:330px}.mobilePilotSearch{display:grid;gap:8px}.mobilePilotInputWrap{position:relative}.mobilePilotSearch .voiceTaskInput{border:1px solid #d7e2dc;border-radius:15px;background:#fff;box-shadow:0 4px 16px rgba(24,76,48,.06)}.mobilePilotSearch .voiceTaskInput textarea,.mobilePilotSearch .voiceTaskInput input{min-height:76px;border:0!important;font-size:17px!important;line-height:1.3;padding:12px 96px 12px 12px!important}.mobilePilotCamera{position:absolute;right:54px;bottom:8px;width:38px;height:38px;border:0;border-radius:10px;background:#f1f7f3;color:#08783e;display:grid;place-items:center;z-index:4}.mobilePilotFile{display:none}.mobilePilotPhoto{position:relative;display:grid;grid-template-columns:58px 1fr auto;gap:8px;align-items:center;border:1px solid #dce7e0;border-radius:13px;padding:6px;background:#f8fbf9;color:#314239}.mobilePilotPhoto img{width:58px;height:58px;object-fit:cover;border-radius:9px}.mobilePilotPhoto>div{display:flex;flex-direction:column;gap:3px;font-size:12px;line-height:1.25}.mobilePilotPhoto>div span{color:#6c7871}.mobilePilotPhoto>button{align-self:start;border:0;background:transparent;color:#718078;padding:4px}.mobilePilotPhoto .spin{animation:atlasSpin 1s linear infinite}@keyframes atlasSpin{to{transform:rotate(360deg)}}.mobilePilotGo{height:48px;border:0;border-radius:13px;background:#0b8c48;color:#fff;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:8px}.mobilePilotGo:disabled{opacity:.55}.mobilePilotQuick{display:flex;gap:7px;overflow-x:auto;margin:7px -2px 0;padding:2px;scrollbar-width:none}.mobilePilotQuick::-webkit-scrollbar{display:none}.mobilePilotQuick button{border:1px solid #dce7e0;background:#f7faf8;color:#314239;border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800;white-space:nowrap}.mobilePilotCards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.mobilePilotCards a{min-height:66px;border:1px solid #dfe8e2;border-radius:14px;padding:10px;background:#fff;color:#1f3127;text-decoration:none;display:flex;flex-direction:column;justify-content:space-between;font-size:12px;font-weight:900}.mobilePilotCards svg{color:#0b8c48}.home{min-height:0}footer{display:none}}
+.mobilePilotHome,
+.mobileHeaderNav {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .bottomNav {
+    display: none !important;
+  }
+
+  .atlasHeader {
+    height: 56px !important;
+    min-height: 56px !important;
+    padding: 4px 8px !important;
+    display: grid !important;
+    grid-template-columns: 62px minmax(0, 1fr) !important;
+    grid-template-areas: "brand nav" !important;
+    gap: 4px !important;
+    align-items: center !important;
+    background: rgba(255, 255, 255, .98) !important;
+    border-bottom: 1px solid #dfe9e3 !important;
+    box-shadow: 0 5px 18px rgba(18, 65, 39, .07) !important;
+  }
+
+  .atlasHeader .brand {
+    grid-area: brand;
+    min-width: 0;
+    gap: 0 !important;
+    justify-content: flex-start;
+    color: #08723d;
+    font-size: 14px !important;
+    letter-spacing: .08em !important;
+  }
+
+  .atlasHeader .brand b {
+    display: none !important;
+  }
+
+  .atlasHeader .brand span {
+    display: block !important;
+    white-space: nowrap;
+  }
+
+  .atlasHeader .headerPageTitle,
+  .atlasHeader .actions {
+    display: none !important;
+  }
+
+  .mobileHeaderNav {
+    grid-area: nav;
+    display: grid !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mobileHeaderNav a {
+    display: flex;
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 4px 1px !important;
+    overflow: hidden;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border-radius: 9px;
+    color: #6c7871;
+    font-size: 8px !important;
+    font-weight: 800;
+    line-height: 1;
+    text-decoration: none;
+  }
+
+  .mobileHeaderNav a svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .mobileHeaderNav a span {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileHeaderNav a.active {
+    background: #eaf7ef;
+    color: #08723d;
+  }
+
+  .home {
+    display: none !important;
+    min-height: 0;
+  }
+
+  .mobilePilotHome {
+    display: flex;
+    min-height: calc(100dvh - 56px);
+    padding: 8px 12px calc(26px + env(safe-area-inset-bottom));
+    flex-direction: column;
+    justify-content: flex-start;
+    background:
+      radial-gradient(circle at 100% 0, rgba(29, 164, 91, .09), transparent 34%),
+      linear-gradient(180deg, #fbfdfb 0, #fff 42%);
+  }
+
+  .mobilePilotBrand {
+    display: none;
+  }
+
+  .mobilePilotStatusRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .atlasPresence {
+    position: relative;
+  }
+
+  .atlasPresenceButton,
+  .mobilePilotShare {
+    min-height: 34px;
+    padding: 7px 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #dce7e0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .88);
+    color: #405148;
+    font-size: 11px;
+    font-weight: 850;
+    box-shadow: 0 4px 12px rgba(23, 69, 43, .04);
+  }
+
+  .atlasPresenceDot {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #10a557;
+    box-shadow: 0 0 0 3px #ddf5e7;
+  }
+
+  .atlasPresencePopup {
+    position: absolute;
+    left: 0;
+    top: 39px;
+    z-index: 80;
+    width: min(290px, calc(100vw - 28px));
+    padding: 10px;
+    border: 1px solid #dce7e0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(18, 56, 35, .18);
+  }
+
+  .atlasPresenceTitle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .atlasPresenceTitle > button {
+    padding: 4px;
+    border: 0;
+    background: transparent;
+    color: #6c7871;
+  }
+
+  .atlasPresenceUser {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 3px;
+    border-top: 1px solid #eef2ef;
+  }
+
+  .atlasPresenceUser > div {
+    display: grid;
+    gap: 1px;
+  }
+
+  .atlasPresenceUser b {
+    font-size: 12px;
+  }
+
+  .atlasPresenceUser small,
+  .atlasPresencePopup > p {
+    color: #718078;
+    font-size: 10px;
+  }
+
+  .atlasPresencePopup > p {
+    margin: 8px 2px;
+    font-size: 12px;
+  }
+
+  .mobilePilotShare {
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+
+  .mobilePilotHero {
+    margin-bottom: 14px;
+    padding: 4px 3px 0;
+  }
+
+  .mobilePilotEyebrow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 7px;
+    color: #0b7941;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .08em;
+  }
+
+  .mobilePilotEyebrow svg {
+    flex: 0 0 auto;
+  }
+
+  .mobilePilotHero h1 {
+    max-width: 350px;
+    margin: 0;
+    color: #142219;
+    font-size: clamp(29px, 8.4vw, 37px);
+    font-weight: 900;
+    letter-spacing: -.045em;
+    line-height: .99;
+  }
+
+  .mobilePilotHero h1 span {
+    display: block;
+    color: #0b8747;
+  }
+
+  .mobilePilotHero p {
+    max-width: 355px;
+    margin: 10px 0 0;
+    color: #5e6e64;
+    font-size: 13px;
+    line-height: 1.42;
+  }
+
+  .mobilePilotSearch {
+    display: grid;
+    gap: 9px;
+    padding: 14px;
+    border: 1px solid #d9e6de;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, .98);
+    box-shadow: 0 17px 46px rgba(19, 70, 41, .12);
+  }
+
+  .mobilePilotQuestion {
+    color: #24372c;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .mobilePilotInputWrap {
+    position: relative;
+  }
+
+  .mobilePilotSearch .voiceTaskInput {
+    overflow: hidden;
+    border: 1px solid #cadbd1;
+    border-radius: 16px;
+    background: #fff;
+    transition: border-color .18s ease, box-shadow .18s ease;
+  }
+
+  .mobilePilotSearch .voiceTaskInput:focus-within {
+    border-color: #27a565;
+    box-shadow: 0 0 0 4px rgba(22, 154, 82, .1);
+  }
+
+  .mobilePilotSearch .voiceTaskInput textarea,
+  .mobilePilotSearch .voiceTaskInput input {
+    min-height: 92px;
+    padding: 13px !important;
+    border: 0 !important;
+    border-radius: 0;
+    outline: none;
+    color: #18271e;
+    background: #fff;
+    font-size: 16px !important;
+    line-height: 1.35;
+    resize: none;
+  }
+
+  .mobilePilotSearch .voiceTaskToolbar {
+    min-height: 57px;
+    padding: 7px 8px 8px 11px;
+    background: #f7faf8;
+  }
+
+  .mobilePilotSearch .voiceStatus {
+    max-width: 155px;
+    color: #607067;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .mobilePilotSearch .voiceStatus.listening {
+    color: #a83232;
+  }
+
+  .mobilePilotSearch .voiceButton,
+  .mobilePilotCamera,
+  .mobilePilotSearch .voiceClearButton {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px;
+    border-radius: 13px !important;
+    touch-action: manipulation;
+  }
+
+  .mobilePilotSearch .voiceButton {
+    border: 0;
+    background: #0b8747;
+    color: #fff;
+    box-shadow: 0 6px 15px rgba(11, 135, 71, .22);
+  }
+
+  .mobilePilotSearch .voiceButton.listening {
+    background: #fff0f0;
+    color: #b72f2f;
+    box-shadow: none;
+  }
+
+  .mobilePilotCamera {
+    position: static;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid #d1e0d7;
+    background: #fff;
+    color: #08783e;
+  }
+
+  .mobilePilotFile {
+    display: none;
+  }
+
+  .mobilePilotPhoto {
+    position: relative;
+    display: grid;
+    grid-template-columns: 58px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 7px;
+    border: 1px solid #dce7e0;
+    border-radius: 13px;
+    background: #f8fbf9;
+    color: #314239;
+  }
+
+  .mobilePilotPhoto img {
+    width: 58px;
+    height: 58px;
+    border-radius: 9px;
+    object-fit: cover;
+  }
+
+  .mobilePilotPhoto > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+
+  .mobilePilotPhoto > div span {
+    color: #6c7871;
+  }
+
+  .mobilePilotPhoto > button {
+    align-self: start;
+    padding: 4px;
+    border: 0;
+    background: transparent;
+    color: #718078;
+  }
+
+  .mobilePilotPhoto .spin {
+    animation: atlasSpin 1s linear infinite;
+  }
+
+  .mobilePilotGo {
+    height: 51px;
+    border: 0;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #0d9650, #08703b);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 900;
+    box-shadow: 0 10px 24px rgba(10, 124, 66, .2);
+    touch-action: manipulation;
+  }
+
+  .mobilePilotGo:disabled {
+    box-shadow: none;
+    opacity: .55;
+  }
+
+  .mobilePilotQuick {
+    display: flex;
+    gap: 7px;
+    margin: 10px -2px 0;
+    padding: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .mobilePilotQuick::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobilePilotQuick button {
+    padding: 8px 11px;
+    border: 1px solid #dce7e0;
+    border-radius: 999px;
+    background: #fff;
+    color: #314239;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    touch-action: manipulation;
+  }
+
+  .mobilePilotCards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    margin-top: 12px;
+  }
+
+  .mobilePilotCards a {
+    min-height: 104px;
+    padding: 13px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #dfe8e2;
+    border-radius: 17px;
+    background: #fff;
+    color: #1f3127;
+    text-decoration: none;
+    box-shadow: 0 7px 20px rgba(21, 68, 42, .05);
+  }
+
+  .mobilePilotCards a > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: auto;
+  }
+
+  .mobilePilotCards svg {
+    color: #0b8c48;
+  }
+
+  .mobilePilotCards a > div svg:last-child {
+    color: #8aa096;
+  }
+
+  .mobilePilotCards span {
+    margin-top: 12px;
+    font-size: 13px;
+    font-weight: 900;
+  }
+
+  .mobilePilotCards small {
+    margin-top: 3px;
+    color: #718078;
+    font-size: 10px;
+  }
+
+  footer {
+    display: none;
+  }
+}
+
+@media (max-width: 365px) {
+  .mobilePilotHome {
+    padding-inline: 9px;
+  }
+
+  .mobilePilotHero h1 {
+    font-size: 28px;
+  }
+
+  .mobilePilotSearch {
+    padding: 11px;
+  }
+
+  .mobilePilotSearch .voiceStatus {
+    max-width: 115px;
+  }
+}
+
+@keyframes atlasSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}

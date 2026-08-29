@@ -1,5 +1,5 @@
 import {useRef,useState} from "react";
-import {Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,Search,Share2,X} from "lucide-react";
+import {ArrowUpRight,Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,Search,Share2,Sparkles,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
 import OnlinePresence from "./OnlinePresence";
@@ -86,13 +86,24 @@ export default function MobileHome({lang="uk"}){
   return <section className="mobilePilotHome">
     <div className="mobilePilotBrand">ATLAS</div>
     <div className="mobilePilotStatusRow"><OnlinePresence lang={lang} compact/><button type="button" className="mobilePilotShare" onClick={shareAtlas}><Share2 size={15}/><span>{uk?"Поділитися":"Share"}</span></button></div>
-    <h1>{uk?"Що потрібно?":"What do you need?"}</h1>
-    <p>{uk?"Напишіть, скажіть або покажіть фото.":"Write, say it, or show a photo."}</p>
+
+    <div className="mobilePilotHero">
+      <div className="mobilePilotEyebrow"><Sparkles size={15}/><span>{uk?"ATLAS ПОЄДНУЄ ЛЮДЕЙ І РІШЕННЯ":"ATLAS CONNECTS PEOPLE AND SOLUTIONS"}</span></div>
+      <h1>{uk?<>Твої можливості — <span>це частинка чиєїсь задачі</span></>:<>Your capabilities are <span>part of someone else's task</span></>}</h1>
+      <p>{uk?"Опишіть задачу — Atlas спробує знайти найкоротший практичний шлях до рішення.":"Describe the task — Atlas will try to find the shortest practical path to a solution."}</p>
+    </div>
 
     <form className="mobilePilotSearch" onSubmit={submit}>
+      <label className="mobilePilotQuestion">{uk?"Яку задачу вирішуємо?":"What task are we solving?"}</label>
       <div className="mobilePilotInputWrap">
-        <VoiceTaskInput autoFocus value={task} onChange={setTask} lang={lang} placeholder={uk?"Наприклад: де продуктовий магазин?":"For example: where is a grocery store?"}/>
-        <button className="mobilePilotCamera" type="button" onClick={()=>fileRef.current?.click()} aria-label={uk?"Додати фото":"Add photo"}><Camera size={22}/></button>
+        <VoiceTaskInput
+          value={task}
+          onChange={setTask}
+          lang={lang}
+          controlsBelow
+          placeholder={uk?"Наприклад: потрібно знайти 20 тонн картоплі":"For example: I need to find 20 tonnes of potatoes"}
+          extraAction={<button className="mobilePilotCamera" type="button" onClick={()=>fileRef.current?.click()} aria-label={uk?"Додати фото":"Add photo"} title={uk?"Показати фото":"Show a photo"}><Camera size={21}/></button>}
+        />
         <input ref={fileRef} className="mobilePilotFile" type="file" accept="image/*" capture="environment" onChange={choosePhoto}/>
       </div>
       {photo&&<div className="mobilePilotPhoto">
@@ -111,8 +122,8 @@ export default function MobileHome({lang="uk"}){
     </div>
 
     <div className="mobilePilotCards">
-      <Link to="/profile"><IdCard size={24}/><span>{uk?"Мої можливості":"My capabilities"}</span></Link>
-      <Link to="/needs"><HeartHandshake size={24}/><span>{uk?"Мої потреби":"My needs"}</span></Link>
+      <Link to="/profile"><div><IdCard size={24}/><ArrowUpRight size={17}/></div><span>{uk?"Мої можливості":"My capabilities"}</span><small>{uk?"Чим можу допомогти":"How I can help"}</small></Link>
+      <Link to="/needs"><div><HeartHandshake size={24}/><ArrowUpRight size={17}/></div><span>{uk?"Мої потреби":"My needs"}</span><small>{uk?"Що шукаю зараз":"What I need now"}</small></Link>
     </div>
   </section>;
 }

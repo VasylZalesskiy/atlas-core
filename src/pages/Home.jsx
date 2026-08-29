@@ -104,21 +104,8 @@ export default function Home({t,lang}){
   const hasSearch=Boolean(task.trim()||where.trim());
 
   return <main className="home">
-    <section className="hero" style={{paddingTop:40}}>
-      <div style={{display:"inline-flex",alignItems:"center",gap:7,marginBottom:10,padding:"6px 10px",borderRadius:999,background:"#fff7df",border:"1px solid #ead79b",color:"#765f20",fontSize:11,fontWeight:900,letterSpacing:".08em"}}>
-        ATLAS · {lang==="uk"?"ТЕСТОВА ВЕРСІЯ":"TEST VERSION"}
-      </div>
-
-      <div style={{marginBottom:18,display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap"}}>
-        <a href={aboutUrl} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,color:"#0d7a41",fontSize:13,fontWeight:800,textDecoration:"underline",textUnderlineOffset:3}}>
-          <FileText size={16}/>
-          {lang==="uk"?"Вперше тут? Прочитайте за 1 хвилину, що робить Atlas →":"New here? Read in 1 minute what Atlas does →"}
-        </a>
-        <Link to="/share" style={{display:"inline-flex",alignItems:"center",gap:7,padding:"8px 12px",borderRadius:12,background:"#e9f7ee",border:"1px solid #b9ddc7",color:"#08723d",fontSize:13,fontWeight:900}}>
-          <Smartphone size={17}/>
-          {lang==="uk"?"Мобільна версія · QR · встановити на телефон →":"Mobile Atlas · QR · install on phone →"}
-        </Link>
-      </div>
+    <section className="hero atlasHomeHero">
+      <div className="heroEyebrow"><span/>ATLAS · {lang==="uk"?"БАЗА МОЖЛИВОСТЕЙ":"CAPABILITY NETWORK"}</div>
 
       <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,letterSpacing:"-.035em",marginBottom:28}}>
         {title}
@@ -152,6 +139,11 @@ export default function Home({t,lang}){
       <div className="examples" style={{fontSize:12,marginTop:16}}>
         <span>{t.examples}:</span>
         {examples[lang].map(example=><button key={example} type="button" onClick={()=>setTask(example)} style={{fontSize:12,padding:"7px 10px"}}>{example}</button>)}
+      </div>
+
+      <div className="homeUtilityLinks">
+        <a href={aboutUrl} target="_blank" rel="noreferrer"><FileText size={16}/>{lang==="uk"?"Як Atlas знаходить рішення":"How Atlas finds solutions"}</a>
+        <Link to="/share"><Smartphone size={17}/>{lang==="uk"?"Встановити або передати Atlas":"Install or share Atlas"}</Link>
       </div>
 
       <section className="homeHistory">
