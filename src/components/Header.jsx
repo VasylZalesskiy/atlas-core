@@ -22,7 +22,8 @@ export default function Header({lang,setLang}){
     {to:"/profile",label:uk?"Можливості":"Opportunities",icon:IdCard},
     {to:"/chat",label:uk?"Чат":"Chat",icon:MessageCircleMore}
   ];
-  return <header className="atlasHeader">
+  const chatRoute=location.pathname.startsWith("/chat");
+  return <header className={`atlasHeader ${chatRoute?"chatRouteHeader":""}`}>
     <Link className="brand" to="/"><b>A</b><span>ATLAS</span></Link>
     <span className="headerPageTitle">{pageTitle(location.pathname,lang)}</span>
     <nav className="mobileHeaderNav" aria-label={uk?"Головна навігація":"Main navigation"}>{items.map(item=>{

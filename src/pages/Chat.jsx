@@ -53,6 +53,7 @@ export default function Chat(){
   const [muted,setMuted]=useState(false);
   const [audioOutputs,setAudioOutputs]=useState([]);
   const [audioOutputName,setAudioOutputName]=useState("Автоматично");
+  const [audioNeedsResume,setAudioNeedsResume]=useState(false);
   const [reconnectKey,setReconnectKey]=useState(0);
 
   const deviceIdRef=useRef("");
@@ -74,6 +75,14 @@ export default function Chat(){
   const ringTimerRef=useRef(null);
   const audioContextRef=useRef(null);
   const expiryHandledRef=useRef(false);
+  const activeCallRef=useRef(null);
+  const connectionRef=useRef("preparing");
+  const recoveryPendingRef=useRef(false);
+  const recoverCallRef=useRef(null);
+  const hiddenAtRef=useRef(0);
+  const wakeLockRef=useRef(null);
+  const messagesEndRef=useRef(null);
+  const composerRef=useRef(null);
 
   const changeCallState=useCallback(next=>{
     callStateRef.current=next;
@@ -84,6 +93,8 @@ export default function Chat(){
     incomingCallRef.current=next;
     setIncomingCall(next);
   },[]);
+
+  useEffect(()=>{connectionRef.current=connection},[connection]);
 
   const clearCallTimers=useCallback(()=>{
     window.clearInterval(inviteRetryRef.current);
@@ -193,10 +204,25 @@ export default function Chat(){
     if(remoteAudioRef.current)remoteAudioRef.current.srcObject=null;
     if(navigator.audioSession)navigator.audioSession.type="auto";
     outgoingCallRef.current="";
+    activeCallRef.current=null;
     changeIncomingCall(null);
     setMuted(false);
+    setAudioNeedsResume(false);
     changeCallState("idle");
   },[changeCallState,changeIncomingCall,clearCallTimers,stopCallTone]);
+
+  const resumeRemoteAudio=useCallback(async()=>{
+    const audio=remoteAudioRef.current;
+    if(!audio?.srcObject){setAudioNeedsResume(false);return true}
+    try{
+      await audio.play();
+      setAudioNeedsResume(false);
+      return true;
+    }catch{
+      setAudioNeedsResume(true);
+      return false;
+    }
+  },[]);
 
   const sendPacket=useCallback(async packet=>{
     const channel=channelRef.current;
@@ -218,7 +244,7 @@ export default function Chat(){
     peer.ontrack=event=>{
       if(!remoteAudioRef.current)return;
       remoteAudioRef.current.srcObject=event.streams[0];
-      remoteAudioRef.current.play().catch(()=>{});
+      resumeRemoteAudio();
     };
     peer.onconnectionstatechange=()=>{
       if(peer.connectionState==="connected"){
@@ -231,7 +257,7 @@ export default function Chat(){
       if(peer.connectionState==="closed")changeCallState("idle");
     };
     return peer;
-  },[changeCallState,clearCallTimers,stopCallTone]);
+  },[changeCallState,clearCallTimers,resumeRemoteAudio,stopCallTone]);
 
   const processPacket=useCallback(async packet=>{
     if(!packet||typeof packet.type!=="string")return;
@@ -269,7 +295,8 @@ export default function Chat(){
     }
     if(packet.type==="call-invite"){
       const current=incomingCallRef.current;
-      const canReceive=callStateRef.current==="idle"||callStateRef.current==="failed"||current?.sessionId===packet.sessionId;
+      const active=activeCallRef.current;
+      const canReceive=callStateRef.current==="idle"||callStateRef.current==="failed"||current?.sessionId===packet.sessionId||active?.sessionId===packet.sessionId;
       if(!canReceive){
         sendPacket({type:"call-busy",sessionId:packet.sessionId}).catch(()=>{});
         return;
@@ -277,6 +304,7 @@ export default function Chat(){
       lastPeerSeenRef.current=Date.now();setPeerOnline(true);
       setPeerName(String(packet.name||"Товариш").slice(0,40));
       if(current?.sessionId!==packet.sessionId){
+        activeCallRef.current={sessionId:packet.sessionId,direction:"incoming",name:packet.name||"Товариш"};
         changeIncomingCall({sessionId:packet.sessionId,name:packet.name||"Товариш",description:null});
         changeCallState("incoming");
         startCallTone("incoming");
@@ -297,10 +325,30 @@ export default function Chat(){
     }
     if(packet.type==="rtc-offer"){
       const current=incomingCallRef.current;
-      const canReceive=callStateRef.current==="idle"||callStateRef.current==="failed"||current?.sessionId===packet.sessionId;
+      const active=activeCallRef.current;
+      const reconnecting=Boolean(packet.reconnect&&active?.sessionId===packet.sessionId);
+      const canReceive=callStateRef.current==="idle"||callStateRef.current==="failed"||current?.sessionId===packet.sessionId||reconnecting;
       if(!canReceive)return;
       lastPeerSeenRef.current=Date.now();setPeerOnline(true);
       setPeerName(String(packet.name||"Товариш").slice(0,40));
+      if(reconnecting){
+        try{
+          stopCallTone();changeCallState("connecting");
+          const stream=await getMicrophone();
+          const peer=createAudioPeer();
+          await peer.setRemoteDescription(packet.description);
+          stream.getTracks().forEach(track=>peer.addTrack(track,stream));
+          await peer.setLocalDescription(await peer.createAnswer());
+          await waitForIce(peer);
+          if(!peer.localDescription)throw new Error("answer-missing");
+          await sendPacket({type:"rtc-answer",sessionId:packet.sessionId,description:peer.localDescription.toJSON(),reconnect:true});
+          changeIncomingCall(null);
+        }catch{
+          changeCallState("failed");
+          setError("Не вдалося відновити звук після сну телефона. Натисніть «Відновити звук».");
+        }
+        return;
+      }
       changeIncomingCall({...current,...packet,name:packet.name||current?.name||"Товариш"});
       if(callStateRef.current==="idle"||callStateRef.current==="failed"){
         changeCallState("incoming");startCallTone("incoming");
@@ -322,6 +370,10 @@ export default function Chat(){
       if(peer&&!peer.remoteDescription)await peer.setRemoteDescription(packet.description);
       return;
     }
+    if(packet.type==="call-reconnect-request"&&packet.sessionId===activeCallRef.current?.sessionId){
+      recoverCallRef.current?.({force:true});
+      return;
+    }
     if(packet.type==="call-busy"&&packet.sessionId===outgoingCallRef.current){
       closeAudio();changeCallState("failed");setError("Співрозмовник зараз розмовляє.");return;
     }
@@ -329,7 +381,7 @@ export default function Chat(){
       closeAudio();setError("Співрозмовник відхилив дзвінок.");return;
     }
     if(packet.type==="call-end"){
-      const activeSession=outgoingCallRef.current||incomingCallRef.current?.sessionId;
+      const activeSession=activeCallRef.current?.sessionId||outgoingCallRef.current||incomingCallRef.current?.sessionId;
       if(!packet.sessionId||packet.sessionId===activeSession)closeAudio();
     }
   },[changeCallState,changeIncomingCall,clearCallTimers,closeAudio,sendPacket,startCallTone,stopCallTone]);
@@ -372,6 +424,10 @@ export default function Chat(){
         channel.track({deviceId:deviceIdRef.current,name:nameRef.current,joinedAt:new Date().toISOString()}).catch(()=>{});
         sendPacket({type:"hello",name:nameRef.current,reply:true}).catch(()=>{});
         heartbeat=window.setInterval(()=>sendPacket({type:"hello",name:nameRef.current,reply:false}).catch(()=>{}),12000);
+        if(recoveryPendingRef.current){
+          recoveryPendingRef.current=false;
+          window.setTimeout(()=>recoverCallRef.current?.(),0);
+        }
       }else if(status==="CHANNEL_ERROR"||status==="TIMED_OUT"||status==="CLOSED"){
         setConnection("failed");
         if(channelError)setError("З’єднання чату перервано. Спробуйте ще раз.");
@@ -450,6 +506,8 @@ export default function Chat(){
 
   async function getMicrophone(){
     if(!navigator.mediaDevices?.getUserMedia)throw new Error("microphone-unavailable");
+    const current=localAudioRef.current;
+    if(current?.getAudioTracks().some(track=>track.readyState==="live"))return current;
     if(navigator.audioSession)navigator.audioSession.type="play-and-record";
     const stream=await navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     localAudioRef.current=stream;
@@ -494,7 +552,7 @@ export default function Chat(){
     const sessionId=randomHex(16);
     const invitePacket={type:"call-invite",sessionId,name:nameRef.current,createdAt:Date.now()};
     try{
-      setError("");outgoingCallRef.current=sessionId;changeCallState("calling");
+      setError("");outgoingCallRef.current=sessionId;activeCallRef.current={sessionId,direction:"outgoing",name:peerName};changeCallState("calling");
       enableCallSound({preview:false}).catch(()=>{});
       await sendPacket(invitePacket);
       inviteRetryRef.current=window.setInterval(()=>sendPacket(invitePacket).catch(()=>{}),1400);
@@ -524,6 +582,7 @@ export default function Chat(){
     if(!call?.description)return;
     try{
       setError("");stopCallTone();window.clearTimeout(callTimeoutRef.current);callTimeoutRef.current=null;
+      activeCallRef.current={sessionId:call.sessionId,direction:"incoming",name:call.name||peerName};
       changeCallState("connecting");
       await sendPacket({type:"call-accepted",sessionId:call.sessionId});
       const stream=await getMicrophone();
@@ -546,7 +605,7 @@ export default function Chat(){
     sendPacket({type:"call-declined",sessionId}).catch(()=>{});closeAudio();
   }
   function endCall(){
-    const sessionId=outgoingCallRef.current||incomingCallRef.current?.sessionId;
+    const sessionId=activeCallRef.current?.sessionId||outgoingCallRef.current||incomingCallRef.current?.sessionId;
     sendPacket({type:"call-end",sessionId}).catch(()=>{});closeAudio();
   }
   function toggleMute(){
@@ -563,6 +622,116 @@ export default function Chat(){
     }catch{
       setError("Браузер не дозволив звук. Перевірте беззвучний режим і дозвіл відтворення аудіо.");
     }
+  }
+
+  async function restoreConversationSound(){
+    try{
+      await enableCallSound({preview:false}).catch(()=>false);
+      const restored=await resumeRemoteAudio();
+      if(!restored)throw new Error("audio-play-blocked");
+      setError("");
+    }catch{
+      setAudioNeedsResume(true);
+      setError("Торкніться «Відновити звук» ще раз і перевірте гучність телефона.");
+    }
+  }
+
+  async function recoverActiveCall({force=false}={}){
+    const active=activeCallRef.current;
+    if(!active||callStateRef.current==="idle")return resumeRemoteAudio();
+    const peer=audioPeerRef.current;
+    if(!force&&peer?.connectionState==="connected")return resumeRemoteAudio();
+    if(active.direction==="incoming"){
+      changeCallState("connecting");
+      await sendPacket({type:"call-reconnect-request",sessionId:active.sessionId}).catch(()=>{});
+      return;
+    }
+    try{
+      changeCallState("connecting");setError("");
+      const stream=await getMicrophone();
+      const nextPeer=createAudioPeer();
+      stream.getTracks().forEach(track=>nextPeer.addTrack(track,stream));
+      await nextPeer.setLocalDescription(await nextPeer.createOffer({iceRestart:true}));
+      await waitForIce(nextPeer);
+      if(!nextPeer.localDescription)throw new Error("offer-missing");
+      await sendPacket({type:"rtc-offer",sessionId:active.sessionId,name:nameRef.current,description:nextPeer.localDescription.toJSON(),reconnect:true});
+    }catch{
+      changeCallState("failed");
+      setError("Звук не відновився автоматично. Натисніть «Відновити звук».");
+      setAudioNeedsResume(true);
+    }
+  }
+
+  recoverCallRef.current=recoverActiveCall;
+
+  useEffect(()=>{
+    if(!roomId||roomExpired||roomClosed)return;
+    const recoverPage=({forceChannel=false}={})=>{
+      if(document.visibilityState==="hidden")return;
+      const sleptFor=hiddenAtRef.current?Date.now()-hiddenAtRef.current:0;
+      hiddenAtRef.current=0;
+      audioContextRef.current?.resume().catch(()=>{});
+      resumeRemoteAudio();
+      if(forceChannel||sleptFor>1500||connectionRef.current!=="ready"||!channelRef.current){
+        recoveryPendingRef.current=true;
+        setConnection("connecting");
+        setReconnectKey(value=>value+1);
+      }else{
+        recoverCallRef.current?.();
+      }
+    };
+    const onVisibility=()=>{
+      if(document.visibilityState==="hidden"){hiddenAtRef.current=Date.now();return}
+      recoverPage();
+    };
+    const onPageShow=event=>{if(event.persisted)recoverPage({forceChannel:true})};
+    const onOnline=()=>recoverPage({forceChannel:true});
+    document.addEventListener("visibilitychange",onVisibility);
+    window.addEventListener("pageshow",onPageShow);
+    window.addEventListener("online",onOnline);
+    return()=>{
+      document.removeEventListener("visibilitychange",onVisibility);
+      window.removeEventListener("pageshow",onPageShow);
+      window.removeEventListener("online",onOnline);
+    };
+  },[roomClosed,roomExpired,roomId,resumeRemoteAudio]);
+
+  useEffect(()=>{
+    if(callState!=="connected"||!navigator.wakeLock?.request)return;
+    let cancelled=false;
+    const acquire=async()=>{
+      if(cancelled||document.visibilityState!=="visible"||wakeLockRef.current)return;
+      try{
+        const lock=await navigator.wakeLock.request("screen");
+        if(cancelled){await lock.release();return}
+        wakeLockRef.current=lock;
+        lock.addEventListener("release",()=>{if(wakeLockRef.current===lock)wakeLockRef.current=null},{once:true});
+      }catch{/* Телефон може не підтримувати блокування сну. */}
+    };
+    const onVisibility=()=>{if(document.visibilityState==="visible")acquire()};
+    acquire();
+    document.addEventListener("visibilitychange",onVisibility);
+    return()=>{
+      cancelled=true;
+      document.removeEventListener("visibilitychange",onVisibility);
+      const lock=wakeLockRef.current;wakeLockRef.current=null;
+      lock?.release().catch(()=>{});
+    };
+  },[callState]);
+
+  useEffect(()=>{messagesEndRef.current?.scrollIntoView({block:"end"})},[messages.length]);
+
+  useEffect(()=>{
+    const composer=composerRef.current;
+    if(!composer)return;
+    composer.style.height="auto";
+    composer.style.height=`${Math.min(composer.scrollHeight,112)}px`;
+  },[messageText]);
+
+  function onComposerKeyDown(event){
+    if(event.key!=="Enter"||event.shiftKey||event.nativeEvent?.isComposing)return;
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
   }
 
   function createNewRoom(){
@@ -627,7 +796,7 @@ export default function Chat(){
 
     <section className="callPanel">
       {callState==="incoming"?<><div><strong>Вхідний дзвінок від {peerName}</strong><span>{incomingCall?.description?"Можна відповідати.":"Готуємо захищене аудіоз’єднання…"}</span></div><div>{!callSoundReady&&<button className="secondary" type="button" onClick={activateCallSound}><Volume2 size={17}/>Увімкнути звук</button>}</div></>
-      :callState==="connected"?<><div><strong>Голосовий дзвінок триває</strong><span>Аудіовихід: {audioOutputName}</span></div><div><button className="secondary" type="button" onClick={chooseAudioOutput}><Headphones size={17}/>Аудіовихід</button><button className="secondary" type="button" onClick={toggleMute}>{muted?<><Mic size={17}/>Увімкнути</>:<><MicOff size={17}/>Вимкнути</>}</button><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Завершити</button></div></>
+      :callState==="connected"?<><div><strong>Голосовий дзвінок триває</strong><span>Аудіовихід: {audioOutputName}</span></div><div>{audioNeedsResume&&<button className="secondary audioResumeButton" type="button" onClick={restoreConversationSound}><Volume2 size={17}/>Відновити звук</button>}<button className="secondary" type="button" onClick={chooseAudioOutput}><Headphones size={17}/>Аудіовихід</button><button className="secondary" type="button" onClick={toggleMute}>{muted?<><Mic size={17}/>Увімкнути</>:<><MicOff size={17}/>Вимкнути</>}</button><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Завершити</button></div></>
       :callState==="calling"||callState==="ringing"||callState==="connecting"?<><div><strong>{callState==="ringing"?`${peerName} бачить виклик…`:callState==="calling"?`Надсилаємо виклик ${peerName}…`:"З’єднуємо голос…"}</strong><span>{callState==="ringing"?"Очікуємо відповіді.":"Зачекайте кілька секунд."}</span></div><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Скасувати</button></>
       :<><div><strong>Голосовий дзвінок</strong><span>{peerOnline?`${peerName} у кімнаті`:`Зателефонувати можна, коли товариш онлайн`}</span></div><div>{!callSoundReady&&<button className="secondary soundReadyButton" type="button" onClick={activateCallSound}><Volume2 size={17}/>Звук викликів</button>}<button className="secondary" type="button" disabled={!peerOnline||connection!=="ready"} onClick={startCall}><Phone size={17}/>Подзвонити</button></div></>}
       <audio ref={remoteAudioRef} autoPlay playsInline/>
@@ -654,12 +823,16 @@ export default function Chat(){
       <div className="messages" aria-live="polite">
         {messages.length===0&&<div className="chatEmpty"><LockKeyhole size={30}/><strong>{connection==="ready"?"Можна писати":"Готуємо захищений канал"}</strong><span>Повідомлення доставляються наживо, коли обидва учасники онлайн.</span></div>}
         {messages.map(message=><div className={`chatMessage ${message.author==="me"?"mine":message.author==="system"?"system":""}`} key={message.id}>{message.author==="friend"&&<b>{message.name}</b>}<p>{message.text}</p><span>{message.time}{message.author==="me"&&` · ${message.status==="delivered"?"доставлено":message.status==="failed"?"помилка":message.status==="waiting"?"товариш офлайн":"надіслано"}`}</span></div>)}
+        <div ref={messagesEndRef}/>
       </div>
-      <div className="emojiRow">{["🙂","👍","❤️","😂","🙏"].map(emoji=><button type="button" key={emoji} onClick={()=>setMessageText(value=>value+emoji)}>{emoji}</button>)}</div>
-      <form className="messageForm" onSubmit={sendMessage}>
-        <input maxLength={2000} disabled={connection!=="ready"||!keyReady} value={messageText} onChange={event=>setMessageText(event.target.value)} placeholder={connection==="ready"?"Напишіть повідомлення…":"Готуємо канал…"}/>
-        <button className="primary" disabled={!messageText.trim()||connection!=="ready"||!keyReady}><Send size={18}/>Надіслати</button>
-      </form>
+      <div className="messageComposer">
+        <div className="emojiRow"><span>Швидка реакція</span>{["🙂","👍","❤️","😂","🙏"].map(emoji=><button type="button" aria-label={`Додати ${emoji}`} key={emoji} onClick={()=>setMessageText(value=>value+emoji)}>{emoji}</button>)}</div>
+        <form className="messageForm" onSubmit={sendMessage}>
+          <label className="messageInputShell"><span>Повідомлення</span><textarea ref={composerRef} rows={1} maxLength={2000} disabled={connection!=="ready"||!keyReady} value={messageText} onKeyDown={onComposerKeyDown} onChange={event=>setMessageText(event.target.value)} placeholder={connection==="ready"?"Напишіть повідомлення…":"Готуємо захищений канал…"}/></label>
+          <button className="messageSend" aria-label="Надіслати повідомлення" disabled={!messageText.trim()||connection!=="ready"||!keyReady}><Send size={20}/><span>Надіслати</span></button>
+        </form>
+        <small className="messageComposerHint">Enter — надіслати · Shift + Enter — новий рядок</small>
+      </div>
     </section>
 
     <button className="newRoomButton" type="button" onClick={createNewRoom}>Створити іншу кімнату</button>

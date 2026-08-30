@@ -86,6 +86,7 @@ export default function MobileHome({lang="uk"}){
   return <section className="mobilePilotHome">
     <div className="mobilePilotBrand">ATLAS</div>
     <div className="mobilePilotStatusRow"><OnlinePresence lang={lang} compact/><button type="button" className="mobilePilotShare" onClick={shareAtlas}><Share2 size={15}/><span>{uk?"Поділитися":"Share"}</span></button></div>
+    <p className="mobilePilotSlogan">{uk?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task"}</p>
     <h1>{uk?"Що потрібно?":"What do you need?"}</h1>
     <p>{uk?"Напишіть, скажіть або покажіть фото.":"Write, say it, or show a photo."}</p>
 
