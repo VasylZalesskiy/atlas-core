@@ -18,6 +18,7 @@ import Needs from "./pages/Needs";
 import MatchSearch from "./pages/MatchSearch";
 import ShareApp from "./pages/ShareApp";
 import CatalogAdmin from "./pages/CatalogAdmin";
+import TomatoPilot from "./pages/TomatoPilot";
 import dict from "./data/translations";
 
 export default function App(){
@@ -48,6 +49,7 @@ export default function App(){
         <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
         <Route path="/chat" element={<Chat/>}/>
         <Route path="/market" element={<Market/>}/>
+        <Route path="/tomatoes" element={<TomatoPilot lang={lang}/>}/>
         <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>

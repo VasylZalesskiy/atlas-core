@@ -1,6 +1,6 @@
 import {useEffect,useState} from "react";
 import {Link,useNavigate} from "react-router-dom";
-import {FileText,MapPin,MessageSquare,PlusCircle,RotateCcw,Search,Smartphone} from "lucide-react";
+import {FileText,MapPin,MessageSquare,PlusCircle,RotateCcw,Search,ShoppingBasket,Smartphone} from "lucide-react";
 import ThinkingState from "../components/ThinkingState";
 import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
@@ -124,6 +124,11 @@ export default function Home({t,lang}){
         {title}
         <span style={{fontSize:"clamp(16px,1.8vw,20px)",lineHeight:1.45,letterSpacing:0,fontWeight:600,maxWidth:700,margin:"12px auto 0"}}>{subtitle}</span>
       </h1>
+
+      <Link to="/tomatoes" style={{maxWidth:680,margin:"0 auto 18px",padding:"16px 18px",borderRadius:18,background:"linear-gradient(135deg,#a5231d,#e54b37)",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",gap:14,textAlign:"left",boxShadow:"0 14px 32px rgba(150,37,28,.2)"}}>
+        <span style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:34,lineHeight:1}}>🍅</span><span style={{display:"grid",gap:2}}><strong style={{fontSize:17}}>{lang==="uk"?"5 кг помідорів безкоштовно":"5 kg of tomatoes for free"}</strong><small style={{color:"#ffe0d9",fontSize:11}}>{lang==="uk"?"Пілот для 170 квартир · одна заявка на квартиру":"Pilot for 170 apartments · one request per apartment"}</small></span></span>
+        <span style={{display:"inline-flex",alignItems:"center",gap:7,padding:"9px 12px",borderRadius:11,background:"#fff",color:"#a5231d",fontSize:12,fontWeight:950,whiteSpace:"nowrap"}}><ShoppingBasket size={17}/>{lang==="uk"?"Отримати":"Get it"}</span>
+      </Link>
 
       <form className="searchbox" onSubmit={go} style={{padding:20}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>

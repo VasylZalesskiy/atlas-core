@@ -1,5 +1,5 @@
 import {useRef,useState} from "react";
-import {Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,Search,Share2,X} from "lucide-react";
+import {Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,Search,Share2,ShoppingBasket,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
 import OnlinePresence from "./OnlinePresence";
@@ -87,6 +87,7 @@ export default function MobileHome({lang="uk"}){
     <div className="mobilePilotBrand">ATLAS</div>
     <div className="mobilePilotStatusRow"><OnlinePresence lang={lang} compact/><button type="button" className="mobilePilotShare" onClick={shareAtlas}><Share2 size={15}/><span>{uk?"Поділитися":"Share"}</span></button></div>
     <p className="mobilePilotSlogan">{uk?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task"}</p>
+    <Link className="mobileTomatoCta" to="/tomatoes"><span>🍅</span><span><strong>{uk?"5 кг безкоштовно":"5 kg for free"}</strong><small>{uk?"Для кожної квартири":"For every apartment"}</small></span><b><ShoppingBasket size={17}/>{uk?"Отримати":"Get"}</b></Link>
     <h1>{uk?"Що потрібно?":"What do you need?"}</h1>
     <p>{uk?"Напишіть, скажіть або покажіть фото.":"Write, say it, or show a photo."}</p>
 

@@ -8,6 +8,7 @@ function pageTitle(pathname,lang){
   if(pathname.startsWith("/requests"))return uk?"Мої запити":"My requests";
   if(pathname.startsWith("/chat"))return uk?"Чат":"Chat";
   if(pathname.startsWith("/market"))return uk?"Куплю / Продам":"Buy / Sell";
+  if(pathname.startsWith("/tomatoes"))return uk?"Помідори":"Tomatoes";
   if(pathname.startsWith("/solution"))return uk?"Рішення":"Solution";
   if(pathname.startsWith("/p/"))return uk?"Паспорт":"Passport";
   return "";

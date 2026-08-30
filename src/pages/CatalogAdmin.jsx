@@ -5,7 +5,9 @@ import {
   addCatalogGroup,addCatalogItem,deleteCatalogGroup,deleteCatalogItem,loadCatalogAdminState,loadNeedCatalog,
   requestCatalogAdminLink,signOutCatalogAdmin,updateCatalogGroup,updateCatalogItem,watchCatalogAdminAuth
 } from "../services/catalogStore";
+import {loadTomatoPilotAdmin,setTomatoPilotEnabled,updateTomatoOrderStatus} from "../services/tomatoPilotStore";
 import "../styles/catalogAdmin.css";
+import "../styles/catalogTomatoAdmin.css";
 
 const units=["кг","шт","л","т","м","м²","м³","уп"];
 const blankGroup={nameUk:"",nameEn:"",icon:"📦",isActive:false,sortOrder:100};
@@ -20,6 +22,7 @@ function friendlyError(error){
   if(/duplicate key|23505/i.test(text))return "Такий код Atlas уже використовується іншим товаром.";
   if(/foreign key|23503/i.test(text))return "Цей запис уже використовується. Його можна вимкнути, але не видалити.";
   if(/atlas_need_groups|atlas_need_items|atlas_catalog_admins|relation .* does not exist/i.test(text))return "Керований каталог ще не активований у базі Atlas.";
+  if(/atlas_tomato_pilots|atlas_tomato_orders|tomato-/i.test(text))return "Пілот помідорів ще не активований у базі Atlas.";
   return text||"Не вдалося виконати дію.";
 }
 
@@ -42,6 +45,9 @@ export default function CatalogAdmin(){
   const [confirmDelete,setConfirmDelete]=useState("");
   const [notice,setNotice]=useState("");
   const [error,setError]=useState("");
+  const [tomatoPilot,setTomatoPilot]=useState(null);
+  const [tomatoOrders,setTomatoOrders]=useState([]);
+  const [tomatoLoading,setTomatoLoading]=useState(false);
 
   async function refreshCatalog(){
     setCatalogLoading(true);
@@ -53,12 +59,22 @@ export default function CatalogAdmin(){
     }finally{setCatalogLoading(false)}
   }
 
+  async function refreshTomatoPilot(){
+    setTomatoLoading(true);
+    try{
+      const state=await loadTomatoPilotAdmin();
+      setTomatoPilot(state.pilot);setTomatoOrders(state.orders);
+    }finally{setTomatoLoading(false)}
+  }
+
   async function refreshAccess(){
     setLoading(true);setError("");
     try{
       const [state]=await Promise.all([loadCatalogAdminState(),refreshCatalog()]);
       setUser(state.user);setIsAdmin(state.isAdmin);
       if(state.user?.email)setEmail(state.user.email);
+      if(state.isAdmin)await refreshTomatoPilot();
+      else{setTomatoPilot(null);setTomatoOrders([])}
     }catch(e){setError(friendlyError(e))}finally{setLoading(false)}
   }
 
@@ -73,6 +89,7 @@ export default function CatalogAdmin(){
   const activeGroupCount=groups.filter(group=>group.is_active).length;
   const activeItemCount=items.filter(item=>item.is_active).length;
   const codedItemCount=items.filter(item=>item.canonical_code).length;
+  const activeTomatoOrders=tomatoOrders.filter(order=>order.status!=="cancelled");
 
   async function sendLink(event){
     event.preventDefault();if(sendingLink)return;
@@ -85,6 +102,24 @@ export default function CatalogAdmin(){
     setBusy("logout");setError("");
     try{await signOutCatalogAdmin();setUser(null);setIsAdmin(false);setEmail("");setNotice("Ви вийшли з режиму адміністратора.")}
     catch(e){setError(friendlyError(e))}finally{setBusy("")}
+  }
+
+  async function toggleTomatoPilot(){
+    if(busy||!tomatoPilot)return;
+    setBusy("tomato-pilot");setError("");setNotice("");
+    try{
+      const next=await setTomatoPilotEnabled(!tomatoPilot.enabled);setTomatoPilot(next);
+      setNotice(next.enabled?"Прийом заявок на помідори відкрито.":"Прийом нових заявок призупинено.");
+    }catch(e){setError(friendlyError(e))}finally{setBusy("")}
+  }
+
+  async function changeTomatoStatus(order,status){
+    if(busy)return;
+    setBusy(`tomato-${order.id}`);setError("");setNotice("");
+    try{
+      await updateTomatoOrderStatus(order.id,status);await refreshTomatoPilot();
+      setNotice(status==="received"?`Видачу для квартири № ${order.apartment_number} підтверджено.`:"Статус заявки оновлено.");
+    }catch(e){setError(friendlyError(e))}finally{setBusy("")}
   }
 
   function beginGroupEdit(group){
@@ -157,8 +192,8 @@ export default function CatalogAdmin(){
     <Link className="catalogBack" to="/profile"><ArrowLeft size={18}/>До Паспортa</Link>
     <div className="catalogShield"><KeyRound size={30}/></div>
     <span className="catalogEyebrow">ATLAS · ЗАХИЩЕНА ЗОНА</span>
-    <h1>Керування каталогом</h1>
-    <p>Додавати групи й товари може лише адміністратор. Вхід — через одноразове посилання на підтверджений email.</p>
+    <h1>Керування пілотом</h1>
+    <p>Заявки на помідори й каталог бачить лише адміністратор. Вхід — через одноразове посилання на підтверджений email.</p>
     <form className="catalogLoginForm" onSubmit={sendLink}>
       <label><span>Адміністраторський email</span><input type="email" required autoComplete="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@example.com"/></label>
       <button disabled={sendingLink}>{sendingLink?<RefreshCw className="spin" size={18}/>:<KeyRound size={18}/>}Надіслати посилання</button>
@@ -171,13 +206,22 @@ export default function CatalogAdmin(){
 
   return <main className="catalogAdminPage"><section className="catalogAdminShell">
     <header className="catalogAdminHeader">
-      <div><Link className="catalogBack" to="/profile"><ArrowLeft size={18}/>До Паспортa</Link><span className="catalogEyebrow">ATLAS · АДМІНІСТРАТОР</span><h1>Спільний каталог Atlas ↔ OVI</h1><p>Одна назва й один код товару дають Atlas можливість одразу звіряти потребу з реальною пропозицією OVI.</p></div>
+      <div><Link className="catalogBack" to="/profile"><ArrowLeft size={18}/>До Паспортa</Link><span className="catalogEyebrow">ATLAS · АДМІНІСТРАТОР</span><h1>Пілот помідорів та каталог</h1><p>Тут видно всі заявки будинку, залишок 850 кг і стан кожної видачі.</p></div>
       <div className="catalogAdminIdentity"><ShieldCheck size={20}/><span><small>Захищений вхід</small><strong>{user?.email}</strong></span><button type="button" onClick={signOut} disabled={busy==="logout"} title="Вийти"><LogOut size={18}/></button></div>
     </header>
 
     <div className="catalogStats"><div><Layers3/><span><small>Групи</small><strong>{groups.length}</strong><b>{activeGroupCount} активні</b></span></div><div><PackagePlus/><span><small>Товари</small><strong>{items.length}</strong><b>{activeItemCount} активні</b></span></div><div><KeyRound/><span><small>Коди Atlas</small><strong>{codedItemCount}</strong><b>синхронізуються з OVI</b></span></div></div>
 
     {(error||notice)&&<div className={`catalogMessage ${error?"errorState":"successState"}`} role="status" aria-live="polite">{error||notice}</div>}
+
+    <section className="catalogPilotPanel">
+      <header><div><span className="catalogPilotEmoji">🍅</span><div><span className="catalogEyebrow">ПІЛОТ · 170 КВАРТИР</span><h2>Безкоштовна видача по 5 кг</h2><p>Статус «Отримано» завершує ланцюжок потреба → заявка → рішення.</p></div></div><button className={tomatoPilot?.enabled?"pilotEnabled":"pilotPaused"} type="button" onClick={toggleTomatoPilot} disabled={!tomatoPilot||busy==="tomato-pilot"||tomatoLoading}><Power size={17}/>{tomatoPilot?.enabled?"Прийом відкрито":"Прийом призупинено"}</button></header>
+      <div className="catalogPilotStats"><div><small>Заявок</small><strong>{tomatoPilot?.order_count||0} / 170</strong></div><div><small>Зарезервовано</small><strong>{tomatoPilot?.reserved_kg||0} кг</strong></div><div><small>Залишилося</small><strong>{tomatoPilot?.remaining_kg??850} кг</strong></div><div><small>Видано</small><strong>{tomatoPilot?.received_kg||0} кг</strong></div></div>
+      <div className="catalogPilotOrders">
+        <div className="catalogPilotOrdersHead"><strong>Заявки мешканців</strong><span>{activeTomatoOrders.length} активних</span><button type="button" onClick={refreshTomatoPilot} disabled={tomatoLoading} title="Оновити"><RefreshCw className={tomatoLoading?"spin":""} size={17}/></button></div>
+        {tomatoOrders.length===0?<div className="catalogPilotEmpty">Поки немає заявок. Після першого замовлення воно з’явиться тут.</div>:<div className="catalogPilotTable"><div className="catalogPilotTableHead"><span>Кв.</span><span>Мешканець</span><span>Час</span><span>Створено</span><span>Статус</span></div>{tomatoOrders.map(order=><div className={order.status==="cancelled"?"cancelled":""} key={order.id}><strong>№ {order.apartment_number}</strong><span>{order.customer_name}</span><span>{order.pickup_slot}</span><span>{new Intl.DateTimeFormat("uk-UA",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(order.created_at))}</span><select aria-label={`Статус заявки квартири № ${order.apartment_number}`} value={order.status} onChange={e=>changeTomatoStatus(order,e.target.value)} disabled={busy===`tomato-${order.id}`}><option value="requested">Заявку прийнято</option><option value="ready">Готово до видачі</option><option value="received">Отримано</option><option value="cancelled">Скасовано</option></select></div>)}</div>}
+      </div>
+    </section>
 
     <div className="catalogAdminGrid">
       <section className="catalogPanel">
