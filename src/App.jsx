@@ -7,6 +7,7 @@ import BottomNav from "./components/BottomNav";
 import SolutionNavigation from "./components/SolutionNavigation";
 import MobileHome from "./components/MobileHome";
 import PilotGate from "./components/PilotGate";
+import MatchNotificationBridge from "./components/MatchNotificationBridge";
 import Home from "./pages/Home";
 import Solution from "./pages/Solution";
 import Profile from "./pages/Profile";
@@ -38,6 +39,7 @@ export default function App(){
   return <>
     {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
       <Header lang={lang} setLang={setLang}/>
+      <MatchNotificationBridge lang={lang}/>
       {solutionRoute&&<SolutionNavigation lang={lang}/>} 
       <Routes>
         <Route path="/" element={<><Home t={t} lang={lang}/><MobileHome lang={lang}/></>}/>
