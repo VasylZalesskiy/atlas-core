@@ -37,6 +37,22 @@ export default function MobileHome({lang="uk"}){
   const fileRef=useRef(null);
   const nav=useNavigate();
 
+  const banks=uk?[
+    ["🤝","Допомога","Знайти серед сусідів того, хто може допомогти"],
+    ["🛠️","Навички","Знайти навички та вміння сусідів"],
+    ["🧰","Речі","Знайти у сусідів річ або інструмент, яким можуть поділитися"],
+    ["🚗","Транспорт","Знайти допомогу з поїздкою або доставкою серед сусідів"],
+    ["🥕","Продукти","Знайти продукти або можливість поділитися продуктами у будинку"],
+    ["👥","Спільні справи","Знайти сусідів для спільної справи або плану"]
+  ]:[
+    ["🤝","Help","Find a neighbor who can help"],
+    ["🛠️","Skills","Find neighbors' skills and capabilities"],
+    ["🧰","Things","Find an item or tool a neighbor can share"],
+    ["🚗","Transport","Find a ride or delivery option among neighbors"],
+    ["🥕","Food","Find food or sharing opportunities in the building"],
+    ["👥","Together","Find neighbors for a shared plan or activity"]
+  ];
+
   async function submit(event){
     event?.preventDefault?.();
     const value=task.trim();
@@ -87,13 +103,14 @@ export default function MobileHome({lang="uk"}){
     <div className="mobilePilotBrand">ATLAS</div>
     <div className="mobilePilotStatusRow"><OnlinePresence lang={lang} compact/><button type="button" className="mobilePilotShare" onClick={shareAtlas}><Share2 size={15}/><span>{uk?"Поділитися":"Share"}</span></button></div>
     <p className="mobilePilotSlogan">{uk?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task"}</p>
+    <div className="buildingPilotBadge"><b>{uk?"Пілот одного будинку":"One-building pilot"}</b><span>{uk?"Atlas спочатку шукає рішення серед можливостей сусідів":"Atlas searches neighbors’ capabilities first"}</span></div>
     <Link className="mobileTomatoCta" to="/tomatoes"><span>🍅</span><span><strong>{uk?"5 кг безкоштовно":"5 kg for free"}</strong><small>{uk?"Для кожної квартири":"For every apartment"}</small></span><b><ShoppingBasket size={17}/>{uk?"Отримати":"Get"}</b></Link>
-    <h1>{uk?"Що потрібно?":"What do you need?"}</h1>
-    <p>{uk?"Напишіть, скажіть або покажіть фото.":"Write, say it, or show a photo."}</p>
+    <h1>{uk?"Що потрібно вирішити?":"What do you need to solve?"}</h1>
+    <p>{uk?"Опишіть задачу своїми словами. Atlas спершу перевірить паспорти можливостей у будинку.":"Describe the task in your own words. Atlas will check building capability passports first."}</p>
 
     <form className="mobilePilotSearch" onSubmit={submit}>
       <div className="mobilePilotInputWrap">
-        <VoiceTaskInput autoFocus value={task} onChange={setTask} lang={lang} placeholder={uk?"Наприклад: де продуктовий магазин?":"For example: where is a grocery store?"}/>
+        <VoiceTaskInput autoFocus value={task} onChange={setTask} lang={lang} placeholder={uk?"Наприклад: потрібна дриль на вечір":"For example: I need a drill for the evening"}/>
         <button className="mobilePilotCamera" type="button" onClick={()=>fileRef.current?.click()} aria-label={uk?"Додати фото":"Add photo"}><Camera size={22}/></button>
         <input ref={fileRef} className="mobilePilotFile" type="file" accept="image/*" capture="environment" onChange={choosePhoto}/>
       </div>
@@ -103,18 +120,23 @@ export default function MobileHome({lang="uk"}){
         <button type="button" onClick={clearPhoto} aria-label={uk?"Прибрати фото":"Remove photo"}><X size={18}/></button>
       </div>}
       <button className="mobilePilotGo" type="submit" disabled={!task.trim()||locating||visionBusy}>
-        {locating?<MapPin size={22}/>:<Search size={22}/>}<span>{locating?(uk?"Визначаю місце…":"Finding location…"):(uk?"Знайти":"Find")}</span>
+        {locating?<MapPin size={22}/>:<Search size={22}/>}<span>{locating?(uk?"Визначаю місце…":"Finding location…"):(uk?"Знайти рішення":"Find a solution")}</span>
       </button>
     </form>
 
     <div className="mobilePilotQuick">
-      <button type="button" onClick={()=>quick(uk?"Де знайти продуктовий магазин поруч?":"Where is a grocery store nearby?")}>🛒 {uk?"Магазин поруч":"Store nearby"}</button>
       <button type="button" onClick={()=>quick(uk?"Потрібна допомога сусіда":"I need help from a neighbor")}>🤝 {uk?"Потрібна допомога":"Need help"}</button>
+      <button type="button" onClick={()=>quick(uk?"Хто у будинку може цим поділитися?":"Who in the building can share this?")}>🏠 {uk?"Є у сусідів?":"Available nearby?"}</button>
     </div>
 
+    <section className="opportunityBanks">
+      <div className="opportunityBanksHead"><b>{uk?"Банки можливостей будинку":"Building capability banks"}</b><span>{uk?"Не оголошення — лише те, чим люди реально можуть допомогти":"Not listings — real capabilities people can offer"}</span></div>
+      <div className="opportunityBanksGrid">{banks.map(([icon,label,prompt])=><button key={label} type="button" onClick={()=>quick(prompt)}><span>{icon}</span><b>{label}</b></button>)}</div>
+    </section>
+
     <div className="mobilePilotCards">
-      <Link to="/profile"><IdCard size={24}/><span>{uk?"Мої можливості":"My capabilities"}</span></Link>
-      <Link to="/needs"><HeartHandshake size={24}/><span>{uk?"Мої потреби":"My needs"}</span></Link>
+      <Link to="/profile"><IdCard size={24}/><span>{uk?"Додати мої можливості":"Add my capabilities"}</span></Link>
+      <Link to="/needs"><HeartHandshake size={24}/><span>{uk?"Додати мою потребу":"Add my need"}</span></Link>
     </div>
   </section>;
 }
