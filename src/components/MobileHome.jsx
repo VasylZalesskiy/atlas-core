@@ -1,5 +1,5 @@
 import {useRef,useState} from "react";
-import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,Search,Share2,Smartphone,X} from "lucide-react";
+import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,LogOut,MapPin,Search,Share2,Smartphone,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
 import OnlinePresence from "./OnlinePresence";
@@ -53,6 +53,13 @@ export default function MobileHome({lang="uk"}){
 
   function quick(value){setTask(value);window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
   function clearPhoto(){setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value=""}
+  function exitAtlas(){
+    try{window.close()}catch{}
+    window.setTimeout(()=>{
+      if(window.history.length>1)window.history.back();
+      else window.location.replace("about:blank");
+    },80);
+  }
 
   async function shareAtlas(){
     const text=atlasShareText(lang);
@@ -91,6 +98,7 @@ export default function MobileHome({lang="uk"}){
       <div className="mobilePilotTopActions">
         <Link to="/share" aria-label={uk?"Встановити Atlas":"Install Atlas"}><Smartphone size={18}/></Link>
         <button type="button" onClick={shareAtlas} aria-label={uk?"Поділитися Atlas":"Share Atlas"}><Share2 size={18}/></button>
+        <button className="mobilePilotExit" type="button" onClick={exitAtlas} aria-label={uk?"Вийти з Atlas":"Exit Atlas"}><LogOut size={17}/><span>{uk?"Вийти":"Exit"}</span></button>
       </div>
     </div>
 
