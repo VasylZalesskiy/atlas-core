@@ -11,12 +11,13 @@ function pageTitle(pathname,lang){
   if(pathname.startsWith("/tomatoes"))return uk?"Помідори":"Tomatoes";
   if(pathname.startsWith("/solution"))return uk?"Рішення":"Solution";
   if(pathname.startsWith("/p/"))return uk?"Паспорт":"Passport";
-  return "";
+  return uk?"Головна":"Home";
 }
 
 export default function Header({lang,setLang}){
   const location=useLocation();
   const uk=lang!=="en";
+  const homeActive=location.pathname==="/";
   const items=[
     {to:"/needs",label:uk?"Потреби":"Needs",icon:HeartHandshake},
     {to:"/matches",label:uk?"Збіги":"Matches",icon:Sparkles},
@@ -25,7 +26,9 @@ export default function Header({lang,setLang}){
   ];
   const chatRoute=location.pathname.startsWith("/chat");
   return <header className={`atlasHeader ${chatRoute?"chatRouteHeader":""}`}>
-    <Link className="brand" to="/"><b>A</b><span>ATLAS</span></Link>
+    <Link className={`brand ${homeActive?"active":""}`} to="/" aria-label={uk?"На головну":"Go home"}>
+      <b>A</b><span className="brandText"><span>ATLAS</span><small>{uk?"Головна":"Home"}</small></span>
+    </Link>
     <span className="headerPageTitle">{pageTitle(location.pathname,lang)}</span>
     <nav className="mobileHeaderNav" aria-label={uk?"Головна навігація":"Main navigation"}>{items.map(item=>{
       const Icon=item.icon;
