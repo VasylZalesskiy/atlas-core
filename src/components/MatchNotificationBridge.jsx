@@ -13,7 +13,9 @@ export default function MatchNotificationBridge({lang="uk"}){
   const [pushBusy,setPushBusy]=useState(false);
   const [pushState,setPushState]=useState("");
   const [showPanel,setShowPanel]=useState(false);
+  const [dismissedToastId,setDismissedToastId]=useState(null);
   const previousUnread=useRef(0);
+  const initialized=useRef(false);
 
   async function refresh({silent=false}={}){
     try{
@@ -21,8 +23,12 @@ export default function MatchNotificationBridge({lang="uk"}){
       const unread=rows.filter(item=>item.status==="unread");
       setItems(rows);
       await setAppBadge(unread.length);
-      if(!silent&&unread.length>previousUnread.current&&previousUnread.current!==0)playMatchSound();
+      try{
+        window.dispatchEvent(new CustomEvent("atlas:notifications",{detail:{unread:unread.length}}));
+      }catch{}
+      if(initialized.current&&!silent&&unread.length>previousUnread.current)playMatchSound();
       previousUnread.current=unread.length;
+      initialized.current=true;
     }catch{}
   }
 
@@ -37,6 +43,7 @@ export default function MatchNotificationBridge({lang="uk"}){
 
   const unread=items.filter(item=>item.status==="unread");
   const latest=unread[0]||null;
+  const showToast=latest&&!showPanel&&latest.id!==dismissedToastId;
 
   async function toggleSound(){
     const next=!sound;
@@ -62,6 +69,7 @@ export default function MatchNotificationBridge({lang="uk"}){
     try{await markMatchNotificationRead(item.id)}catch{}
     await refresh({silent:true});
     setShowPanel(false);
+    setDismissedToastId(item.id);
     navigate(item.kind==="opportunity_matches_need"?"/requests":"/matches");
   }
 
@@ -69,12 +77,12 @@ export default function MatchNotificationBridge({lang="uk"}){
     <button className="atlasNotifyButton" onClick={()=>setShowPanel(value=>!value)} aria-label={uk?"Сповіщення Atlas":"Atlas notifications"}>
       <Bell size={19}/>{unread.length>0&&<span>{unread.length>99?"99+":unread.length}</span>}
     </button>
-    {latest&&!showPanel&&<div className="atlasNotifyToast" role="status">
+    {showToast&&<div className="atlasNotifyToast" role="status">
       <button className="atlasNotifyToastMain" onClick={()=>openItem(latest)}>
         <strong>{latest.title||(uk?"Atlas знайшов збіг":"Atlas found a match")}</strong>
         <small>{latest.body||(uk?"Є нове повідомлення":"You have a new notification")}</small>
       </button>
-      <button className="atlasNotifyToastClose" onClick={()=>setShowPanel(false)} aria-label={uk?"Закрити":"Close"}><X size={16}/></button>
+      <button className="atlasNotifyToastClose" onClick={()=>setDismissedToastId(latest.id)} aria-label={uk?"Закрити":"Close"}><X size={16}/></button>
     </div>}
     {showPanel&&<div className="atlasNotifyPanel">
       <div className="atlasNotifyTitleRow"><div><strong>{uk?"Сповіщення Atlas":"Atlas notifications"}</strong><small>{uk?"Керуйте повідомленнями та звуком":"Control alerts and sound"}</small></div><button className="atlasNotifyClose" onClick={()=>setShowPanel(false)}><X size={18}/></button></div>
