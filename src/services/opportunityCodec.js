@@ -34,6 +34,9 @@ export function decodeOpportunityText(value,kind="other"){
     saleQuantity:"",
     saleUnit:"кг",
     validUntil:"",
+    catalogGroupKey:"",
+    catalogItemKey:"",
+    catalogItemName:"",
     minimumQuantity:"",
     deliveryIncluded:false
   };
@@ -57,11 +60,14 @@ export function decodeOpportunityText(value,kind="other"){
       saleQuantity:metadata.saleQuantity==null?"":String(metadata.saleQuantity),
       saleUnit:["кг","шт.","т","л","комплект"].includes(metadata.saleUnit)?metadata.saleUnit:"кг",
       validUntil:String(metadata.validUntil||""),
+      catalogGroupKey:String(metadata.catalogGroupKey||""),
+      catalogItemKey:String(metadata.catalogItemKey||""),
+      catalogItemName:String(metadata.catalogItemName||""),
       minimumQuantity:metadata.minimumQuantity==null?"":String(metadata.minimumQuantity),
       deliveryIncluded:Boolean(metadata.deliveryIncluded)
     };
   }catch{
-    return {text,group:legacyGroupByKind[kind]||"additional",duration:"month",place:"",radiusValue:"",radiusUnit:"км",online:false,paymentType:kind==="sell"?"paid":"free",priceValue:"",priceUnit:"шт.",currency:"UAH",saleQuantity:"",saleUnit:"кг",validUntil:"",minimumQuantity:"",deliveryIncluded:false};
+    return {text,group:legacyGroupByKind[kind]||"additional",duration:"month",place:"",radiusValue:"",radiusUnit:"км",online:false,paymentType:kind==="sell"?"paid":"free",priceValue:"",priceUnit:"шт.",currency:"UAH",saleQuantity:"",saleUnit:"кг",validUntil:"",catalogGroupKey:"",catalogItemKey:"",catalogItemName:"",minimumQuantity:"",deliveryIncluded:false};
   }
 }
 
@@ -82,11 +88,20 @@ export function encodeOpportunityText(entry){
     saleQuantity:String(entry.saleQuantity||"").trim().replace(",",".").slice(0,14),
     saleUnit:["кг","шт.","т","л","комплект"].includes(entry.saleUnit)?entry.saleUnit:"кг",
     validUntil:String(entry.validUntil||"").trim().slice(0,10),
+    catalogGroupKey:String(entry.catalogGroupKey||"").trim().slice(0,80),
+    catalogItemKey:String(entry.catalogItemKey||"").trim().slice(0,80),
+    catalogItemName:String(entry.catalogItemName||"").trim().slice(0,120),
     minimumQuantity:String(entry.minimumQuantity||"").trim().replace(",",".").slice(0,14),
     deliveryIncluded:Boolean(entry.deliveryIncluded)
   };
   if(metadata.paymentType!=="paid")metadata.priceValue="";
-  if(group!=="sell"){metadata.saleQuantity="";metadata.validUntil=""}
+  if(group!=="sell"){
+    metadata.saleQuantity="";
+    metadata.validUntil="";
+    metadata.catalogGroupKey="";
+    metadata.catalogItemKey="";
+    metadata.catalogItemName="";
+  }
   const suffix=`${metadataMarker}${encodeURIComponent(JSON.stringify(metadata))}`;
   return `${text.slice(0,Math.max(2,1495-suffix.length))}${suffix}`;
 }
