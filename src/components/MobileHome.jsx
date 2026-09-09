@@ -1,4 +1,4 @@
-import {useRef,useState} from "react";
+import {useEffect,useRef,useState} from "react";
 import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,LogOut,MapPin,Search,Share2,Smartphone,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
@@ -6,6 +6,7 @@ import OnlinePresence from "./OnlinePresence";
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import {ATLAS_SHARE_URL,atlasShareText} from "../services/shareApp";
+import {loadMatchNotifications} from "../services/matchNotificationStore";
 import "../styles/mobilePilot.css";
 
 function readImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
@@ -34,8 +35,19 @@ export default function MobileHome({lang="uk"}){
   const [photo,setPhoto]=useState(null);
   const [vision,setVision]=useState(null);
   const [visionBusy,setVisionBusy]=useState(false);
+  const [unreadCount,setUnreadCount]=useState(0);
   const fileRef=useRef(null);
   const nav=useNavigate();
+
+  useEffect(()=>{
+    let alive=true;
+    loadMatchNotifications().then(rows=>{
+      if(alive)setUnreadCount(rows.filter(item=>item.status==="unread").length);
+    }).catch(()=>{});
+    const onNotifications=event=>setUnreadCount(Number(event?.detail?.unread)||0);
+    window.addEventListener("atlas:notifications",onNotifications);
+    return()=>{alive=false;window.removeEventListener("atlas:notifications",onNotifications)};
+  },[]);
 
   async function submit(event){
     event?.preventDefault?.();
@@ -146,7 +158,10 @@ export default function MobileHome({lang="uk"}){
       <button type="button" onClick={()=>quick(uk?"Хто у будинку може цим поділитися?":"Who in the building can share this?")}>🏠 {uk?"Є у сусідів?":"Available nearby?"}</button>
     </div>
 
-    <Link className="mobileNotificationsCard" to="/requests"><Bell size={20}/><span><strong>{uk?"Сповіщення та запити":"Notifications & requests"}</strong><small>{uk?"Тут будуть збіги між потребами та можливостями":"Matches between needs and capabilities appear here"}</small></span><b>→</b></Link>
+    <Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
+      <span className="mobileNotificationIcon"><Bell size={20}/>{unreadCount>0&&<i>{unreadCount>99?"99+":unreadCount}</i>}</span>
+      <span><strong>{unreadCount>0?(uk?`Нові сповіщення: ${unreadCount}`:`New notifications: ${unreadCount}`):(uk?"Сповіщення та запити":"Notifications & requests")}</strong><small>{uk?"Тут будуть збіги між потребами та можливостями":"Matches between needs and capabilities appear here"}</small></span><b>→</b>
+    </Link>
     <Link className="mobileInstallCard" to="/share"><Smartphone size={20}/><span><strong>{uk?"Встановити Atlas на телефон":"Install Atlas on your phone"}</strong><small>{uk?"Інструкція для iPhone та Android":"Instructions for iPhone and Android"}</small></span><b>→</b></Link>
   </section>;
 }
