@@ -1,5 +1,6 @@
 import {Globe2,HeartHandshake,IdCard,MessageCircleMore,Sparkles} from "lucide-react";
 import {Link,NavLink,useLocation} from "react-router-dom";
+import OnlinePresence from "./OnlinePresence";
 
 function pageTitle(pathname,lang){
   const uk=lang!=="en";
@@ -35,6 +36,7 @@ export default function Header({lang,setLang}){
       return <NavLink key={item.to} to={item.to} className={({isActive})=>isActive?"active":""}><Icon size={19}/><span>{item.label}</span></NavLink>;
     })}</nav>
     <div className="actions">
+      <div className="desktopPresence"><OnlinePresence lang={lang} compact/></div>
       <button className="lang" onClick={()=>setLang(lang==="uk"?"en":"uk")}><Globe2 size={17}/><span>{lang==="uk"?"UA":"EN"}</span></button>
       <Link className="profileAvatar" to="/profile" aria-label={uk?"Відкрити Паспорт":"Open Passport"}>Я</Link>
     </div>
