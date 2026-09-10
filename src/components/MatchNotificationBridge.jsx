@@ -34,8 +34,10 @@ export default function MatchNotificationBridge({lang="uk"}){
     let alive=true;refresh({silent:true});
     const timer=setInterval(()=>{if(alive)refresh()},15000);
     const onVisible=()=>{if(document.visibilityState==="visible")refresh()};
+    const onSound=event=>setSound(Boolean(event?.detail?.enabled));
     document.addEventListener("visibilitychange",onVisible);
-    return()=>{alive=false;clearInterval(timer);document.removeEventListener("visibilitychange",onVisible)};
+    window.addEventListener("atlas:sound",onSound);
+    return()=>{alive=false;clearInterval(timer);document.removeEventListener("visibilitychange",onVisible);window.removeEventListener("atlas:sound",onSound)};
   },[]);
 
   const unread=items.filter(item=>item.status==="unread");
@@ -44,6 +46,7 @@ export default function MatchNotificationBridge({lang="uk"}){
 
   async function toggleSound(){
     const next=!sound;setSound(next);setSoundEnabled(next);
+    try{window.dispatchEvent(new CustomEvent("atlas:sound",{detail:{enabled:next}}))}catch{}
     if(next){await askNotificationPermission();playMatchSound()}
   }
 
@@ -66,9 +69,6 @@ export default function MatchNotificationBridge({lang="uk"}){
 
   return <>
     <div className="atlasNotifyToolbar">
-      <button className={`atlasSoundQuick ${sound?"on":"off"}`} onClick={toggleSound} aria-label={sound?(uk?"Вимкнути звук":"Turn sound off"):(uk?"Увімкнути звук":"Turn sound on")} title={sound?(uk?"Звук увімкнено":"Sound on"):(uk?"Звук вимкнено":"Sound off")}>
-        {sound?<Volume2 size={21}/>:<VolumeX size={21}/>}<span>{uk?"Звук":"Sound"}</span>
-      </button>
       <button className="atlasNotifyButton" onClick={()=>setShowPanel(value=>!value)} aria-label={uk?"Сповіщення Atlas":"Atlas notifications"}>
         <Bell size={20}/>{unread.length>0&&<span>{unread.length>99?"99+":unread.length}</span>}
       </button>
