@@ -8,6 +8,7 @@ import SolutionNavigation from "./components/SolutionNavigation";
 import MobileHome from "./components/MobileHome";
 import PilotGate from "./components/PilotGate";
 import MatchNotificationBridge from "./components/MatchNotificationBridge";
+import VoicePrivacyControl from "./components/VoicePrivacyControl";
 import Home from "./pages/Home";
 import Solution from "./pages/Solution";
 import Profile from "./pages/Profile";
@@ -30,6 +31,7 @@ export default function App(){
   const location=useLocation();
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
   const solutionRoute=location.pathname==="/solution";
+  const chatRoute=location.pathname==="/chat";
 
   useEffect(()=>{
     try{localStorage.setItem("atlas-language",lang)}catch{}
@@ -41,6 +43,7 @@ export default function App(){
       <Header lang={lang} setLang={setLang}/>
       <MatchNotificationBridge lang={lang}/>
       {solutionRoute&&<SolutionNavigation lang={lang}/>} 
+      {chatRoute&&<VoicePrivacyControl/>}
       <Routes>
         <Route path="/" element={<><Home t={t} lang={lang}/><MobileHome lang={lang}/></>}/>
         <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
