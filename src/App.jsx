@@ -21,17 +21,32 @@ import MatchSearch from "./pages/MatchSearch";
 import ShareApp from "./pages/ShareApp";
 import CatalogAdmin from "./pages/CatalogAdmin";
 import TomatoPilot from "./pages/TomatoPilot";
-import dict from "./data/translations";
+import i18n from "./i18n";
+
+const supportedLanguages=new Set(["uk","en","zh","hi"]);
+const normalizeLanguage=value=>{
+  const code=String(value||"").toLowerCase().split("-")[0];
+  return supportedLanguages.has(code)?code:"uk";
+};
 
 export default function App(){
-  const [lang,setLang]=useState(()=>{
-    try{return localStorage.getItem("atlas-language")==="en"?"en":"uk"}catch{return "uk"}
-  });
-  const t=useMemo(()=>dict[lang],[lang]);
+  const [lang,setLangState]=useState(()=>normalizeLanguage(i18n.resolvedLanguage||i18n.language));
+  const setLang=next=>{
+    const normalized=normalizeLanguage(next);
+    setLangState(normalized);
+    i18n.changeLanguage(normalized);
+  };
+  const t=useMemo(()=>i18n.getResourceBundle(lang,"translation")||i18n.getResourceBundle("uk","translation"),[lang]);
   const location=useLocation();
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
   const solutionRoute=location.pathname==="/solution";
   const chatRoute=location.pathname==="/chat";
+
+  useEffect(()=>{
+    const sync=lng=>setLangState(normalizeLanguage(lng));
+    i18n.on("languageChanged",sync);
+    return ()=>i18n.off("languageChanged",sync);
+  },[]);
 
   useEffect(()=>{
     try{localStorage.setItem("atlas-language",lang)}catch{}
@@ -59,7 +74,7 @@ export default function App(){
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>
       <BottomNav lang={lang}/>
-      <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
+      <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":lang==="zh"?"测试版":lang==="hi"?"परीक्षण संस्करण":"Test version"} · {t.principle}</footer>
     </PilotGate>}
     <Analytics/>
     <SpeedInsights/>
