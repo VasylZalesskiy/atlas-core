@@ -11,6 +11,10 @@ function isProductNeed(value){
   return quantity||transaction;
 }
 
+function isLodgingNeed(value){
+  return /готел|отел|хостел|мотел|апартамент|житло на ніч|переноч|ночівл|hotel|hostel|motel|lodging|accommodation|place to stay/i.test(String(value||""));
+}
+
 function isAgricultureNeed(value){
   return /агро|сільськ|ферм|врожай|картоп|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|food|produce|peas?/i.test(String(value||""));
 }
@@ -113,46 +117,61 @@ export function createFallbackPlan(query,{lang="uk"}={}){
   const terms=cleanTerms(query);
   const goal=String(query||"").trim();
   if(isHealthNeed(goal))return createHealthPlan(goal,lang);
-  const productNeed=isProductNeed(goal);
+  const lodgingNeed=isLodgingNeed(goal);
+  const productNeed=!lodgingNeed&&isProductNeed(goal);
   const agricultureNeed=isAgricultureNeed(goal);
   const product=productSearchTerm(goal)||goal;
-  const nearbyQuery=productNeed
-    ?(lang==="uk"?`${product} магазин`:`${product} store`)
-    :goal;
-  const internetQuery=productNeed
-    ?(lang==="uk"?`купити ${goal}`:`buy ${goal}`)
-    :goal;
+  const nearbyQuery=lodgingNeed
+    ?(lang==="uk"?"готель":"hotel")
+    :productNeed
+      ?(lang==="uk"?`${product} магазин`:`${product} store`)
+      :goal;
+  const internetQuery=lodgingNeed
+    ?(lang==="uk"?`готель ${goal}`:`hotel ${goal}`)
+    :productNeed
+      ?(lang==="uk"?`купити ${goal}`:`buy ${goal}`)
+      :goal;
+  const externalSearches=lodgingNeed?[
+    {source:"maps",mode:"nearby",query:nearbyQuery,reason:lang==="uk"?"Знайти реальні готелі поруч":"Find real nearby hotels"},
+    {source:"web",mode:"standard",query:internetQuery,reason:lang==="uk"?"Знайти додаткові варіанти проживання":"Find additional lodging options"}
+  ]:productNeed?[
+    {source:"maps",mode:"nearby",query:nearbyQuery,reason:lang==="uk"?"Знайти реальні магазини або постачальників поруч":"Find real nearby stores or suppliers"},
+    {source:"marketplace",mode:"standard",query:internetQuery,reason:lang==="uk"?"Знайти конкретні товари й оголошення":"Find concrete products and listings"}
+  ]:[];
   return {
     understood:Boolean(goal),
     goal,
-    intent:productNeed?"buy":"solve",
-    domain:agricultureNeed?"agriculture":productNeed?"products":"general",
-    solution_scope:productNeed?"transaction":"mixed",
+    intent:lodgingNeed?"find_lodging":productNeed?"buy":"solve",
+    domain:lodgingNeed?"lodging":agricultureNeed?"agriculture":productNeed?"products":"general",
+    solution_scope:lodgingNeed?"local_action":productNeed?"transaction":"mixed",
     urgency:"planned",
-    needs_location:productNeed,
+    needs_location:lodgingNeed||productNeed,
     clarification:{required:false,question:"",options:[]},
     passport_search:{
-      terms,
-      capability_description:lang==="uk"?"Можливості людей, речі, навички або допомога, релевантні запиту":"People, items, skills or help relevant to the request"
+      terms:lodgingNeed?(lang==="uk"?["готель","житло","ночівля"]:["hotel","lodging","accommodation"]):terms,
+      capability_description:lodgingNeed
+        ?(lang==="uk"?"Можливості проживання або допомога з пошуком житла":"Lodging opportunities or help finding accommodation")
+        :(lang==="uk"?"Можливості людей, речі, навички або допомога, релевантні запиту":"People, items, skills or help relevant to the request")
     },
     solution_steps:goal?[{
       id:"main-result",
-      title:productNeed
-        ?(lang==="uk"?`Знайти, де придбати ${product}`:`Find where to buy ${product}`)
-        :(lang==="uk"?"Знайти основне рішення":"Find the main solution"),
+      title:lodgingNeed
+        ?(lang==="uk"?"Знайти готель":"Find a hotel")
+        :productNeed
+          ?(lang==="uk"?`Знайти, де придбати ${product}`:`Find where to buy ${product}`)
+          :(lang==="uk"?"Знайти основне рішення":"Find the main solution"),
       purpose:goal,
-      passport_terms:terms,
+      passport_terms:lodgingNeed?(lang==="uk"?["готель","житло","ночівля"]:["hotel","lodging","accommodation"]):terms,
       nearby_query:nearbyQuery,
       internet_query:internetQuery,
       nearby_relevant:true,
       internet_relevant:true
     }]:[],
-    external_searches:productNeed?[
-      {source:"maps",mode:"nearby",query:nearbyQuery,reason:lang==="uk"?"Знайти реальні магазини або постачальників поруч":"Find real nearby stores or suppliers"},
-      {source:"marketplace",mode:"standard",query:internetQuery,reason:lang==="uk"?"Знайти конкретні товари й оголошення":"Find concrete products and listings"}
-    ]:[],
+    external_searches:externalSearches,
     safety:{level:"none",message:""},
-    result_strategy:lang==="uk"?"Спочатку Паспорти можливостей, потім найкращі додаткові варіанти":"Opportunity Passports first, then the best additional options",
+    result_strategy:lodgingNeed
+      ?(lang==="uk"?"Спочатку Паспорти можливостей, потім реальні готелі поруч і додаткові варіанти проживання":"Opportunity Passports first, then real nearby hotels and additional lodging options")
+      :(lang==="uk"?"Спочатку Паспорти можливостей, потім найкращі додаткові варіанти":"Opportunity Passports first, then the best additional options"),
     fallback:true
   };
 }
