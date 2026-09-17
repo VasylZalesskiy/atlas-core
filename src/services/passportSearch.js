@@ -23,6 +23,22 @@ function termsFromPlan(plan){
   return [...new Set([...explicit,capability,...fallback].map(normalize).filter(Boolean))].slice(0,24);
 }
 
+function searchWords(plan){
+  const words=[];
+  for(const term of termsFromPlan(plan)){
+    for(const word of normalize(term).split(" ")){
+      const clean=word.replace(/[^\p{L}\p{N}_-]/gu,"");
+      if(clean.length>2&&!words.includes(clean))words.push(clean);
+      if(words.length>=12)return words;
+    }
+  }
+  return words;
+}
+
+function fullTextQuery(plan){
+  return searchWords(plan).map(word=>`"${word}"`).join(" OR ");
+}
+
 function scoreText(text,plan){
   const haystack=normalize(text);
   const terms=termsFromPlan(plan);
@@ -48,28 +64,45 @@ function scoreText(text,plan){
 }
 
 async function searchNewPassports(plan,{limit}){
-  const {data:passports,error:passportError}=await supabase
-    .from("atlas_passports")
-    .select("id,slug,display_name,profession,skills,city")
-    .limit(1000);
-  if(passportError)throw passportError;
-  if(!passports?.length)return [];
+  const query=fullTextQuery(plan);
+  if(!query)return [];
+  const candidateLimit=Math.max(20,Math.min(100,limit*12));
 
-  const {data:opportunities,error:opportunityError}=await supabase
-    .from("atlas_opportunities")
-    .select("id,passport_id,kind,text,created_at")
-    .eq("is_active",true)
-    .limit(2000);
+  const [{data:directPassports,error:passportError},{data:rawOpportunities,error:opportunityError}]=await Promise.all([
+    supabase
+      .from("atlas_passports")
+      .select("id,slug,display_name,profession,skills,city")
+      .textSearch("search_fts",query,{type:"websearch",config:"simple"})
+      .limit(candidateLimit),
+    supabase
+      .from("atlas_opportunities")
+      .select("id,passport_id,kind,text,created_at")
+      .eq("is_active",true)
+      .textSearch("search_fts",query,{type:"websearch",config:"simple"})
+      .limit(candidateLimit*2)
+  ]);
+  if(passportError)throw passportError;
   if(opportunityError)throw opportunityError;
 
+  const passportMap=new Map((directPassports||[]).map(item=>[item.id,item]));
+  const missingPassportIds=[...new Set((rawOpportunities||[]).map(item=>item.passport_id).filter(id=>id&&!passportMap.has(id)))];
+  if(missingPassportIds.length){
+    const {data:linkedPassports,error:linkedError}=await supabase
+      .from("atlas_passports")
+      .select("id,slug,display_name,profession,skills,city")
+      .in("id",missingPassportIds.slice(0,candidateLimit));
+    if(linkedError)throw linkedError;
+    for(const passport of linkedPassports||[])passportMap.set(passport.id,passport);
+  }
+
   const opportunitiesByPassport=new Map();
-  for(const rawItem of opportunities||[]){
+  for(const rawItem of rawOpportunities||[]){
     const item={...rawItem,...decodeOpportunityText(rawItem.text,rawItem.kind)};
     if(!opportunitiesByPassport.has(item.passport_id))opportunitiesByPassport.set(item.passport_id,[]);
     opportunitiesByPassport.get(item.passport_id).push(item);
   }
 
-  const ranked=(passports||[]).map(passport=>{
+  const ranked=[...passportMap.values()].map(passport=>{
     const profileScore=scoreText([
       passport.profession,
       passport.skills,
@@ -124,12 +157,25 @@ async function searchNewPassports(plan,{limit}){
 }
 
 async function searchLegacyProfiles(plan,{limit}){
+  const query=fullTextQuery(plan);
+  if(!query)return [];
   const {data,error}=await supabase
     .from("profiles")
     .select("slug,name,city,headline,can_help,can_share,needs")
-    .limit(300);
-  if(error)return [];
+    .textSearch("profiles_search_idx",query,{type:"websearch",config:"simple"})
+    .limit(Math.max(20,limit*10));
+  if(error){
+    const {data:fallbackData,error:fallbackError}=await supabase
+      .from("profiles")
+      .select("slug,name,city,headline,can_help,can_share,needs")
+      .limit(300);
+    if(fallbackError)return [];
+    return rankLegacy(fallbackData,plan,limit);
+  }
+  return rankLegacy(data,plan,limit);
+}
 
+function rankLegacy(data,plan,limit){
   return (data||[])
     .map(profile=>({...profile,...scoreText([
       profile.headline,
@@ -146,7 +192,7 @@ async function searchLegacyProfiles(plan,{limit}){
 
 /**
  * First-stage Atlas retrieval: real Opportunity Passports.
- * Profession, skills and active opportunities are searchable.
+ * PostgreSQL full-text indexes reduce the candidate set before browser-side ranking.
  * Private contact data lives in atlas_private_contacts and is never selected here.
  *
  * Medical exception: Atlas currently has no credential-verification field for
@@ -161,7 +207,7 @@ export async function searchPassportProfiles(plan,{limit=5}={}){
     const matches=await searchNewPassports(plan,{limit});
     return {matches,error:null};
   }catch(error){
-    if(/atlas_opportunities|atlas_passports|profession|skills|relation .* does not exist/i.test(String(error?.message||""))){
+    if(/atlas_opportunities|atlas_passports|search_fts|profession|skills|relation .* does not exist/i.test(String(error?.message||""))){
       const matches=await searchLegacyProfiles(plan,{limit});
       return {matches,error:"production-passports-not-initialized"};
     }
