@@ -1,28 +1,15 @@
 import {extractRequestedKilograms,marketplaceSearchTerm} from "../../api/_search-utils.js";
 
-function cleanTerms(query){
-  return [...new Set(String(query||"").toLowerCase().replace(/[.,!?;:()]/g," ").split(/\s+/).filter(word=>word.length>2))].slice(0,12);
-}
+function clean(value){return String(value||"").replace(/\s+/g," ").trim()}
+function cleanTerms(query){return [...new Set(clean(query).toLowerCase().replace(/[.,!?;:()]/g," ").split(/\s+/).filter(word=>word.length>2))].slice(0,12)}
 
 function isProductNeed(value){
   const text=String(value||"");
-  const quantity=extractRequestedKilograms(text)!==null;
-  const transaction=/куп|придба|замов|потрібн|товар|продукт|постач|опт|гурт|buy|order|supplier|wholesale|bulk/i.test(text);
-  return quantity||transaction;
+  return extractRequestedKilograms(text)!==null||/куп|придба|замов|товар|продукт|постач|опт|гурт|buy|order|supplier|wholesale|bulk/i.test(text);
 }
-
-function isLodgingNeed(value){
-  return /готел|отел|хостел|мотел|апартамент|житло на ніч|переноч|ночівл|hotel|hostel|motel|lodging|accommodation|place to stay/i.test(String(value||""));
-}
-
-function isAgricultureNeed(value){
-  return /агро|сільськ|ферм|врожай|картоп|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|food|produce|peas?/i.test(String(value||""));
-}
-
-function isHealthNeed(value){
-  return /болить|біль|живіт|голов|груд|спин|температур|нудот|блюван|запамороч|не можу дих|важко дих|непритом|кров у|каш(ель|ля)|травм|поріз|опік|тиск|серц|stomach ache|stomach pain|headache|chest pain|fever|nausea|vomit|dizz|faint|bleed|cannot breathe|can't breathe/i.test(String(value||""));
-}
-
+function isLodgingNeed(value){return /готел|отел|хостел|мотел|апартамент|житло на ніч|переноч|ночівл|hotel|hostel|motel|lodging|accommodation|place to stay/i.test(String(value||""))}
+function isAgricultureNeed(value){return /агро|сільськ|ферм|врожай|картоп|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|food|produce|peas?/i.test(String(value||""))}
+function isHealthNeed(value){return /болить|біль|живіт|голов|груд|спин|температур|нудот|блюван|запамороч|не можу дих|важко дих|непритом|кров у|каш(ель|ля)|травм|поріз|опік|тиск|серц|stomach ache|stomach pain|headache|chest pain|fever|nausea|vomit|dizz|faint|bleed|cannot breathe|can't breathe/i.test(String(value||""))}
 function healthDecision(value){
   const text=String(value||"");
   if(/так\s*[,—-]?\s*є хоча б одна/i.test(text))return "emergency";
@@ -30,291 +17,89 @@ function healthDecision(value){
   if(/ні\s*[,—-]?\s*але біль сильний або посилюється/i.test(text))return "urgent";
   return "triage";
 }
-
-function healthGoal(value){
-  return String(value||"").replace(/,\s*(?:так\s*[,—-]?\s*є хоча б одна|ні\s*[,—-]?\s*але біль сильний або посилюється|ні\s*[,—-]?\s*біль легкий і не посилюється).*$/i,"").trim();
-}
+function healthGoal(value){return String(value||"").replace(/,\s*(?:так\s*[,—-]?\s*є хоча б одна|ні\s*[,—-]?\s*але біль сильний або посилюється|ні\s*[,—-]?\s*біль легкий і не посилюється).*$/i,"").trim()}
 
 function createHealthPlan(query,lang){
-  const decision=healthDecision(query);
-  const goal=healthGoal(query);
-  const uk=lang==="uk";
+  const decision=healthDecision(query),goal=healthGoal(query),uk=lang==="uk";
   const passportTerms=uk?["лікар","сімейний лікар","медик","фельдшер"]:["doctor","family doctor","medic","paramedic"];
-  const base={
-    understood:Boolean(goal),goal,intent:"get_help",domain:"health",solution_scope:"local_action",
-    passport_search:{terms:passportTerms,capability_description:uk?"Перевірена медична допомога або консультація":"Verified medical help or consultation"},
-    result_strategy:uk?"Спочатку терміновість, потім одна найбезпечніша наступна дія":"Urgency first, then one safest next action",
-    fallback:true
-  };
-
-  if(decision==="triage")return {
-    ...base,urgency:"unknown",needs_location:false,
-    clarification:{
-      required:true,
-      question:uk?"Чи є хоча б одна небезпечна ознака?":"Is at least one warning sign present?",
-      helper_text:uk
-        ?"Раптовий або дуже сильний біль; живіт різко болить при дотику; кров у блюванні чи калі; непритомність; утруднене дихання або біль у грудях."
-        :"Sudden or severe pain; marked tenderness; blood in vomit or stool; collapse; trouble breathing or chest pain.",
-      options:uk
-        ?["Так, є хоча б одна","Ні, але біль сильний або посилюється","Ні, біль легкий і не посилюється"]
-        :["Yes, at least one","No, but pain is severe or worsening","No, pain is mild and not worsening"]
-    },
-    solution_steps:[{
-      id:"medical-triage",title:uk?"Визначити терміновість":"Determine urgency",purpose:goal,
-      passport_terms:passportTerms,nearby_query:"",internet_query:"",nearby_relevant:false,internet_relevant:false
-    }],
-    external_searches:[],
-    safety:{level:"caution",message:uk?"Atlas не ставить діагноз — спочатку потрібно визначити терміновість.":"Atlas does not diagnose — urgency must be determined first."}
-  };
-
-  if(decision==="emergency")return {
-    ...base,urgency:"emergency",needs_location:false,clarification:{required:false,question:"",options:[]},
-    direct_action:{
-      id:"call-emergency",type:"emergency",source:uk?"Екстрена медична допомога":"Emergency medical help",
-      title:uk?"Телефонуйте 103 або 112 зараз":"Call emergency services now",
-      description:uk?"Повідомте диспетчеру симптоми та точне місце перебування.":"Tell the dispatcher the symptoms and your exact location.",
-      primary_href:"tel:103",primary_label:uk?"Подзвонити 103":"Call 103",
-      secondary_href:"tel:112",secondary_label:uk?"Подзвонити 112":"Call 112",
-      recommendation:uk?"За небезпечних ознак наступна дія — виклик екстреної допомоги, а не пошук інформації.":"With warning signs, the next action is emergency help, not an information search."
-    },
-    solution_steps:[{
-      id:"call-emergency",title:uk?"Викликати екстрену допомогу":"Call emergency services",purpose:goal,
-      passport_terms:[],nearby_query:"",internet_query:"",nearby_relevant:false,internet_relevant:false
-    }],
-    external_searches:[],
-    safety:{level:"urgent",message:uk?"Не керуйте авто самі, якщо стан тяжкий.":"Do not drive yourself if the condition is severe."}
-  };
-
+  const base={understood:Boolean(goal),goal,intent:"get_help",domain:"health",solution_scope:"local_action",passport_search:{terms:passportTerms,capability_description:uk?"Перевірена медична допомога або консультація":"Verified medical help or consultation"},result_strategy:uk?"Спочатку терміновість, потім одна найбезпечніша наступна дія":"Urgency first, then one safest next action",fallback:true};
+  if(decision==="triage")return {...base,urgency:"unknown",needs_location:false,clarification:{required:true,question:uk?"Чи є хоча б одна небезпечна ознака?":"Is at least one warning sign present?",helper_text:uk?"Раптовий або дуже сильний біль; живіт різко болить при дотику; кров у блюванні чи калі; непритомність; утруднене дихання або біль у грудях.":"Sudden or severe pain; marked tenderness; blood in vomit or stool; collapse; trouble breathing or chest pain.",options:uk?["Так, є хоча б одна","Ні, але біль сильний або посилюється","Ні, біль легкий і не посилюється"]:["Yes, at least one","No, but pain is severe or worsening","No, pain is mild and not worsening"]},solution_steps:[{id:"medical-triage",title:uk?"Визначити терміновість":"Determine urgency",purpose:goal,passport_terms:passportTerms,nearby_query:"",internet_query:"",nearby_relevant:false,internet_relevant:false}],external_searches:[],safety:{level:"caution",message:uk?"Atlas не ставить діагноз — спочатку потрібно визначити терміновість.":"Atlas does not diagnose — urgency must be determined first."}};
+  if(decision==="emergency")return {...base,urgency:"emergency",needs_location:false,clarification:{required:false,question:"",options:[]},direct_action:{id:"call-emergency",type:"emergency",source:uk?"Екстрена медична допомога":"Emergency medical help",title:uk?"Телефонуйте 103 або 112 зараз":"Call emergency services now",description:uk?"Повідомте диспетчеру симптоми та точне місце перебування.":"Tell the dispatcher the symptoms and your exact location.",primary_href:"tel:103",primary_label:uk?"Подзвонити 103":"Call 103",secondary_href:"tel:112",secondary_label:uk?"Подзвонити 112":"Call 112",recommendation:uk?"За небезпечних ознак наступна дія — виклик екстреної допомоги, а не пошук інформації.":"With warning signs, the next action is emergency help, not an information search."},solution_steps:[{id:"call-emergency",title:uk?"Викликати екстрену допомогу":"Call emergency services",purpose:goal,passport_terms:[],nearby_query:"",internet_query:"",nearby_relevant:false,internet_relevant:false}],external_searches:[],safety:{level:"urgent",message:uk?"Не керуйте авто самі, якщо стан тяжкий.":"Do not drive yourself if the condition is severe."}};
   const urgent=decision==="urgent";
-  const mapsQuery=urgent
-    ?(uk?"невідкладна медична допомога лікарня клініка":"urgent medical care hospital clinic")
-    :(uk?"сімейний лікар амбулаторія":"family doctor medical clinic");
-  return {
-    ...base,urgency:urgent?"urgent":"soon",needs_location:true,clarification:{required:false,question:"",options:[]},
-    direct_action:{
-      id:urgent?"medical-care-today":"contact-family-doctor",type:"find_care",source:uk?"Медична допомога":"Medical help",
-      title:urgent?(uk?"Зверніться до лікаря сьогодні":"See a doctor today"):(uk?"Зв’яжіться із сімейним лікарем":"Contact a family doctor"),
-      description:urgent
-        ?(uk?"Сильний або наростаючий біль потребує медичної оцінки сьогодні.":"Severe or worsening pain needs medical assessment today.")
-        :(uk?"Якщо біль не минає, повторюється або посилюється — не відкладайте консультацію.":"If the pain persists, recurs or worsens, do not delay a consultation."),
-      maps_query:mapsQuery,primary_label:urgent?(uk?"Знайти допомогу поруч":"Find nearby care"):(uk?"Знайти сімейного лікаря":"Find a family doctor"),
-      recommendation:urgent?(uk?"Наступна дія — медична оцінка сьогодні.":"The next action is medical assessment today."):(uk?"Наступна дія — зв’язок із сімейним лікарем, а не веб-пошук.":"The next action is contacting a family doctor, not a web search.")
-    },
-    solution_steps:[{
-      id:urgent?"urgent-care":"family-doctor",title:urgent?(uk?"Медична оцінка сьогодні":"Medical assessment today"):(uk?"Консультація сімейного лікаря":"Family doctor consultation"),purpose:goal,
-      passport_terms:passportTerms,nearby_query:mapsQuery,internet_query:"",nearby_relevant:true,internet_relevant:false
-    }],
-    external_searches:[{source:"maps",mode:"nearby",query:mapsQuery,reason:uk?"Знайти конкретну медичну допомогу та маршрут":"Find concrete medical care and a route"}],
-    safety:{level:urgent?"urgent":"caution",message:urgent?(uk?"Якщо з’явиться небезпечна ознака — телефонуйте 103 або 112.":"If a warning sign appears, call emergency services."):(uk?"Якщо стан погіршується — перейдіть до невідкладної допомоги.":"If the condition worsens, seek urgent care.")}
-  };
-}
-
-function productSearchTerm(value){
-  return marketplaceSearchTerm(value);
+  const mapsQuery=urgent?(uk?"невідкладна медична допомога лікарня клініка":"urgent medical care hospital clinic"):(uk?"сімейний лікар амбулаторія":"family doctor medical clinic");
+  return {...base,urgency:urgent?"urgent":"soon",needs_location:true,clarification:{required:false,question:"",options:[]},direct_action:{id:urgent?"medical-care-today":"contact-family-doctor",type:"find_care",source:uk?"Медична допомога":"Medical help",title:urgent?(uk?"Зверніться до лікаря сьогодні":"See a doctor today"):(uk?"Зв’яжіться із сімейним лікарем":"Contact a family doctor"),description:urgent?(uk?"Сильний або наростаючий біль потребує медичної оцінки сьогодні.":"Severe or worsening pain needs medical assessment today."):(uk?"Якщо біль не минає, повторюється або посилюється — не відкладайте консультацію.":"If the pain persists, recurs or worsens, do not delay a consultation."),maps_query:mapsQuery,primary_label:urgent?(uk?"Знайти допомогу поруч":"Find nearby care"):(uk?"Знайти сімейного лікаря":"Find a family doctor"),recommendation:urgent?(uk?"Наступна дія — медична оцінка сьогодні.":"The next action is medical assessment today."):(uk?"Наступна дія — зв’язок із сімейним лікарем.":"The next action is contacting a family doctor.")},solution_steps:[{id:urgent?"urgent-care":"family-doctor",title:urgent?(uk?"Медична оцінка сьогодні":"Medical assessment today"):(uk?"Консультація сімейного лікаря":"Family doctor consultation"),purpose:goal,passport_terms:passportTerms,nearby_query:mapsQuery,internet_query:"",nearby_relevant:true,internet_relevant:false}],external_searches:[{source:"maps",mode:"nearby",query:mapsQuery,reason:uk?"Знайти конкретну медичну допомогу та маршрут":"Find concrete medical care and a route"}],safety:{level:urgent?"urgent":"caution",message:urgent?(uk?"Якщо з’явиться небезпечна ознака — телефонуйте 103 або 112.":"If a warning sign appears, call emergency services."):(uk?"Якщо стан погіршується — перейдіть до невідкладної допомоги.":"If the condition worsens, seek urgent care.")}};
 }
 
 export function createFallbackPlan(query,{lang="uk"}={}){
-  const terms=cleanTerms(query);
-  const goal=String(query||"").trim();
+  const goal=clean(query),terms=cleanTerms(goal);
   if(isHealthNeed(goal))return createHealthPlan(goal,lang);
-  const lodgingNeed=isLodgingNeed(goal);
-  const productNeed=!lodgingNeed&&isProductNeed(goal);
-  const agricultureNeed=isAgricultureNeed(goal);
-  const product=productSearchTerm(goal)||goal;
-  const nearbyQuery=lodgingNeed
-    ?(lang==="uk"?"готель":"hotel")
-    :productNeed
-      ?(lang==="uk"?`${product} магазин`:`${product} store`)
-      :goal;
-  const internetQuery=lodgingNeed
-    ?(lang==="uk"?`готель ${goal}`:`hotel ${goal}`)
-    :productNeed
-      ?(lang==="uk"?`купити ${goal}`:`buy ${goal}`)
-      :goal;
-  const externalSearches=lodgingNeed?[
-    {source:"maps",mode:"nearby",query:nearbyQuery,reason:lang==="uk"?"Знайти реальні готелі поруч":"Find real nearby hotels"},
-    {source:"web",mode:"standard",query:internetQuery,reason:lang==="uk"?"Знайти додаткові варіанти проживання":"Find additional lodging options"}
-  ]:productNeed?[
-    {source:"maps",mode:"nearby",query:nearbyQuery,reason:lang==="uk"?"Знайти реальні магазини або постачальників поруч":"Find real nearby stores or suppliers"},
-    {source:"marketplace",mode:"standard",query:internetQuery,reason:lang==="uk"?"Знайти конкретні товари й оголошення":"Find concrete products and listings"}
-  ]:[];
-  return {
-    understood:Boolean(goal),
-    goal,
-    intent:lodgingNeed?"find_lodging":productNeed?"buy":"solve",
-    domain:lodgingNeed?"lodging":agricultureNeed?"agriculture":productNeed?"products":"general",
-    solution_scope:lodgingNeed?"local_action":productNeed?"transaction":"mixed",
-    urgency:"planned",
-    needs_location:lodgingNeed||productNeed,
-    clarification:{required:false,question:"",options:[]},
-    passport_search:{
-      terms:lodgingNeed?(lang==="uk"?["готель","житло","ночівля"]:["hotel","lodging","accommodation"]):terms,
-      capability_description:lodgingNeed
-        ?(lang==="uk"?"Можливості проживання або допомога з пошуком житла":"Lodging opportunities or help finding accommodation")
-        :(lang==="uk"?"Можливості людей, речі, навички або допомога, релевантні запиту":"People, items, skills or help relevant to the request")
-    },
-    solution_steps:goal?[{
-      id:"main-result",
-      title:lodgingNeed
-        ?(lang==="uk"?"Знайти готель":"Find a hotel")
-        :productNeed
-          ?(lang==="uk"?`Знайти, де придбати ${product}`:`Find where to buy ${product}`)
-          :(lang==="uk"?"Знайти основне рішення":"Find the main solution"),
-      purpose:goal,
-      passport_terms:lodgingNeed?(lang==="uk"?["готель","житло","ночівля"]:["hotel","lodging","accommodation"]):terms,
-      nearby_query:nearbyQuery,
-      internet_query:internetQuery,
-      nearby_relevant:true,
-      internet_relevant:true
-    }]:[],
-    external_searches:externalSearches,
-    safety:{level:"none",message:""},
-    result_strategy:lodgingNeed
-      ?(lang==="uk"?"Спочатку Паспорти можливостей, потім реальні готелі поруч і додаткові варіанти проживання":"Opportunity Passports first, then real nearby hotels and additional lodging options")
-      :(lang==="uk"?"Спочатку Паспорти можливостей, потім найкращі додаткові варіанти":"Opportunity Passports first, then the best additional options"),
-    fallback:true
-  };
+  const uk=lang==="uk",lodging=isLodgingNeed(goal),product=!lodging&&isProductNeed(goal),agriculture=isAgricultureNeed(goal);
+  const productTerm=marketplaceSearchTerm(goal)||goal;
+  const nearbyQuery=lodging?(uk?"готель":"hotel"):product?(uk?`${productTerm} магазин`:`${productTerm} store`):"";
+  const internetQuery=lodging?(uk?`готель ${goal}`:`hotel ${goal}`):product?(uk?`купити ${goal}`:`buy ${goal}`):goal;
+  const searches=[];
+  if(lodging||product)searches.push({source:"maps",mode:"nearby",query:nearbyQuery,reason:uk?"Знайти реальні варіанти поруч":"Find real nearby options"});
+  if(goal)searches.push({source:product?"marketplace":"web",mode:"standard",query:internetQuery,reason:uk?"Знайти актуальну відповідь або конкретні варіанти у зовнішніх джерелах":"Find a current answer or concrete options from external sources"});
+  return {understood:Boolean(goal),goal,intent:lodging?"find_lodging":product?"buy":"solve",domain:lodging?"lodging":agriculture?"agriculture":product?"products":"general",solution_scope:lodging?"local_action":product?"transaction":"information",urgency:"planned",needs_location:lodging||product,clarification:{required:false,question:"",options:[]},passport_search:{terms,capability_description:uk?"Можливості людей, речі, навички або допомога, релевантні запиту":"People, items, skills or help relevant to the request"},solution_steps:goal?[{id:"main-result",title:uk?"Знайти рішення":"Find a solution",purpose:goal,passport_terms:terms,nearby_query:nearbyQuery,internet_query:internetQuery,nearby_relevant:Boolean(nearbyQuery),internet_relevant:true}]:[],external_searches:searches,safety:{level:"none",message:""},result_strategy:uk?"Спочатку релевантні можливості Atlas; для актуальної інформації та відсутніх відповідей — автоматично використати живі зовнішні джерела.":"Relevant Atlas capabilities first; for current information or missing answers, automatically use live external sources.",fallback:true};
 }
 
 async function requestBrainPlan(query,{lang="uk",location=null,locationText="",signal}={}){
-  const response=await fetch("/api/brain",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({query,language:lang,location,location_text:locationText}),
-    signal
-  });
-
+  const response=await fetch("/api/brain",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query,language:lang,location,location_text:locationText}),signal});
   const data=await response.json().catch(()=>({}));
-  if(!response.ok){
-    const error=new Error(data?.error||"atlas-brain-unavailable");
-    error.details=data?.details||"";
-    error.status=response.status;
-    throw error;
-  }
-
+  if(!response.ok){const error=new Error(data?.error||"atlas-brain-unavailable");error.details=data?.details||"";error.status=response.status;throw error}
   if(!data?.plan)throw new Error("atlas-brain-empty-plan");
   return data.plan;
 }
 
-function hasSearch(plan,source){
-  return Array.isArray(plan?.external_searches)
-    ?plan.external_searches.some(item=>item&&item.source===source&&String(item.query||"").trim())
-    :false;
-}
+function hasExternal(plan){return Array.isArray(plan?.external_searches)&&plan.external_searches.some(item=>item&&item.source&&item.source!=="none"&&clean(item.query))}
+function hasWeb(plan){return Array.isArray(plan?.external_searches)&&plan.external_searches.some(item=>["web","marketplace","official"].includes(item?.source)&&clean(item?.query))}
+function hasMap(plan,mode){return Array.isArray(plan?.external_searches)&&plan.external_searches.some(item=>item?.source==="maps"&&(!mode||item.mode===mode)&&clean(item?.query))}
+function needsLiveWeb(plan){return plan?.domain!=="health"&&(plan?.solution_scope==="information"||!hasExternal(plan))}
 
-function hasMapMode(plan,mode){
-  return Array.isArray(plan?.external_searches)
-    ?plan.external_searches.some(item=>item&&item.source==="maps"&&item.mode===mode&&String(item.query||"").trim())
-    :false;
-}
+function universalizePlan(plan,query,{lang="uk",locationAvailable=false}={}){
+  if(!plan||plan?.domain==="health")return plan;
+  const fallback=createFallbackPlan(query,{lang});
+  const next={...plan};
+  if(next?.clarification?.required&&hasExternal(next))next.clarification={required:false,question:"",options:[]};
 
-function hasWebRetrieval(plan){
-  return Array.isArray(plan?.external_searches)
-    ?plan.external_searches.some(item=>item&&["web","marketplace","official"].includes(item.source)&&String(item.query||"").trim())
-    :false;
-}
+  const searches=[...(Array.isArray(next.external_searches)?next.external_searches:[])];
+  if(needsLiveWeb(next)&&!hasWeb(next))searches.push({source:"web",mode:"standard",query:clean(next.goal)||clean(query),reason:lang==="uk"?"Отримати актуальну відповідь із живих зовнішніх джерел":"Get a current answer from live external sources"});
+  if(next.solution_scope==="destination_route"&&!hasMap(next,"destination")){
+    const destination=fallback.external_searches.find(item=>item.source==="maps")||{source:"maps",mode:"destination",query:clean(next.goal)||clean(query),reason:"Resolve destination"};
+    searches.push({...destination,mode:"destination"});
+  }
+  if(next.solution_scope==="mixed"&&locationAvailable&&hasWeb(next)&&!hasMap(next,"nearby")){
+    const local=fallback.external_searches.find(item=>item.source==="maps"&&item.mode==="nearby");
+    if(local)searches.push(local);
+  }
+  next.external_searches=searches.filter((item,index,array)=>item&&clean(item.query)&&array.findIndex(other=>other?.source===item.source&&other?.mode===item.mode&&clean(other?.query)===clean(item.query))===index);
 
-function hasExternalRetrieval(plan){
-  return Array.isArray(plan?.external_searches)
-    ?plan.external_searches.some(item=>item&&item.source&&item.source!=="none"&&String(item.query||"").trim())
-    :false;
-}
-
-function hasAnyRetrieval(plan){
-  const searches=hasExternalRetrieval(plan);
-  const passportTerms=Array.isArray(plan?.passport_search?.terms)&&plan.passport_search.terms.some(term=>String(term||"").trim());
-  return searches||passportTerms;
-}
-
-function hasContradictoryClarification(plan){
-  return Boolean(plan?.clarification?.required&&plan?.clarification?.question&&hasExternalRetrieval(plan));
-}
-
-function planNeedsRecovery(plan,{locationAvailable=false}={}){
-  if(hasContradictoryClarification(plan))return true;
-  if(plan?.clarification?.required&&plan?.clarification?.question)return false;
-  if(plan?.solution_scope==="destination_route"&&!hasMapMode(plan,"destination"))return true;
-  if(plan?.solution_scope==="local_action"&&plan?.needs_location&&!hasMapMode(plan,"nearby"))return true;
-  if(plan?.needs_location&&!hasSearch(plan,"maps"))return true;
-  if(plan?.solution_scope==="mixed"&&locationAvailable&&hasWebRetrieval(plan)&&!hasMapMode(plan,"nearby"))return true;
-  return !hasAnyRetrieval(plan);
-}
-
-function recoveryInstruction(plan,{lang="uk",locationAvailable=false}={}){
-  const clarificationRule=hasContradictoryClarification(plan)
-    ?(lang==="uk"
-      ?"План суперечливий: він одночасно каже, що уточнення обов'язкове, і вже містить виконувані зовнішні пошуки. Якщо корисний пошук уже можна почати, встанови clarification.required=false і продовжуй виконання. Уточнення допустиме лише коли без нього справді неможливо почати корисний пошук."
-      :"The plan is contradictory: it marks clarification as required while already containing executable external searches. If useful retrieval can already begin, set clarification.required=false and continue execution. Clarification is allowed only when useful searching truly cannot start without it.")
-    :"";
-
-  const routeRule=plan?.solution_scope==="destination_route"
-    ?(lang==="uk"
-      ?"Це маршрут до названого пункту призначення. План зобов'язаний містити source=maps, mode=destination, а query має бути лише назвою/адресою пункту призначення без слів про маршрут."
-      :"This is a route to a named destination. The plan must contain source=maps, mode=destination, and query must be only the destination name/address without route wording.")
-    :"";
-
-  const localRule=plan?.solution_scope==="local_action"&&plan?.needs_location
-    ?(lang==="uk"
-      ?"Це локальна фізична дія. План зобов'язаний містити source=maps, mode=nearby для реальної людини/місця/сервісу поруч."
-      :"This is a local physical action. The plan must contain source=maps, mode=nearby for a real nearby person/place/service.")
-    :"";
-
-  const mixedRule=plan?.solution_scope==="mixed"&&locationAvailable&&hasWebRetrieval(plan)&&!hasMapMode(plan,"nearby")
-    ?(lang==="uk"
-      ?"Це змішана задача з відомою локацією, але план звузив рішення до web/доставки. Це порушує нейтральність каналів: додай source=maps, mode=nearby для реальних локальних варіантів. Web/доставка може залишитися лише додатковим каналом після Паспортів і локальних варіантів."
-      :"This is a mixed task with known location, but the plan collapsed fulfillment into web/delivery. This violates channel neutrality: add source=maps, mode=nearby for real local options. Web/delivery may remain only as an additional channel after Passports and local options.")
-    :"";
-
-  return [clarificationRule,routeRule,localRule,mixedRule].filter(Boolean).join(" ");
+  let steps=Array.isArray(next.solution_steps)?next.solution_steps.filter(Boolean):[];
+  if(!steps.length)steps=fallback.solution_steps;
+  if(needsLiveWeb(next)&&!steps.some(step=>step.internet_relevant&&clean(step.internet_query))){
+    steps=[...steps,{id:"live-web-answer",title:lang==="uk"?"Знайти актуальну відповідь":"Find a current answer",purpose:clean(next.goal)||clean(query),passport_terms:[],nearby_query:"",internet_query:clean(next.goal)||clean(query),nearby_relevant:false,internet_relevant:true}].slice(0,4);
+  }
+  next.solution_steps=steps;
+  if(!next.passport_search)next.passport_search=fallback.passport_search;
+  return next;
 }
 
 export async function analyzeAtlasQuery(query,{lang="uk",location=null,locationText="",signal}={}){
-  const original=String(query||"").trim();
-  const qualityContext={locationAvailable:Boolean(location||String(locationText||"").trim())};
-  let candidate=await requestBrainPlan(original,{lang,location,locationText,signal});
-  if(!planNeedsRecovery(candidate,qualityContext))return candidate;
+  const original=clean(query);
+  const context={lang,locationAvailable:Boolean(location||clean(locationText))};
+  let candidate;
+  try{candidate=await requestBrainPlan(original,{lang,location,locationText,signal})}
+  catch(error){if(error?.name==="AbortError")throw error;return createFallbackPlan(original,{lang})}
 
-  for(let attempt=0;attempt<2;attempt+=1){
-    const violation=recoveryInstruction(candidate,{lang,...qualityContext});
-    const recoveryQuery=lang==="uk"
-      ?`Оригінальний запит користувача: «${original}». Поточний план не пройшов контроль якості. ${violation} Паспорти можливостей завжди перевіряються першими, але їх відсутність не може зупинити виконання задачі. Не нав'язуй канал, якого користувач не просив. Не став уточнення, якщо вже можна почати корисний пошук. Якщо одного відсутнього параметра справді бракує для будь-якого корисного пошуку — постав одне коротке уточнення. Інакше сформуй практичні пошуки, які ведуть до конкретної дії. Не вигадуй результатів і не створюй сценарій під цей приклад.`
-      :`Original user request: “${original}”. The current plan failed the quality gate. ${violation} Opportunity Passports are always checked first, but a Passport miss must not stop execution. Do not impose a fulfillment channel the user did not request. Do not ask for clarification when useful searching can already begin. If one missing parameter truly blocks all useful retrieval, ask one short clarification. Otherwise produce practical retrieval actions that lead to a concrete next step. Do not invent results or create a scenario for this example.`;
+  candidate=universalizePlan(candidate,original,context);
+  if(candidate?.clarification?.required)return candidate;
 
-    try{
-      candidate=await requestBrainPlan(recoveryQuery,{lang,location,locationText,signal});
-      if(!planNeedsRecovery(candidate,qualityContext))return candidate;
-    }catch(error){
-      if(error?.name==="AbortError")throw error;
-      break;
-    }
-  }
+  const brokenRoute=candidate?.solution_scope==="destination_route"&&!hasMap(candidate,"destination");
+  const emptyPlan=!hasExternal(candidate)&&candidate?.domain!=="health";
+  if(!brokenRoute&&!emptyPlan)return candidate;
 
-  if(hasContradictoryClarification(candidate)){
-    candidate={...candidate,clarification:{required:false,question:"",options:[]}};
-  }
-
-  // Important UX rule: a Passport miss must never leave the user with an empty screen.
-  // If Brain still has no nearby route, keep its useful web searches and enrich the plan
-  // with the deterministic fallback (nearby + marketplace) instead of hiding alternatives.
-  if(candidate?.solution_scope==="mixed"&&qualityContext.locationAvailable&&hasWebRetrieval(candidate)&&!hasMapMode(candidate,"nearby")){
-    const fallback=createFallbackPlan(original,{lang});
-    const searches=[...(candidate.external_searches||[]),...(fallback.external_searches||[])];
-    const uniqueSearches=searches.filter((item,index,array)=>item&&item.query&&array.findIndex(other=>other?.source===item.source&&other?.mode===item.mode&&other?.query===item.query)===index);
-    return {
-      ...candidate,
-      clarification:{required:false,question:"",options:[]},
-      external_searches:uniqueSearches,
-      solution_steps:Array.isArray(candidate.solution_steps)&&candidate.solution_steps.length?candidate.solution_steps:fallback.solution_steps,
-      result_strategy:lang==="uk"
-        ?"Спочатку Паспорти можливостей. Якщо точного збігу немає — показати найближчі можливості, варіанти поруч та відкритий пошук."
-        :"Opportunity Passports first. If there is no exact match, show the closest capabilities, nearby options and open search."
-    };
-  }
-
-  if(!hasExternalRetrieval(candidate)&&!candidate?.clarification?.required){
-    const fallback=createFallbackPlan(original,{lang});
-    return {...candidate,...fallback,passport_search:candidate?.passport_search||fallback.passport_search};
-  }
-
-  return candidate;
+  try{
+    const retry=await requestBrainPlan(`${original}\n\nAtlas quality rule: produce at least one executable retrieval path. Current information must use live web/official sources; destination routes must use maps destination mode. Do not stop after Passport search.`,{lang,location,locationText,signal});
+    return universalizePlan(retry,original,context);
+  }catch(error){if(error?.name==="AbortError")throw error;return universalizePlan(createFallbackPlan(original,{lang}),original,context)}
 }
