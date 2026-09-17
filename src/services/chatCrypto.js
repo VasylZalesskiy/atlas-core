@@ -7,8 +7,8 @@ export const CHAT_ROOM_TTL_MS=60*60*1000;
 
 export function createChatRoom(now=Date.now()){
   const roomCode=randomHex(8).toUpperCase();
-  // The rotating room code is cryptographically embedded into the 256-bit
-  // AES key material. A fresh room therefore always gets fresh key material.
+  // Each room gets a fresh code. The code is embedded directly into the
+  // room's 256-bit AES key material, so changing the room changes the key.
   const secret=`${roomCode}${randomHex(24).toUpperCase()}`;
   return {
     roomId:`ATLAS-${randomHex(4).toUpperCase()}`,
