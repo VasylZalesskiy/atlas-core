@@ -6,9 +6,14 @@ export function randomHex(bytes=16){
 export const CHAT_ROOM_TTL_MS=60*60*1000;
 
 export function createChatRoom(now=Date.now()){
+  const roomCode=randomHex(8).toUpperCase();
+  // The rotating room code is cryptographically embedded into the 256-bit
+  // AES key material. A fresh room therefore always gets fresh key material.
+  const secret=`${roomCode}${randomHex(24).toUpperCase()}`;
   return {
     roomId:`ATLAS-${randomHex(4).toUpperCase()}`,
-    secret:randomHex(32).toUpperCase(),
+    roomCode,
+    secret,
     expiresAt:now+CHAT_ROOM_TTL_MS
   };
 }
@@ -21,8 +26,9 @@ export function parseChatHash(hash){
   const match=String(hash||"").match(/^#chat-(ATLAS-[A-F0-9]{8})-([A-F0-9]{64})-(\d{13})$/i);
   if(!match)return null;
   const expiresAt=Number(match[3]);
+  const secret=match[2].toUpperCase();
   return Number.isSafeInteger(expiresAt)
-    ?{roomId:match[1].toUpperCase(),secret:match[2].toUpperCase(),expiresAt}
+    ?{roomId:match[1].toUpperCase(),roomCode:secret.slice(0,16),secret,expiresAt}
     :null;
 }
 
