@@ -77,7 +77,7 @@ function toResults({answer,sources,language,domain}){
     source_type:"grounded_web",
     source_name:uk?"Atlas · Інтернет":"Atlas · Web",
     source_group:"grounded-web",
-    result_kind:health?"web_answer":"listing",
+    result_kind:"web_answer",
     price_text:"",
     location_text:"",
     quantity_tonnes:null,
