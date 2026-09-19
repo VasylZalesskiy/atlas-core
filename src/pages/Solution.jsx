@@ -256,7 +256,10 @@ function recommendationReason(candidate,lang){
   if(candidate?.kind==="passport")return lang==="uk"
     ?"Збіг знайдено серед можливостей людей Atlas."
     :"A match was found among Atlas people's capabilities.";
-  if(candidate?.kind==="external"&&["web_answer","official_result","web_result"].includes(candidate.resultKind))return lang==="uk"\n    ?"Актуальна відповідь із зовнішнього джерела, яку Atlas знайшов для цього запиту."\n    :"A current answer from an external source found by Atlas for this request.";\n  if(candidate?.kind==="external"&&candidate.resultKind==="listing")return lang==="uk"
+  if(candidate?.kind==="external"&&["web_answer","official_result","web_result"].includes(candidate.resultKind))return lang==="uk"
+    ?"Актуальна відповідь із зовнішнього джерела, яку Atlas знайшов для цього запиту."
+    :"A current answer from an external source found by Atlas for this request.";
+  if(candidate?.kind==="external"&&candidate.resultKind==="listing")return lang==="uk"
     ?"Конкретна пропозиція, яку можна відкрити й перевірити у продавця."
     :"A concrete offer you can open and confirm with the seller.";
   if(candidate?.kind==="place")return lang==="uk"
@@ -373,7 +376,8 @@ export default function Solution({lang}){
   const [searchParams,setSearchParams]=useSearchParams();
   const initialTask=clean(searchParams.get("q")||state?.task);
   const initialWhere=clean(searchParams.get("where")||state?.where);
-  const routeSignature=`${initialTask}\n${initialWhere}`;
+  const routeSignature=`${initialTask}
+${initialWhere}`;
   const previousRouteRef=useRef(routeSignature);
   const [task,setTask]=useState(initialTask);
   const [activeTask,setActiveTask]=useState(initialTask);
