@@ -8,8 +8,8 @@ function clean(value){return String(value||"").replace(/\s+/g," ").trim()}
 
 function currencyCode(text){
   const q=String(text||"").toLowerCase();
-  if(/\b(?:usd|долар|доллар)\b/u.test(q))return "USD";
-  if(/\b(?:eur|євро|евро)\b/u.test(q))return "EUR";
+  if(/(?:\busd\b|долар|доллар)/u.test(q))return "USD";
+  if(/(?:\beur\b|євро|евро)/u.test(q))return "EUR";
   if(/\b(?:pln|злот)/u.test(q))return "PLN";
   if(/\b(?:gbp|фунт)/u.test(q))return "GBP";
   if(/\b(?:chf|франк)/u.test(q))return "CHF";
