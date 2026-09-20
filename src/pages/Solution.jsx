@@ -195,6 +195,7 @@ function CandidateAction({candidate,origin,lang}){
       {!candidate.phone&&candidate.website&&<a className="chainAction secondaryAction" href={candidate.website} target="_blank" rel="noreferrer"><ExternalLink size={16}/>{lang==="uk"?"Сайт":"Website"}</a>}
     </div>;
   }
+  if(candidate.kind==="external"&&candidate.resultKind==="official_result")return null;
   if(candidate.kind==="external"&&candidate.url){
     if(candidate.resultKind==="store_option")return <div className="chainActions">
       {candidate.googleMapsUrl&&<a className="chainAction" href={candidate.googleMapsUrl} target="_blank" rel="noreferrer"><Navigation size={16}/>{lang==="uk"?`Маршрут до ${candidate.source}`:`Route to ${candidate.source}`}</a>}
@@ -540,7 +541,7 @@ ${initialWhere}`;
       location_provided:Boolean(initialWhere||origin)
     });
     if((nextScope==="nearby"||nextScope==="both")&&initialWhere&&!origin&&!originLoading)ensureOrigin();
-  },[passportsChecked,exactPassportFound,plan,stepsKey,searchScope,initialWhere]);
+  },[passportsChecked,exactPassportFound,plan,plannedAnswerCandidate,stepsKey,searchScope,initialWhere]);
 
   useEffect(()=>{
     const controller=new AbortController();
@@ -884,7 +885,7 @@ ${initialWhere}`;
         {lang==="uk"?"Надійного готового варіанта поки не знайдено. Нижче Atlas може показати конкретні часткові варіанти, але не називатиме їх вирішеною задачею.":"No reliable ready option was found. Atlas may show concrete partial options below, but will not call them a solved task."}
       </div>}
 
-      {chains.length>0&&<details className="solutionDetails" open={!recommendedCandidate}>
+      {!informationMode&&chains.length>0&&<details className="solutionDetails" open={!recommendedCandidate}>
         <summary>{lang==="uk"?"Повний ланцюжок, часткові варіанти та джерела":"Full chain, partial options and sources"}</summary>
         <div className="solutionChains">{chains.map((chain,index)=><SolutionChain key={chain.mode} chain={chain} index={index} origin={origin} lang={lang}/>)}</div>
       </details>}
