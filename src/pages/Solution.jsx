@@ -123,6 +123,19 @@ function internetCandidate(item,index,lang){
   };
 }
 
+function aiAnswerCandidate(plan,lang){
+  const answer=clean(plan?.answer);
+  if(!answer||plan?.solution_scope!=="information")return null;
+  return {
+    kind:"answer",
+    id:"qwen-direct-answer",
+    source:lang==="uk"?"Королева · Qwen":"Queen · Qwen",
+    title:lang==="uk"?"Відповідь":"Answer",
+    description:answer,
+    resolved:true
+  };
+}
+
 function directCandidate(action,locationText,lang){
   if(!action)return null;
   const mapsQuery=[clean(action.maps_query),clean(locationText)].filter(Boolean).join(" ");
@@ -234,6 +247,7 @@ function candidateIdentity(candidate){
 }
 
 function candidatePriority(candidate,task){
+  if(candidate?.kind==="answer")return 900;
   if(candidate?.kind==="direct"&&candidate.actionType==="emergency")return 1000;
   if(candidate?.kind==="passport")return passportMatchesTask(candidate,task)
     ?500+Math.min(80,candidate.matchScore)
@@ -252,6 +266,7 @@ function candidatePriority(candidate,task){
 }
 
 function recommendationReason(candidate,lang){
+  if(candidate?.kind==="answer")return lang==="uk"?"Пряма відповідь AI Atlas.":"Direct Atlas AI answer.";
   if(candidate?.kind==="direct")return candidate.recommendation||"";
   if(candidate?.kind==="passport")return lang==="uk"
     ?"Збіг знайдено серед можливостей людей Atlas."
@@ -638,9 +653,11 @@ ${initialWhere}`;
   const nearbyByStep=useMemo(()=>new Map(nearbyGroups.map(group=>[group.stepId,group.candidates||[]])),[nearbyGroups]);
   const internetByStep=useMemo(()=>new Map(internetGroups.map(group=>[group.stepId,group.candidates||[]])),[internetGroups]);
   const plannedDirectCandidate=useMemo(()=>directCandidate(plan?.direct_action,initialWhere,lang),[plan?.direct_action,initialWhere,lang]);
+  const plannedAnswerCandidate=useMemo(()=>aiAnswerCandidate(plan,lang),[plan,lang]);
 
   const rankedCandidates=useMemo(()=>{
     const candidates=[
+      plannedAnswerCandidate,
       plannedDirectCandidate,
       ...passportGroups.flatMap(group=>group.matches.slice(0,2).map(match=>passportCandidate(match,lang))),
       ...nearbyGroups.flatMap(group=>group.candidates||[]),
@@ -650,7 +667,7 @@ ${initialWhere}`;
       .filter(Boolean)
       .filter((candidate,index,array)=>array.findIndex(item=>candidateIdentity(item)===candidateIdentity(candidate))===index)
       .sort((a,b)=>candidatePriority(b,activeTask)-candidatePriority(a,activeTask));
-  },[plannedDirectCandidate,passportGroups,nearbyGroups,internetGroups,lang,activeTask]);
+  },[plannedAnswerCandidate,plannedDirectCandidate,passportGroups,nearbyGroups,internetGroups,lang,activeTask]);
   const sortedCandidates=useMemo(()=>{
     if(sortMode==="recommended")return rankedCandidates;
     const direction=sortMode==="price-desc"?-1:1;
