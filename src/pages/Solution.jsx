@@ -612,7 +612,8 @@ ${initialWhere}`;
     const plannedSources=(plan?.external_searches||[]).filter(item=>["web","marketplace","official"].includes(item?.source));
     Promise.all(searchable.map(async(step,index)=>{
       try{
-        const source=sourceForInternetStep(step,plannedSources,index);
+        const plannedSource=sourceForInternetStep(step,plannedSources,index);
+        const source=plan?.solution_scope==="information"&&plannedSource==="marketplace"?"web":plannedSource;
         const results=await searchExternalSources({
           goal:activeTask,
           domain:plan?.domain||"",
