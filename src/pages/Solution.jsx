@@ -524,6 +524,7 @@ ${initialWhere}`;
 
   useEffect(()=>{
     if(!passportsChecked||plan?.clarification?.required||searchScope)return;
+    if(plan?.solution_scope==="information"&&plannedAnswerCandidate){setSearchScope("direct");return;}
     if(exactPassportFound){
       setSearchScope("direct");
       trackAtlas("Atlas Exact Passport Match Found",{language:lang});
@@ -688,8 +689,10 @@ ${initialWhere}`;
     ...resolvedCandidates,
     ...preparedCandidates.filter(candidate=>!resolvedCandidates.includes(candidate))
   ];
-  const recommendedCandidate=actionableCandidates[0]||null;
-  const recommendedAlternatives=actionableCandidates.slice(1,10);
+  const informationMode=plan?.solution_scope==="information";
+  const informationCandidates=actionableCandidates.filter(candidate=>candidate?.kind==="answer"||(candidate?.kind==="external"&&["official_result","web_answer","web_result"].includes(candidate.resultKind)));
+  const recommendedCandidate=(informationMode?informationCandidates:actionableCandidates)[0]||null;
+  const recommendedAlternatives=informationMode?[]:actionableCandidates.slice(1,10);
   const structuredPriceCount=rankedCandidates.filter(candidate=>structuredPrice(candidate)).length;
 
   const chains=useMemo(()=>{
@@ -780,6 +783,7 @@ ${initialWhere}`;
   const solutionBusy=brainLoading||passportLoading||externalBusy||Boolean(activeTask&&!searchScope&&!plan?.clarification?.required&&!plan?.direct_action);
   const locationText=origin?(initialWhere||(lang==="uk"?"поточна локація":"current location")):(initialWhere||(lang==="uk"?"не визначена":"not set"));
   const scopeChoiceAvailable=plan?.solution_scope==="transaction";
+  const informationSearchAvailable=informationMode&&passportsChecked&&!brainLoading;
   const healthTask=plan?.domain==="health";
 
   return <main className="simpleSolutionPage">
@@ -856,6 +860,8 @@ ${initialWhere}`;
         lang={lang}
         stillSearching={solutionBusy}
       />}
+
+      {!plan?.clarification?.required&&informationSearchAvailable&&recommendedCandidate&&<div className="searchScopePicker"><div className="scopeHeading"><span>{lang==="uk"?"ДОДАТКОВО":"OPTIONAL"}</span><h2>{lang==="uk"?"Потрібно пошукати ще?":"Search for more?"}</h2><p>{lang==="uk"?"Основну відповідь Atlas уже дав. Додатковий пошук запускається лише за вашим бажанням.":"Atlas already gave the main answer. Additional search runs only if you choose it."}</p></div><div className="scopeButtons" role="group"><button type="button" onClick={()=>chooseSearchScope("nearby")}><MapPin size={21}/><span><strong>{lang==="uk"?"Пошукати поруч":"Search nearby"}</strong><small>{lang==="uk"?"Місця та маршрут":"Places and route"}</small></span></button><button type="button" onClick={()=>chooseSearchScope("internet")}><Globe2 size={21}/><span><strong>{lang==="uk"?"Пошукати в інтернеті":"Search online"}</strong><small>{lang==="uk"?"Додаткові джерела":"Additional sources"}</small></span></button></div></div>}
 
       {!plan?.clarification?.required&&!recommendedCandidate&&solutionBusy&&<div className="solutionSearchState">
         <RefreshCw className="spin" size={20}/>
