@@ -615,6 +615,7 @@ ${initialWhere}`;
         const plannedSource=sourceForInternetStep(step,plannedSources,index);
         const source=plan?.solution_scope==="information"&&plannedSource==="marketplace"?"web":plannedSource;
         const results=await searchExternalSources({
+          original_query:activeTask,
           goal:activeTask,
           domain:plan?.domain||"",
           solution_scope:plan?.solution_scope||"",
