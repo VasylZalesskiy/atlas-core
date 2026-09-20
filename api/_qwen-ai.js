@@ -1,5 +1,5 @@
-const QWEN_MODEL="qwen-plus";
-const QWEN_URL="https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions";
+const QWEN_MODEL="qwen3.8-flash";
+const QWEN_URL="https://ws-y0i5f576v5kqdzim.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions";
 
 function apiKey(){
   return String(process.env.DASHSCOPE_API_KEY||"").trim();
