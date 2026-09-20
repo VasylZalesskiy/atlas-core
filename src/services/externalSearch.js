@@ -51,7 +51,7 @@ async function groundedResults(plan,searches,{lang,signal}){
 }
 
 async function officialDataResults(plan,{lang,signal}){
-  const text=`${plan?.goal||""} ${(plan?.external_searches||[]).map(item=>item?.query||"").join(" ")}`;
+  const text=`${plan?.original_query||""} ${plan?.goal||""} ${(plan?.external_searches||[]).map(item=>item?.query||"").join(" ")}`;
   if(!/курс\s+(?:долар|євро|валют)|\b(?:usd|eur|pln|gbp|chf)\b|exchange\s+rate/iu.test(text))return [];
   try{
     const response=await fetch("/api/official-data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query:text,language:lang}),signal});
