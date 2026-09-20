@@ -181,12 +181,18 @@ async function runDiagnostic(){
   }
 }
 
-function enforceSearchChannels(plan){
+function isInformationalQuery(query){
+  const q=String(query||"").toLowerCase();
+  return /курс\s+(?:долар|євро|валют)|exchange\s+rate|погода|weather|новин|news|котируван|ціна\s+(?:акці|нафт|газ)|хто\s+ти|яка\s+модель|що\s+таке|what\s+is/i.test(q);
+}
+
+function enforceSearchChannels(plan,query){
   if(!plan||typeof plan!=="object")return plan;
+  if(isInformationalQuery(query))plan.solution_scope="information";
   const scope=String(plan.solution_scope||"");
   if(scope==="information"){
     plan.external_searches=(plan.external_searches||[]).map(item=>item?.source==="marketplace"?{...item,source:"web"}:item);
-    plan.solution_steps=(plan.solution_steps||[]).map(step=>({...step,nearby_relevant:false,nearby_query:""}));
+    plan.solution_steps=(plan.solution_steps||[]).map(step=>({...step,nearby_relevant:false,nearby_query:"",internet_relevant:true}));
   }
   return plan;
 }
@@ -297,7 +303,7 @@ export default async function handler(req,res){
 
     let plan;
     try{
-      plan=enforceSearchChannels(parsePlan(text));
+      plan=enforceSearchChannels(parsePlan(text),query);
     }catch{
       return fallback("brain-invalid-json");
     }
