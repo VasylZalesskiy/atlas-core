@@ -50,9 +50,22 @@ async function groundedResults(plan,searches,{lang,signal}){
   }
 }
 
+async function officialDataResults(plan,{lang,signal}){
+  const text=`${plan?.goal||""} ${(plan?.external_searches||[]).map(item=>item?.query||"").join(" ")}`;
+  if(!/курс\s+(?:долар|євро|валют)|\b(?:usd|eur|pln|gbp|chf)\b|exchange\s+rate/iu.test(text))return [];
+  try{
+    const response=await fetch("/api/official-data",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({query:text,language:lang}),signal});
+    const data=await response.json().catch(()=>({}));
+    return response.ok?concreteOnly(data?.results):[];
+  }catch(error){if(error?.name==="AbortError")throw error;return []}
+}
+
 export async function searchExternalSources(plan,{lang="uk",signal}={}){
   const searches=(plan?.external_searches||[]).filter(item=>["web","marketplace","official"].includes(item?.source));
   if(!searches.length)return [];
+
+  const officialData=await officialDataResults(plan,{lang,signal});
+  if(officialData.length)return officialData;
 
   const wantsMarketplace=searches.some(item=>item.source==="marketplace");
   const marketplaceFallback=()=>wantsMarketplace
