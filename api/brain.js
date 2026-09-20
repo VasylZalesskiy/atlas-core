@@ -1,5 +1,6 @@
 import {createFallbackPlan} from "../src/services/atlasBrain.js";
 import {getFreeAiStatus,runFreeAiResponse} from "./_free-ai.js";
+import {getQwenStatus,runQwenResponse} from "./_qwen-ai.js";
 
 function redactAnalyticsText(value,max=600){
   return String(value||"")
@@ -158,10 +159,12 @@ async function resolveLocationContext(location,language){
 
 async function runDiagnostic(){
   try{
-    const {data,model}=await runFreeAiResponse({instructions:"Reply exactly with OK.",input:"Health check",maxOutputTokens:32,timeoutMs:8000,json:false});
+    const qwen=await getQwenStatus();
+    const runner=qwen.configured?runQwenResponse:runFreeAiResponse;
+    const {data,model}=await runner({instructions:"Reply exactly with OK.",input:"Health check",maxOutputTokens:32,timeoutMs:8000,json:false});
     return {
       api_call_ok:true,
-      provider:"google-gemini-free-tier",
+      provider:(await getQwenStatus()).configured?"alibaba-qwen":"google-gemini-free-tier",
       model,
       response_status:data?.status||"completed",
       incomplete_reason:data?.incomplete_details?.reason||null,
@@ -170,8 +173,8 @@ async function runDiagnostic(){
   }catch(error){
     return {
       api_call_ok:false,
-      provider:"google-gemini-free-tier",
-      error_code:error?.code||"free-ai-unavailable",
+      provider:(await getQwenStatus()).configured?"alibaba-qwen":"google-gemini-free-tier",
+      error_code:error?.code||"ai-unavailable",
       message:error?.message||"Request failed"
     };
   }
@@ -194,7 +197,8 @@ export default async function handler(req,res){
 
   if(req.method==="GET"){
     const freeAi=await getFreeAiStatus();
-    const base={status:"atlas-brain-endpoint-online",ai:freeAi,paid_ai_disabled:true};
+    const qwen=await getQwenStatus();
+    const base={status:"atlas-brain-endpoint-online",ai:qwen.configured?qwen:freeAi,qwen,free_ai:freeAi};
     if(String(req.query?.test||"")==="1"){
       const diagnostic=await runDiagnostic();
       return send(res,200,{...base,...diagnostic});
@@ -264,7 +268,9 @@ export default async function handler(req,res){
   };
 
   try{
-    const {data,model}=await runFreeAiResponse({
+    const qwen=await getQwenStatus();
+    const aiRunner=qwen.configured?runQwenResponse:runFreeAiResponse;
+    const {data,model}=await aiRunner({
       instructions:`${instructions}\n\n${solutionChainPolicy}\n\nReturn ONLY one JSON object matching this JSON Schema. Do not use Markdown fences or add prose:\n${JSON.stringify(schema)}`,
       input:JSON.stringify(context),
       maxOutputTokens:2600,
@@ -294,9 +300,9 @@ export default async function handler(req,res){
       duration_ms:Date.now()-startedAt
     });
 
-    return send(res,200,{plan,model,ai_status:"free-ai",paid_ai_disabled:true,location_context:locationContext});
+    return send(res,200,{plan,model,ai_status:qwen.configured?"qwen":"free-ai",location_context:locationContext});
   }catch(error){
-    logAnalyticsError("atlas_brain_free_ai_unavailable",error,{duration_ms:Date.now()-startedAt});
+    logAnalyticsError("atlas_brain_ai_unavailable",error,{duration_ms:Date.now()-startedAt});
     return fallback(error?.name==="AbortError"?"free-ai-timeout":error?.code||error?.message||"free-ai-unavailable");
   }
 }
