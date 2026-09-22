@@ -6,7 +6,6 @@ import OnlinePresence from "./OnlinePresence";
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import {ATLAS_SHARE_URL,atlasShareText} from "../services/shareApp";
-import {loadMatchNotifications} from "../services/matchNotificationStore";
 import "../styles/mobilePilot.css";
 
 function readImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
@@ -40,13 +39,9 @@ export default function MobileHome({lang="uk"}){
   const nav=useNavigate();
 
   useEffect(()=>{
-    let alive=true;
-    loadMatchNotifications().then(rows=>{
-      if(alive)setUnreadCount(rows.filter(item=>item.status==="unread").length);
-    }).catch(()=>{});
     const onNotifications=event=>setUnreadCount(Number(event?.detail?.unread)||0);
     window.addEventListener("atlas:notifications",onNotifications);
-    return()=>{alive=false;window.removeEventListener("atlas:notifications",onNotifications)};
+    return()=>window.removeEventListener("atlas:notifications",onNotifications);
   },[]);
 
   async function submit(event){
