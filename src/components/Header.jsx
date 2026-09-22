@@ -1,3 +1,4 @@
+import {useEffect,useState} from "react";
 import {Globe2,HeartHandshake,IdCard,MessageCircleMore,Sparkles} from "lucide-react";
 import {Link,NavLink,useLocation} from "react-router-dom";
 import OnlinePresence from "./OnlinePresence";
@@ -25,6 +26,15 @@ function pageTitle(pathname,lang){
 
 export default function Header({lang,setLang}){
   const location=useLocation();
+  const [mobile,setMobile]=useState(()=>window.matchMedia?.("(max-width: 760px)")?.matches??false);
+  useEffect(()=>{
+    const media=window.matchMedia?.("(max-width: 760px)");
+    if(!media)return;
+    const sync=event=>setMobile(event.matches);
+    setMobile(media.matches);
+    media.addEventListener?.("change",sync);
+    return()=>media.removeEventListener?.("change",sync);
+  },[]);
   const l=copy(lang);
   const homeActive=location.pathname==="/";
   const items=[
@@ -44,7 +54,7 @@ export default function Header({lang,setLang}){
       return <NavLink key={item.to} to={item.to} className={({isActive})=>isActive?"active":""}><Icon size={19}/><span>{item.label}</span></NavLink>;
     })}</nav>
     <div className="actions">
-      <div className="desktopPresence"><OnlinePresence lang={lang} compact/></div>
+      {!mobile&&<div className="desktopPresence"><OnlinePresence lang={lang} compact/></div>}
       <label className="lang" aria-label="Language"><Globe2 size={17}/><select value={lang} onChange={event=>setLang(event.target.value)} aria-label="Language">
         <option value="uk">UA</option><option value="en">EN</option><option value="zh">中文</option><option value="hi">हिंदी</option>
       </select></label>
