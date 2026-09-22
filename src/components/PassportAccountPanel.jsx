@@ -1,5 +1,6 @@
-import {KeyRound,LogIn,LogOut,Plus,UserRound} from "lucide-react";
+import {KeyRound,LogIn,LogOut,Plus,UserRound,UsersRound} from "lucide-react";
 import {useState} from "react";
+import {Link} from "react-router-dom";
 import "../styles/passportAccounts.css";
 
 function accountError(error){
@@ -50,7 +51,7 @@ export default function PassportAccountPanel({accounts=[],passports=[],activePas
   return <section className="passportAccountPanel logged">
     <div className="passportAccountTop">
       <div className="passportAccountIntro"><UserRound size={22}/><div><strong>Мої сторінки Atlas</strong><span>Вхід: <b>{account.login}</b> · сторінок: {passports.length}</span></div></div>
-      <button type="button" className="passportLogout" onClick={()=>onLogout(account.account_id)}><LogOut size={16}/>Вийти</button>
+      <div className="passportAccountTopActions"><Link className="passportGroupsLink" to="/groups"><UsersRound size={16}/>Групи</Link><button type="button" className="passportLogout" onClick={()=>onLogout(account.account_id)}><LogOut size={16}/>Вийти</button></div>
     </div>
     <div className="passportSwitcher">
       <label><span>Вибрати сторінку</span>
