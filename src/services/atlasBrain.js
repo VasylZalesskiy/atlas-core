@@ -81,14 +81,13 @@ export function createFallbackPlan(query,{lang="uk"}={}){
   if(isHealthNeed(goal))return createHealthPlan(goal,lang);
   const uk=lang==="uk",lodging=isLodgingNeed(goal),service=!lodging&&isServiceNeed(goal),product=!lodging&&!service&&(isProductNeed(goal)||isExplicitMarketplaceNeed(goal)),agriculture=isAgricultureNeed(goal);
   const productTerm=marketplaceSearchTerm(goal)||goal;
-  const nearbyQuery=lodging?(uk?"готель":"hotel"):"";
-  const internetQuery=service?goal:lodging?(uk?`готель ${goal}`:`hotel ${goal}`):product?(uk?`купити ${goal}`:`buy ${goal}`):goal;
+  const nearbyQuery=lodging?(uk?"готель":"hotel"):service?goal:"";
+  const internetQuery=lodging?(uk?`готель ${goal}`:`hotel ${goal}`):product?(uk?`купити ${goal}`:`buy ${goal}`):goal;
   const searches=[];
-  if(lodging)searches.push({source:"web",mode:"standard",query:internetQuery,reason:uk?"Знайти конкретні варіанти проживання":"Find concrete lodging options"});
-  if(service)searches.push({source:"web",mode:"standard",query:internetQuery,reason:uk?"Знайти конкретних місцевих виконавців або сервіси":"Find concrete local service providers"});
+  if(lodging||service)searches.push({source:"maps",mode:"nearby",query:nearbyQuery,reason:uk?"Знайти конкретні місцеві варіанти":"Find concrete local options"});
   if(product)searches.push({source:"marketplace",mode:"standard",query:internetQuery,reason:uk?"Знайти конкретні товари або оголошення":"Find concrete products or listings"});
   if(!lodging&&!service&&!product&&goal)searches.push({source:"web",mode:"standard",query:internetQuery,reason:uk?"Знайти актуальну відповідь у відкритому інтернеті":"Find a current answer on the open web"});
-  return {understood:Boolean(goal),goal,intent:lodging?"find_lodging":service?"find_service":product?"buy":"solve",domain:lodging?"lodging":service?"services":agriculture?"agriculture":product?"products":"general",solution_scope:product?"transaction":"information",urgency:"planned",needs_location:lodging||service,clarification:{required:false,question:"",options:[]},passport_search:{terms,capability_description:uk?"Можливості людей або компаній, релевантні запиту":"People or company capabilities relevant to the request"},solution_steps:goal?[{id:"main-result",title:uk?"Знайти рішення":"Find a solution",purpose:goal,passport_terms:terms,nearby_query:"",internet_query:internetQuery,nearby_relevant:false,internet_relevant:true}]:[],external_searches:searches,safety:{level:"none",message:""},result_strategy:uk?"Після Паспортів показати конкретні зовнішні результати без службових етапів.":"After Passports, show concrete external results without internal workflow details.",fallback:true};
+  return {understood:Boolean(goal),goal,intent:lodging?"find_lodging":service?"find_service":product?"buy":"solve",domain:lodging?"lodging":service?"services":agriculture?"agriculture":product?"products":"general",solution_scope:lodging||service?"local_action":product?"transaction":"information",urgency:"planned",needs_location:lodging||service,clarification:{required:false,question:"",options:[]},passport_search:{terms,capability_description:uk?"Можливості людей або компаній, релевантні запиту":"People or company capabilities relevant to the request"},solution_steps:goal?[{id:"main-result",title:uk?"Знайти рішення":"Find a solution",purpose:goal,passport_terms:terms,nearby_query:nearbyQuery,internet_query:product?internetQuery:"",nearby_relevant:Boolean(lodging||service),internet_relevant:Boolean(product||(!lodging&&!service))}]:[],external_searches:searches,safety:{level:"none",message:""},result_strategy:uk?"Після Паспортів показати конкретні зовнішні результати без службових етапів.":"After Passports, show concrete external results without internal workflow details.",fallback:true};
 }
 
 async function requestBrainPlan(query,{lang="uk",location=null,locationText="",signal}={}){
@@ -114,18 +113,18 @@ function enforceTaskChannel(plan,query){
 
   if(service){
     next.domain="services";
-    next.solution_scope="information";
+    next.solution_scope="local_action";
     next.needs_location=true;
     next.answer="";
-    next.external_searches=[{source:"web",mode:"standard",query:clean(next.goal)||clean(query),reason:"Find concrete local service providers"}];
+    next.external_searches=[{source:"maps",mode:"nearby",query:clean(next.goal)||clean(query),reason:"Find concrete local service providers"}];
     next.solution_steps=(next.solution_steps||[]).map(step=>({...step,
-      nearby_relevant:false,
-      nearby_query:"",
-      internet_relevant:true,
-      internet_query:clean(step?.internet_query)||clean(next.goal)||clean(query)
+      nearby_relevant:true,
+      nearby_query:clean(step?.nearby_query)||clean(next.goal)||clean(query),
+      internet_relevant:false,
+      internet_query:""
     }));
     if(!next.solution_steps.length){
-      next.solution_steps=[{id:"service-web",title:"Service search",purpose:clean(next.goal)||clean(query),passport_terms:[],nearby_query:"",internet_query:clean(next.goal)||clean(query),nearby_relevant:false,internet_relevant:true}];
+      next.solution_steps=[{id:"service-local",title:"Service search",purpose:clean(next.goal)||clean(query),passport_terms:[],nearby_query:clean(next.goal)||clean(query),internet_query:"",nearby_relevant:true,internet_relevant:false}];
     }
     return next;
   }
