@@ -76,7 +76,7 @@ export async function loadAtlasGroup(groupId){
       .order("joined_at",{ascending:true}),
     supabase
       .from("atlas_group_opportunities")
-      .select("group_id,opportunity_id,passport_id,added_by_account_id,created_at,opportunity:atlas_opportunities!atlas_group_opportunities_opportunity_id_fkey(id,kind,text,is_active,photo_url,photo_label,photo_task,created_at),passport:atlas_passports!atlas_group_opportunities_passport_id_fkey(id,slug,display_name,entity_type,city)")
+      .select("group_id,opportunity_id,passport_id,added_by_account_id,created_at,opportunity:atlas_opportunities!atlas_group_opportunities_opportunity_id_fkey(id,kind,text,is_active,visibility_scope,expires_at,photo_url,photo_label,photo_task,created_at),passport:atlas_passports!atlas_group_opportunities_passport_id_fkey(id,slug,display_name,entity_type,city)")
       .eq("group_id",groupId)
       .order("created_at",{ascending:false})
   ]);
@@ -90,7 +90,7 @@ export async function loadAtlasGroup(groupId){
       ...link,
       opportunity:link.opportunity?{...link.opportunity,...decodeOpportunityText(link.opportunity.text,link.opportunity.kind)}:null
     }))
-    .filter(item=>item.opportunity);
+    .filter(item=>item.opportunity&&item.opportunity.is_active!==false&&(!item.opportunity.expires_at||new Date(item.opportunity.expires_at)>new Date()));
 
   return {group:groupResult.data,members:membersResult.data||[],opportunities};
 }
