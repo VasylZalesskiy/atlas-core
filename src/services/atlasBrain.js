@@ -103,6 +103,61 @@ function hasWeb(plan){return Array.isArray(plan?.external_searches)&&plan.extern
 function hasMap(plan,mode){return Array.isArray(plan?.external_searches)&&plan.external_searches.some(item=>item?.source==="maps"&&(!mode||item.mode===mode)&&clean(item?.query))}
 function needsLiveWeb(plan){return plan?.domain!=="health"&&(plan?.solution_scope==="information"||!hasExternal(plan))}
 
+function enforceTaskChannel(plan,query){
+  if(!plan||typeof plan!=="object"||plan?.domain==="health")return plan;
+  const next={...plan};
+  const text=String(query||"");
+  const service=isServiceNeed(text);
+  const transaction=(isExplicitMarketplaceNeed(text)||isProductNeed(text))&&!service;
+  const information=isInformationalQuery(text)||next.solution_scope==="information";
+
+  if(service){
+    next.domain="services";
+    next.solution_scope="local_action";
+    next.needs_location=true;
+    next.external_searches=(next.external_searches||[]).filter(item=>item?.source==="maps");
+    if(!next.external_searches.length){
+      next.external_searches=[{source:"maps",mode:"nearby",query:clean(next.goal)||clean(query),reason:"Find concrete local service providers"}];
+    }
+    next.solution_steps=(next.solution_steps||[]).map(step=>({...step,
+      nearby_relevant:true,
+      nearby_query:clean(step?.nearby_query)||clean(next.goal)||clean(query),
+      internet_relevant:false,
+      internet_query:""
+    }));
+    return next;
+  }
+
+  if(transaction&&!information){
+    next.solution_scope="transaction";
+    next.external_searches=(next.external_searches||[]).filter(item=>item?.source==="marketplace");
+    if(!next.external_searches.length){
+      next.external_searches=[{source:"marketplace",mode:"standard",query:clean(next.goal)||clean(query),reason:"Find concrete products or listings"}];
+    }
+    next.solution_steps=(next.solution_steps||[]).map(step=>({...step,
+      nearby_relevant:false,
+      nearby_query:"",
+      internet_relevant:true,
+      internet_query:clean(step?.internet_query)||clean(next.goal)||clean(query)
+    }));
+    return next;
+  }
+
+  if(information){
+    next.solution_scope="information";
+    next.external_searches=(next.external_searches||[])
+      .map(item=>item?.source==="marketplace"?{...item,source:"web"}:item)
+      .filter(item=>item?.source!=="maps");
+    next.solution_steps=(next.solution_steps||[]).map(step=>({...step,
+      nearby_relevant:false,
+      nearby_query:"",
+      internet_relevant:true,
+      internet_query:clean(step?.internet_query)||clean(next.goal)||clean(query)
+    }));
+  }
+  return next;
+}
+
 function universalizePlan(plan,query,{lang="uk",locationAvailable=false}={}){
   if(!plan||plan?.domain==="health")return plan;
   const fallback=createFallbackPlan(query,{lang});
@@ -138,7 +193,7 @@ export async function analyzeAtlasQuery(query,{lang="uk",location=null,locationT
   try{candidate=await requestBrainPlan(original,{lang,location,locationText,signal})}
   catch(error){if(error?.name==="AbortError")throw error;return createFallbackPlan(original,{lang})}
 
-  candidate=universalizePlan(candidate,original,context);
+  candidate=enforceTaskChannel(universalizePlan(candidate,original,context),original);
   if(candidate?.clarification?.required)return candidate;
 
   const brokenRoute=candidate?.solution_scope==="destination_route"&&!hasMap(candidate,"destination");
@@ -147,6 +202,6 @@ export async function analyzeAtlasQuery(query,{lang="uk",location=null,locationT
 
   try{
     const retry=await requestBrainPlan(`${original}\n\nAtlas quality rule: produce at least one executable retrieval path. Current information must use live web/official sources; destination routes must use maps destination mode. Do not stop after Passport search.`,{lang,location,locationText,signal});
-    return universalizePlan(retry,original,context);
-  }catch(error){if(error?.name==="AbortError")throw error;return universalizePlan(createFallbackPlan(original,{lang}),original,context)}
+    return enforceTaskChannel(universalizePlan(retry,original,context),original);
+  }catch(error){if(error?.name==="AbortError")throw error;return enforceTaskChannel(universalizePlan(createFallbackPlan(original,{lang}),original,context),original)}
 }
