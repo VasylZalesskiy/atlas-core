@@ -106,8 +106,6 @@ async function searchNewPassports(plan,{limit}){
     const profileScore=scoreText([
       passport.profession,
       passport.skills,
-      passport.display_name,
-      passport.city
     ].filter(Boolean).join(" "),plan);
 
     let bestOpportunity=null;
@@ -181,7 +179,6 @@ function rankLegacy(data,plan,limit){
       profile.headline,
       profile.can_help,
       profile.can_share,
-      profile.needs,
       profile.name,
       profile.city
     ].filter(Boolean).join(" "),plan)}))
