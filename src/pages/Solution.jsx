@@ -198,7 +198,12 @@ function CandidateAction({candidate,origin,lang}){
       {!candidate.phone&&candidate.website&&<a className="chainAction secondaryAction" href={candidate.website} target="_blank" rel="noreferrer"><ExternalLink size={16}/>{lang==="uk"?"Сайт":"Website"}</a>}
     </div>;
   }
-  if(candidate.kind==="external"&&["official_result","web_answer","web_result"].includes(candidate.resultKind))return null;
+  if(candidate.kind==="external"&&["official_result","web_answer","web_result"].includes(candidate.resultKind)&&candidate.url){
+    return <div className="chainActions">
+      <a className="chainAction" href={candidate.url} target="_blank" rel="noreferrer"><ExternalLink size={16}/>{lang==="uk"?"Відкрити":"Open"}</a>
+      {candidate.googleMapsUrl&&<a className="chainAction secondaryAction" href={candidate.googleMapsUrl} target="_blank" rel="noreferrer"><MapPin size={16}/>Google Maps</a>}
+    </div>;
+  }
   if(candidate.kind==="external"&&candidate.url){
     if(candidate.resultKind==="store_option")return <div className="chainActions">
       {candidate.googleMapsUrl&&<a className="chainAction" href={candidate.googleMapsUrl} target="_blank" rel="noreferrer"><Navigation size={16}/>{lang==="uk"?`Маршрут до ${candidate.source}`:`Route to ${candidate.source}`}</a>}
@@ -258,6 +263,7 @@ function candidatePriority(candidate,task){
     :140+Math.min(40,candidate.matchScore);
   if(candidate?.kind==="external"&&candidate.resultKind==="store_option")return 480;
   if(candidate?.kind==="external"&&candidate.resultKind==="listing")return 450;
+  if(candidate?.kind==="external"&&["official_result","web_answer","web_result"].includes(candidate.resultKind))return 420;
   if(candidate?.kind==="place")return candidate.resolved?400:190;
   if(candidate?.kind==="direct")return 360;
   if(candidate?.kind==="external"&&candidate.resultKind==="store_option_pending")return 180;
@@ -521,6 +527,14 @@ ${initialWhere}`;
     const brainRunKey=`${searchRunId}:${activeTask}:${initialWhere}`;
     if(brainRunRef.current===brainRunKey)return;
     brainRunRef.current=brainRunKey;
+    const deterministicPlan=createFallbackPlan(activeTask,{lang});
+    if(["services","products","lodging","agriculture"].includes(deterministicPlan?.domain)){
+      setPlan({...deterministicPlan,location_text:initialWhere});
+      setBrainReady(true);
+      setBrainLoading(false);
+      setBrainError("");
+      return;
+    }
     const controller=new AbortController();
     setBrainLoading(true);
     setBrainReady(false);
@@ -665,13 +679,16 @@ ${initialWhere}`;
       try{
         const plannedSource=sourceForInternetStep(step,plannedSources,index);
         const source=plan?.solution_scope==="information"&&plannedSource==="marketplace"?"web":plannedSource;
+        const internetQuery=["services","lodging"].includes(plan?.domain)&&initialWhere
+          ?clean(`${step.internet_query} ${initialWhere}`)
+          :step.internet_query;
         const results=await searchExternalSources({
           original_query:activeTask,
           goal:activeTask,
           domain:plan?.domain||"",
           solution_scope:plan?.solution_scope||"",
           location_text:initialWhere,
-          external_searches:[{source,mode:"standard",query:step.internet_query,reason:step.purpose}]
+          external_searches:[{source,mode:"standard",query:internetQuery,reason:step.purpose}]
         },{lang,signal:controller.signal});
         return {stepId:step.id,candidates:results.slice(0,10).map((item,resultIndex)=>internetCandidate(item,resultIndex,lang)),error:false};
       }catch(error){
@@ -930,20 +947,7 @@ ${initialWhere}`;
 
       {!plan?.clarification?.required&&!recommendedCandidate&&solutionBusy&&<div className="solutionSearchState">
         <RefreshCw className="spin" size={20}/>
-        <div>
-          <strong>{!passportsChecked
-            ?(lang==="uk"?"Перевіряю Паспорти можливостей":"Checking Opportunity Passports")
-            :brainLoading
-              ?(lang==="uk"?"У Паспорті не знайдено — Королева розбирає задачу":"No Passport match — Queen is analyzing the task")
-              :(lang==="uk"?"Шукаю у правильному зовнішньому джерелі":"Searching the appropriate external source")}</strong>
-          <span>{!passportsChecked
-            ?(lang==="uk"?"На цьому етапі Atlas не використовує зовнішній інтернет.":"At this stage Atlas does not use the external internet.")
-            :brainLoading
-              ?(lang==="uk"?"Королева визначає: послуга, товар, інформація, офіційні дані чи інший тип задачі.":"Queen determines whether this is a service, product, information, official-data, or another task.")
-              :healthTask
-                ?(lang==="uk"?"Atlas шукає відповідний безпечний канал допомоги.":"Atlas is using the appropriate safe help channel.")
-                :(lang==="uk"?"Товари → маркетплейси; послуги → локальний пошук/карти; інформація → веб або офіційні джерела.":"Products → marketplaces; services → local/maps; information → web or official sources.")}</span>
-        </div>
+        <div><strong>{lang==="uk"?"Шукаю найкращі варіанти…":"Finding the best options…"}</strong></div>
       </div>}
 
       {(searchScope==="nearby"||searchScope==="both")&&!origin&&!originLoading&&<div className="simpleGeoPrompt">
@@ -954,19 +958,10 @@ ${initialWhere}`;
       {originError&&<div className="simpleEmpty">{lang==="uk"?"Не вдалося визначити цю локацію. Вкажіть місто на головній сторінці або дозвольте геолокацію.":"Could not resolve this location. Enter a city on the home page or allow geolocation."}</div>}
 
       {!plan?.clarification?.required&&!recommendedCandidate&&!solutionBusy&&<div className="simpleEmpty">
-        {lang==="uk"?"Надійного готового варіанта поки не знайдено. Нижче Atlas може показати конкретні часткові варіанти, але не називатиме їх вирішеною задачею.":"No reliable ready option was found. Atlas may show concrete partial options below, but will not call them a solved task."}
+        {lang==="uk"?"Нічого конкретного не знайдено. Спробуйте уточнити запит або місто.":"No concrete result was found. Try refining the request or location."}
       </div>}
 
-      {!informationMode&&chains.length>0&&<details className="solutionDetails" open={!recommendedCandidate}>
-        <summary>{lang==="uk"?"Повний ланцюжок, часткові варіанти та джерела":"Full chain, partial options and sources"}</summary>
-        <div className="solutionChains">{chains.map((chain,index)=><SolutionChain key={chain.mode} chain={chain} index={index} origin={origin} lang={lang}/>)}</div>
-      </details>}
 
-      {(passportsChecked||brainError||nearbyError||internetError)&&<div className="solutionChecks">
-        {passportsChecked&&<span><Check size={14}/>{lang==="uk"?"Паспорти можливостей перевірено":"Opportunity Passports checked"}</span>}
-        {(nearbyError||internetError)&&<span>{lang==="uk"?"Частина джерел не відповіла — Atlas не підмінив їх вигаданими даними.":"Some sources did not respond — Atlas did not replace them with invented data."}</span>}
-        {brainError&&<span>{lang==="uk"?"Аналіз запиту виконано в резервному режимі.":"The request was analyzed in fallback mode."}</span>}
-      </div>}
     </section>
   </main>;
 }
