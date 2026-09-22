@@ -11,6 +11,69 @@ function distanceKm(a,b){
   const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
   return earth*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));
 }
+
+const overpassEndpoints=["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
+
+function addressFromTags(tags={}){
+  return [tags["addr:street"],tags["addr:housenumber"],tags["addr:city"]].filter(Boolean).join(", ");
+}
+
+async function overpassSearch(query,signal){
+  let lastError=null;
+  for(const endpoint of overpassEndpoints){
+    try{
+      const response=await fetch(endpoint,{
+        method:"POST",
+        headers:{"Content-Type":"application/x-www-form-urlencoded;charset=UTF-8",Accept:"application/json"},
+        body:"data="+encodeURIComponent(query),
+        signal
+      });
+      if(!response.ok)throw new Error("overpass-"+response.status);
+      return await response.json();
+    }catch(error){
+      if(error?.name==="AbortError")throw error;
+      lastError=error;
+    }
+  }
+  throw lastError||new Error("overpass-unavailable");
+}
+
+async function searchTyreServices(origin,{radiusKm=30,limit=12,lang="uk",signal}={}){
+  const radius=Math.min(Math.max(Math.round(radiusKm*1000),1000),50000);
+  const q=`[out:json][timeout:18];(
+    nwr(around:${radius},${origin.latitude},${origin.longitude})["shop"="car_repair"]["service:vehicle:tyres"="yes"];
+    nwr(around:${radius},${origin.latitude},${origin.longitude})["shop"="tyres"];
+    nwr(around:${radius},${origin.latitude},${origin.longitude})["name"~"шиномонтаж|шини|tire|tyre",i];
+  );out center tags;`;
+  const data=await overpassSearch(q,signal);
+  const seen=new Set();
+  return (data.elements||[]).map(element=>{
+    const latitude=toNumber(element.lat??element.center?.lat);
+    const longitude=toNumber(element.lon??element.center?.lon);
+    if(latitude===null||longitude===null)return null;
+    const id=element.type+"-"+element.id;
+    if(seen.has(id))return null;
+    seen.add(id);
+    const tags=element.tags||{};
+    const point={latitude,longitude};
+    const name=tags.name||tags["name:uk"]||(lang==="en"?"Tyre service":"Шиномонтаж");
+    return {
+      id:"overpass-"+id,
+      name,
+      title:name,
+      latitude,
+      longitude,
+      address:addressFromTags(tags),
+      typeLabel:lang==="en"?"Tyre service":"Шиномонтаж",
+      phone:tags.phone||tags["contact:phone"]||"",
+      website:tags.website||tags["contact:website"]||"",
+      openingHours:tags.opening_hours||"",
+      straightDistanceKm:distanceKm(origin,point),
+      source:"OpenStreetMap"
+    };
+  }).filter(Boolean).sort((a,b)=>a.straightDistanceKm-b.straightDistanceKm).slice(0,limit);
+}
+
 function boxFor(lat,lon,radiusKm){
   const dLat=radiusKm/111;
   const dLon=radiusKm/(111*Math.max(.2,Math.cos(radians(lat))));
@@ -65,15 +128,21 @@ async function nominatimSearch(params,signal){
   return await response.json();
 }
 
-export async function searchNearbyPlaces(location,query,{lang="uk",radiusKm=30,limit=5,signal}={}){
+export async function searchNearbyPlaces(location,query,{lang="uk",radiusKm=30,limit=12,signal}={}){
   if(!location)throw new Error("location-required");
   const q=practicalNearbyQuery(query,lang);
   if(!q)return [];
   const origin={latitude:Number(location.latitude),longitude:Number(location.longitude)};
+  if(/шиномонтаж|tyre repair|tire repair/i.test(q)){
+    try{
+      const tyreResults=await searchTyreServices(origin,{radiusKm,limit:Math.min(Math.max(limit,1),15),lang,signal});
+      if(tyreResults.length>=3)return tyreResults;
+    }catch(error){if(error?.name==="AbortError")throw error}
+  }
   const params=new URLSearchParams({
     format:"jsonv2",
     q,
-    limit:String(Math.min(Math.max(limit,1),8)),
+    limit:String(Math.min(Math.max(limit,1),15)),
     addressdetails:"1",
     extratags:"1",
     namedetails:"1",
