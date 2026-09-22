@@ -108,6 +108,32 @@ export default function Profile({lang="uk"}){
     return()=>{alive=false};
   },[]);
 
+  useEffect(()=>{
+    if(!passport?.id)return;
+    let alive=true;
+    let busy=false;
+    const refreshIncoming=async()=>{
+      if(busy||!alive||document.visibilityState==="hidden")return;
+      busy=true;
+      try{
+        const next=await loadIncomingRequests(passport.id);
+        if(alive)setRequests(next||[]);
+      }catch{}finally{busy=false}
+    };
+    const onVisible=()=>{if(document.visibilityState==="visible")refreshIncoming()};
+    const onFocus=()=>refreshIncoming();
+    const timer=setInterval(refreshIncoming,12000);
+    document.addEventListener("visibilitychange",onVisible);
+    window.addEventListener("focus",onFocus);
+    refreshIncoming();
+    return()=>{
+      alive=false;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange",onVisible);
+      window.removeEventListener("focus",onFocus);
+    };
+  },[passport?.id]);
+
   async function accountLogin(login,password){await loginAtlasAccount(login,password);await reloadProfile(null,{showLoader:true});setNotice("Вхід виконано. Ваші сторінки завантажено.")}
   async function accountRegister(login,password){await registerAtlasAccount(login,password);await reloadProfile(null,{showLoader:true});setNotice("Доступ створено. Тепер ці сторінки можна відкрити на іншому пристрої за логіном і паролем.")}
   async function accountLogout(){setError("");setNotice("");await logoutAtlasAccount();window.location.replace("/")}
