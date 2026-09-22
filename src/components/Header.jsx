@@ -58,10 +58,10 @@ export default function Header({lang,setLang}){
       <b>A</b><span className="brandText"><span>ATLAS</span><small>{l.home}</small></span>
     </Link>
     <span className="headerPageTitle">{pageTitle(location.pathname,lang)}</span>
-    <nav className="mobileHeaderNav" aria-label={l.nav}>{items.map(item=>{
+    {mobile&&<nav className="mobileHeaderNav" aria-label={l.nav}>{items.map(item=>{
       const Icon=item.icon;
       return <NavLink key={item.to} to={item.to} className={({isActive})=>isActive?"active":""}><Icon size={19}/><span>{item.label}</span></NavLink>;
-    })}</nav>
+    })}</nav>}
     <div className="actions">
       {!mobile&&presenceReady&&<div className="desktopPresence"><Suspense fallback={null}><OnlinePresence lang={lang} compact/></Suspense></div>}
       <label className="lang" aria-label="Language"><Globe2 size={17}/><select value={lang} onChange={event=>setLang(event.target.value)} aria-label="Language">
