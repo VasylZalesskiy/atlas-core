@@ -1,6 +1,7 @@
 import {useEffect,useState} from "react";
 import {ArrowRight,HeartHandshake,IdCard,LockKeyhole,MapPin} from "lucide-react";
 import NeedManager from "../components/NeedManager";
+import PassportMenu from "../components/PassportMenu";
 import {loadMyPassport,saveMyPassport} from "../services/passportStore";
 import "../styles/needsPage.css";
 
@@ -47,12 +48,12 @@ export default function Needs({lang="uk"}){
 
   if(loading)return <main className="page appPage needsPage"><section className="needsPageLoading"><HeartHandshake size={28}/><span>{uk?"Відкриваю Паспорт потреб…":"Opening your Needs Passport…"}</span></section></main>;
 
-  if(!passport)return <main className="page appPage needsPage"><section className="needsOnboarding">
+  if(!passport)return <main className="page appPage needsPage"><PassportMenu lang={lang}/><section className="needsOnboarding">
     <div className="needsOnboardingIntro">
       <span className="needsOnboardingIcon"><HeartHandshake size={32}/></span>
       <span className="needsOnboardingEyebrow">ATLAS · {uk?"ПАСПОРТ ПОТРЕБ":"NEEDS PASSPORT"}</span>
-      <h1>{uk?"Що вам потрібно?":"What do you need?"}</h1>
-      <p>{uk?"Створіть короткий профіль один раз — і одразу додавайте конкретні потреби з кількістю та терміном актуальності.":"Create a short profile once, then add specific needs with quantity and validity dates."}</p>
+      <h1>{uk?"Що замовити або отримати?":"What would you like to order or receive?"}</h1>
+      <p>{uk?"Створіть профіль один раз — далі обирайте товар, кількість і дату. Atlas зіставить замовлення з Паспортами можливостей.":"Create your profile once, then choose the item, quantity and date. Atlas will match the order with Opportunity Passports."}</p>
       <div className="needsOnboardingBenefits">
         <div><IdCard size={19}/><span><strong>{uk?"Один профіль":"One profile"}</strong><small>{uk?"для потреб і можливостей":"for needs and opportunities"}</small></span></div>
         <div><LockKeyhole size={19}/><span><strong>{uk?"Контакт приватний":"Private contact"}</strong><small>{uk?"відкривається лише за згодою":"revealed only with consent"}</small></span></div>
@@ -69,5 +70,5 @@ export default function Needs({lang="uk"}){
     </form>
   </section></main>;
 
-  return <main className="page appPage needsPage"><NeedManager passportId={passport.id} passportSlug={passport.slug} passportCity={passport.city||""} initialNeeds={needs} lang={lang}/>{error&&<div className="needsOnboardingError" role="alert">{error}</div>}</main>;
+  return <main className="page appPage needsPage"><PassportMenu lang={lang}/><NeedManager passportId={passport.id} passportSlug={passport.slug} passportCity={passport.city||""} initialNeeds={needs} lang={lang}/>{error&&<div className="needsOnboardingError" role="alert">{error}</div>}</main>;
 }
