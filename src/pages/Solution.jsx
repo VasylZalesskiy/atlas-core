@@ -393,7 +393,10 @@ export default function Solution({lang}){
   const {state}=useLocation();
   const [searchParams,setSearchParams]=useSearchParams();
   const initialTask=clean(searchParams.get("q")||state?.task);
-  const initialWhere=clean(searchParams.get("where")||state?.where);
+  const routeWhere=clean(searchParams.get("where")||state?.where);
+  const [passportCity,setPassportCity]=useState(()=>savedAtlasCity());
+  const initialWhere=routeWhere||passportCity;
+  const [locationDraft,setLocationDraft]=useState(initialWhere);
   const routeSignature=`${initialTask}
 ${initialWhere}`;
   const previousRouteRef=useRef(routeSignature);
