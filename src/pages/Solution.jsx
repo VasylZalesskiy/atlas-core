@@ -13,10 +13,12 @@ import useGeolocation from "../hooks/useGeolocation";
 import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
 import {saveSearchHistory} from "../services/searchHistory";
+import {loadMyPassport} from "../services/passportStore";
 import "../styles/simpleSolution.css";
 import "../styles/solutionChains.css";
 
 function clean(value){return String(value||"").replace(/\s+/g," ").trim()}
+function savedAtlasCity(){try{return clean(localStorage.getItem("atlas-city")||"")}catch{return ""}}
 
 function sourceForInternetStep(step,plannedSources,index){
   const text=`${step?.title||""} ${step?.purpose||""} ${step?.internet_query||""}`;
@@ -419,6 +421,23 @@ ${initialWhere}`;
   const origin=geo.location||typedOrigin;
 
   useEffect(()=>{
+    let alive=true;
+    if(routeWhere||passportCity)return()=>{alive=false};
+    loadMyPassport().then(data=>{
+      const city=clean(data?.passport?.city);
+      if(!alive||!city)return;
+      try{localStorage.setItem("atlas-city",city)}catch{}
+      setPassportCity(city);
+      setLocationDraft(city);
+    }).catch(()=>{});
+    return()=>{alive=false};
+  },[routeWhere,passportCity]);
+
+  useEffect(()=>{
+    setLocationDraft(initialWhere);
+  },[initialWhere]);
+
+  useEffect(()=>{
     if(previousRouteRef.current===routeSignature)return;
     previousRouteRef.current=routeSignature;
     setTask(initialTask);
@@ -768,6 +787,17 @@ ${initialWhere}`;
     launchSearch(task);
   }
 
+  function applyLocationText(){
+    const value=clean(locationDraft);
+    if(!value)return;
+    try{localStorage.setItem("atlas-city",value)}catch{}
+    setPassportCity(value);
+    const next=new URLSearchParams(searchParams);
+    next.set("q",activeTask||task);
+    next.set("where",value);
+    setSearchParams(next);
+  }
+
   function refine(option){
     const base=plan?.domain==="health"?clean(plan?.goal):activeTask.replace(/[,.]+$/g,"");
     const value=`${base}, ${option}`;
@@ -806,7 +836,8 @@ ${initialWhere}`;
 
       <div className="simpleLocationRow">
         <MapPin size={17}/><span>{lang==="uk"?"Локація:":"Location:"}</span><strong>{locationText}</strong>
-        {!initialWhere&&<button className="simpleLocationAction" type="button" onClick={()=>geo.requestLocation()} disabled={geo.loading}>{geo.loading?(lang==="uk"?"Визначаю…":"Locating…"):(origin?(lang==="uk"?"Оновити":"Refresh"):(lang==="uk"?"Визначити":"Detect"))}</button>}
+        {!initialWhere&&<div className="simpleLocationEntry"><input value={locationDraft} onChange={event=>setLocationDraft(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();applyLocationText()}}} placeholder={lang==="uk"?"Місто або район":"City or area"}/><button type="button" onClick={applyLocationText} disabled={!locationDraft.trim()}>{lang==="uk"?"Шукати тут":"Search here"}</button></div>}
+        {!origin&&<button className="simpleLocationAction" type="button" onClick={()=>geo.requestLocation()} disabled={geo.loading}>{geo.loading?(lang==="uk"?"Визначаю…":"Locating…"):(lang==="uk"?"Моя геолокація":"My location")}</button>}
       </div>
 
       <div className="simpleResultsHeader">
