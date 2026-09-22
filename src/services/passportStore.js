@@ -174,16 +174,22 @@ export async function loadPublicPassport(slug){
 }
 
 export async function createPassportRequest(passport,opportunity,{message,requesterName=""}){
-  const user=await ensureAtlasSession();
+  await ensureAtlasSession();
   const cleanMessage=String(message||"").trim();
   const cleanName=String(requesterName||"").trim().slice(0,80);
-  if(!passport?.id||!passport?.owner_id)throw fail("passport-required");
+  if(!passport?.id)throw fail("passport-required");
   if(!opportunity?.id)throw fail("opportunity-required");
   if(!cleanMessage)throw fail("message-required");
-  if(user.id===passport.owner_id)throw fail("own-passport-request");
-  const {data,error}=await supabase.from("atlas_requests").insert({passport_id:passport.id,opportunity_id:opportunity.id,owner_id:passport.owner_id,requester_id:user.id,requester_name:cleanName,message:cleanMessage,status:"pending"}).select("id,passport_id,opportunity_id,requester_name,message,status,owner_contact,created_at,updated_at").single();
+  const {data,error}=await supabase.rpc("atlas_create_passport_request",{
+    p_passport_id:passport.id,
+    p_opportunity_id:opportunity.id,
+    p_requester_name:cleanName,
+    p_message:cleanMessage
+  });
   if(error)throw error;
-  return {...data,opportunity};
+  const created=(data||[])[0];
+  if(!created)throw fail("request-not-created");
+  return {...created,opportunity};
 }
 
 export async function loadMyRequestsForPassport(passportId){
