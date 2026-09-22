@@ -7,9 +7,9 @@ export default function BottomNav({lang="uk"}){
   const uk=lang!=="en";
   const items=[
     {to:"/",label:uk?"Пошук":"Search",icon:Search},
-    {to:"/needs",label:uk?"Замовити":"Order",icon:HeartHandshake,featured:true},
+    {to:"/needs",label:uk?"Потреби":"Needs",icon:HeartHandshake,featured:true},
     {to:"/matches",label:uk?"Збіги":"Matches",icon:Sparkles,featured:true},
-    {to:"/profile",label:uk?"Продати":"Sell",icon:IdCard,featured:true},
+    {to:"/profile",label:uk?"Можливості":"Opportunities",icon:IdCard,featured:true},
     {to:"/chat",label:uk?"Чат":"Chat",icon:MessageCircleMore}
   ];
   return <nav className="bottomNav" aria-label="Головна навігація">{items.map(item=>{
