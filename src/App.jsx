@@ -24,7 +24,7 @@ const ShareApp=lazy(()=>import("./pages/ShareApp"));
 const CatalogAdmin=lazy(()=>import("./pages/CatalogAdmin"));
 const TomatoPilot=lazy(()=>import("./pages/TomatoPilot"));
 
-const supportedLanguages=new Set(["uk","en","zh","hi"]);
+const supportedLanguages=new Set(["uk","en"]);
 const normalizeLanguage=value=>{
   const code=String(value||"").toLowerCase().split("-")[0];
   return supportedLanguages.has(code)?code:"uk";
@@ -105,7 +105,7 @@ export default function App(){
           <Route path="*" element={<Navigate to="/" replace/>}/>
         </Routes>
         <BottomNav lang={lang}/>
-        <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":lang==="zh"?"测试版":lang==="hi"?"परीक्षण संस्करण":"Test version"} · {t.principle}</footer>
+        <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
       </PilotGate>}
     </Suspense>
     <Analytics/>
