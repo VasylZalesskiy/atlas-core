@@ -426,3 +426,223 @@ header{height:76px;padding:0 5vw;display:flex;justify-content:space-between;alig
 .bottomNav{
   grid-template-columns:repeat(4,1fr);
 }
+
+
+/* Atlas topbar v3 — isolated from legacy header rules */
+.atlasTopbarV3{
+  position:sticky;
+  top:0;
+  z-index:60;
+  width:100%;
+  height:64px;
+  min-height:64px;
+  padding:0 max(18px,calc((100vw - 1180px)/2));
+  display:grid;
+  grid-template-columns:minmax(150px,1fr) auto minmax(190px,1fr);
+  align-items:center;
+  gap:18px;
+  border-bottom:1px solid #e1e9e4;
+  background:rgba(255,255,255,.97);
+  box-shadow:0 4px 16px rgba(24,76,48,.045);
+  backdrop-filter:blur(14px);
+}
+.atlasTopbarV3Brand{
+  justify-self:start;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  color:#18231d;
+}
+.atlasTopbarV3Brand>b{
+  flex:0 0 auto;
+  width:36px;
+  height:36px;
+  display:grid;
+  place-items:center;
+  border-radius:11px;
+  background:linear-gradient(135deg,#22b866,#0b6d3a);
+  color:#fff;
+  font-size:18px;
+  font-weight:950;
+}
+.atlasTopbarV3Brand>span{
+  min-width:0;
+  display:grid;
+  line-height:1;
+}
+.atlasTopbarV3Brand strong{
+  font-size:17px;
+  font-weight:950;
+  letter-spacing:.12em;
+}
+.atlasTopbarV3Brand small{
+  margin-top:3px;
+  color:#6d7972;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+.atlasTopbarV3Nav{
+  justify-self:center;
+  display:flex;
+  align-items:center;
+  gap:5px;
+  min-width:0;
+}
+.atlasTopbarV3Nav a{
+  min-height:38px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:8px 12px;
+  border-radius:11px;
+  color:#526159;
+  font-size:13px;
+  font-weight:850;
+  white-space:nowrap;
+  transition:background .16s ease,color .16s ease,transform .16s ease;
+}
+.atlasTopbarV3Nav a:hover{
+  background:#f1f7f3;
+  color:#0b7440;
+}
+.atlasTopbarV3Nav a.active{
+  background:#e8f5ed;
+  color:#0b7440;
+}
+.atlasTopbarV3Right{
+  justify-self:end;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.atlasTopbarV3Lang{
+  min-height:38px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:0 9px;
+  border:1px solid #d8e3dc;
+  border-radius:11px;
+  background:#fff;
+  color:#31513f;
+}
+.atlasTopbarV3Lang select{
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#26372d;
+  font-size:12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.atlasTopbarV3Me{
+  min-height:38px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding:0 11px;
+  border-radius:11px;
+  background:#0d7d44;
+  color:#fff;
+  font-size:12px;
+  font-weight:900;
+  white-space:nowrap;
+}
+@media(min-width:761px) and (max-width:980px){
+  .atlasTopbarV3{
+    grid-template-columns:auto minmax(0,1fr) auto;
+    gap:8px;
+    padding-inline:12px;
+  }
+  .atlasTopbarV3Brand small{
+    display:none;
+  }
+  .atlasTopbarV3Nav{
+    gap:2px;
+  }
+  .atlasTopbarV3Nav a{
+    padding-inline:8px;
+    font-size:12px;
+  }
+  .atlasTopbarV3Me{
+    width:38px;
+    padding:0;
+  }
+  .atlasTopbarV3Me span{
+    display:none;
+  }
+}
+@media(max-width:760px){
+  .atlasTopbarV3{
+    height:auto;
+    min-height:96px;
+    padding:calc(7px + env(safe-area-inset-top)) 8px 7px;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"brand right" "nav nav";
+    gap:6px 8px;
+  }
+  .atlasTopbarV3Brand{
+    grid-area:brand;
+  }
+  .atlasTopbarV3Brand>b{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    font-size:17px;
+  }
+  .atlasTopbarV3Brand strong{
+    font-size:15px;
+  }
+  .atlasTopbarV3Brand small{
+    font-size:8px;
+  }
+  .atlasTopbarV3Right{
+    grid-area:right;
+    gap:5px;
+  }
+  .atlasTopbarV3Lang{
+    min-height:34px;
+    padding-inline:7px;
+    border-radius:10px;
+  }
+  .atlasTopbarV3Me{
+    width:34px;
+    min-width:34px;
+    min-height:34px;
+    padding:0;
+    border-radius:10px;
+  }
+  .atlasTopbarV3Me span{
+    display:none;
+  }
+  .atlasTopbarV3Nav{
+    grid-area:nav;
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:4px;
+  }
+  .atlasTopbarV3Nav a{
+    min-width:0;
+    min-height:39px;
+    padding:6px 4px;
+    border:1px solid transparent;
+    border-radius:10px;
+    font-size:10px;
+    overflow:hidden;
+  }
+  .atlasTopbarV3Nav a span{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .atlasTopbarV3Nav a.active{
+    border-color:#cfe4d7;
+  }
+}
