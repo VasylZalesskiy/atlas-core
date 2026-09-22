@@ -1,4 +1,4 @@
-import {ArrowLeft,HeartHandshake,Home,IdCard,MessageCircleMore,PenLine,Plus,Sparkles} from "lucide-react";
+import {ArrowLeft,HeartHandshake,Home,IdCard,MessageCircleMore,PenLine,Plus} from "lucide-react";
 import {NavLink,useNavigate} from "react-router-dom";
 import "../styles/solutionNavigation.css";
 
@@ -23,7 +23,6 @@ export default function SolutionNavigation({lang="uk"}){
 
   const links=[
     {to:"/needs",label:uk?"Потреби":"Needs",icon:HeartHandshake},
-    {to:"/matches",label:uk?"Збіги":"Matches",icon:Sparkles},
     {to:"/profile",label:uk?"Можливості":"Opportunities",icon:IdCard},
     {to:"/chat",label:uk?"Чат":"Chat",icon:MessageCircleMore}
   ];
