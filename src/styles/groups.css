@@ -1,0 +1,78 @@
+
+.groupsPage{min-height:calc(100vh - 64px);background:#f6faf7;padding:28px 18px 90px}
+.groupsShell{width:min(1080px,100%);margin:0 auto;display:grid;gap:18px}
+.groupsHeading,.groupHero{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:20px 22px;border:1px solid #dbe7df;border-radius:20px;background:#fff;box-shadow:0 10px 28px rgba(18,76,45,.05)}
+.groupsHeading>div,.groupHeroCopy{display:grid;gap:6px}
+.groupsHeading span,.groupHeroCopy>span{font-size:11px;font-weight:950;letter-spacing:.12em;color:#0c8448}
+.groupsHeading h1,.groupHero h1{margin:0;font-size:32px;line-height:1.05}
+.groupsHeading p,.groupHero p{margin:0;max-width:720px;color:#657269;line-height:1.5}
+.groupHero small{color:#6a766f;font-size:11px}
+.groupHero{justify-content:flex-start}
+.groupHeroIcon{width:52px;height:52px;border-radius:16px;display:grid;place-items:center;background:#e9f6ee;color:#0b8046;flex:0 0 auto}
+.groupGate,.groupEmpty{padding:18px;border:1px dashed #cddbd2;border-radius:16px;background:#fff;color:#5f6c64}
+.groupGate{display:grid;gap:8px}
+.groupGate strong{font-size:16px;color:#24352c}
+.groupGate p{margin:0}
+.primaryLink,.groupPrimary,.groupSecondary,.groupLeave{min-height:42px;border-radius:11px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:900;text-decoration:none;cursor:pointer}
+.primaryLink,.groupPrimary{border:0;background:#0b8b49;color:#fff}
+.groupSecondary{border:1px solid #cfddd4;background:#fff;color:#28523b}
+.groupLeave{border:1px solid #edd6d6;background:#fff;color:#9a3434;justify-self:start}
+.groupCreateGrid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+.groupPanel,.groupInviteBox,.groupMembers,.groupComposer,.groupFeed,.groupListSection{padding:18px;border:1px solid #dbe7df;border-radius:18px;background:#fff;box-shadow:0 8px 24px rgba(20,70,40,.04)}
+.groupPanel{display:grid;gap:12px}
+.groupPanelTitle{display:flex;align-items:flex-start;gap:9px;color:#155b35}
+.groupPanelTitle>div{display:grid;gap:2px}
+.groupPanelTitle strong{font-size:15px}
+.groupPanelTitle small{font-size:10px;color:#6b776f;line-height:1.35}
+.groupPanel label{display:grid;gap:5px}
+.groupPanel label>span{font-size:10px;font-weight:900;color:#526158}
+.groupPanel input,.groupPanel select,.groupPanel textarea,.groupComposer select,.groupComposer textarea{width:100%;border:1px solid #d7e3db;border-radius:11px;background:#fff;font:inherit;outline:none}
+.groupPanel input,.groupPanel select,.groupComposer select{height:42px;padding:0 11px}
+.groupPanel textarea,.groupComposer textarea{min-height:86px;padding:10px 11px;resize:vertical}
+.groupPanel input:focus,.groupPanel select:focus,.groupPanel textarea:focus,.groupComposer select:focus,.groupComposer textarea:focus{border-color:#17844e;box-shadow:0 0 0 3px #e8f5ed}
+.groupTwoCols{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.groupSectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.groupSectionTitle h2{margin:0;display:flex;align-items:center;gap:7px;font-size:18px}
+.groupSectionTitle>span{min-width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:#edf6f0;color:#08723f;font-weight:900;font-size:11px}
+.groupCards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.groupCard{display:flex;gap:11px;padding:14px;border:1px solid #e0e9e3;border-radius:14px;color:#24332b;text-decoration:none;transition:.15s ease}
+.groupCard:hover{border-color:#bcd8c8;transform:translateY(-1px);box-shadow:0 8px 18px rgba(20,80,45,.06)}
+.groupCardIcon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#ebf6ef;color:#0c8248;flex:0 0 auto}
+.groupCard>div:last-child{display:grid;gap:3px}
+.groupCard strong{font-size:14px}.groupCard span,.groupCard p{font-size:10px;color:#6a766f}.groupCard p{margin:2px 0 0;line-height:1.4}
+.groupBack{justify-self:start;display:inline-flex;align-items:center;gap:6px;color:#456057;text-decoration:none;font-size:12px;font-weight:850}
+.groupInviteBox{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.groupInviteBox>div:first-child{display:flex;align-items:flex-start;gap:9px;color:#145d36}
+.groupInviteBox>div:first-child>div{display:grid;gap:2px}.groupInviteBox span{font-size:10px;color:#6b776f}
+.groupInviteActions{display:flex;gap:7px;flex-wrap:wrap}
+.groupMembers{display:grid;gap:8px}
+.groupMemberChips{display:flex;flex-wrap:wrap;gap:8px}
+.groupMemberChip{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid #e0e8e2;border-radius:12px;background:#fbfdfb}
+.groupMemberChip>div{display:grid;gap:1px}.groupMemberChip strong{font-size:11px}.groupMemberChip small{font-size:9px;color:#758078}
+.groupComposer{display:grid;gap:8px}
+.groupComposerIdentity{margin-bottom:8px;font-size:10px;color:#6b776f}
+.groupComposerGrid{display:grid;grid-template-columns:190px minmax(0,1fr) auto;gap:8px;align-items:end}
+.groupComposerGrid .groupPrimary{min-width:100px}
+.groupFeedList{display:grid;gap:10px}
+.groupFeedCard{padding:14px;border:1px solid #dee8e1;border-radius:14px;display:grid;grid-template-columns:180px minmax(0,1fr) auto;gap:14px;align-items:start}
+.groupFeedAuthor{display:flex;gap:8px;align-items:center}.groupFeedAuthor>div{display:grid;gap:1px}.groupFeedAuthor strong{font-size:11px}.groupFeedAuthor small{font-size:9px;color:#78837c}
+.groupFeedBody{display:grid;gap:4px}.groupFeedType{font-size:9px;font-weight:950;letter-spacing:.06em;color:#0a7d44}.groupFeedBody p{margin:0;font-size:13px;line-height:1.45;color:#28372f}
+.groupFeedActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.groupFeedActions a,.groupFeedActions button{min-height:34px;border:1px solid #d8e3dc;border-radius:9px;padding:0 9px;background:#fff;color:#315441;font-size:10px;font-weight:850;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.groupFeedActions button{color:#9a3b3b}
+.groupNotice,.groupError{padding:11px 13px;border-radius:12px;font-size:11px;font-weight:800}
+.groupNotice{background:#e9f7ee;color:#0a713e}.groupError{background:#fff0f0;color:#963636}
+@media(max-width:760px){
+  .groupsPage{padding:14px 9px 110px}
+  .groupsHeading,.groupHero{padding:15px;border-radius:16px}
+  .groupsHeading h1,.groupHero h1{font-size:25px}
+  .groupsHeading>svg{display:none}
+  .groupCreateGrid{grid-template-columns:1fr}
+  .groupTwoCols{grid-template-columns:1fr}
+  .groupCards{grid-template-columns:1fr}
+  .groupInviteBox{align-items:flex-start;flex-direction:column}
+  .groupInviteActions{width:100%}.groupInviteActions>*{flex:1 1 auto}
+  .groupComposerGrid{grid-template-columns:1fr}
+  .groupFeedCard{grid-template-columns:1fr}
+  .groupFeedActions{justify-content:flex-start}
+}
