@@ -743,7 +743,13 @@ ${initialWhere}`;
 
     (async()=>{
       let resolvedOrigin=origin;
-      if(!resolvedOrigin&&initialWhere)resolvedOrigin=await ensureOrigin();
+      if(!resolvedOrigin&&initialWhere){
+        try{
+          const locations=await searchDestination(null,initialWhere,{lang,limit:1,signal:controller.signal});
+          const place=locations[0];
+          if(place)resolvedOrigin={latitude:place.latitude,longitude:place.longitude,label:initialWhere};
+        }catch(error){if(error?.name==="AbortError")throw error}
+      }
 
       if(resolvedOrigin){
         try{
@@ -991,14 +997,13 @@ ${initialWhere}`;
 
       <div className="simpleResultsHeader">
         <div>
-          <span className="solutionKicker">ATLAS · {lang==="uk"?"РІШЕННЯ":"SOLUTION"}</span>
+          <span className="solutionKicker">ATLAS</span>
           <h1>{plan?.clarification?.required
-            ?(lang==="uk"?"Потрібне одне уточнення":"One quick question")
+            ?(lang==="uk"?"Потрібне уточнення":"One quick question")
             :recommendedCandidate
-              ?(lang==="uk"?"Ось що можна зробити зараз":"Here is what you can do now")
-              :(lang==="uk"?"Atlas шукає найкраще рішення…":"Atlas is finding the best solution…")}
+              ?(lang==="uk"?"Знайдені варіанти":"Found options")
+              :(lang==="uk"?"Шукаю…":"Searching…")}
           </h1>
-          {plan?.goal&&<p>{plan.goal}</p>}
         </div>
         {plan?.safety?.level&&plan.safety.level!=="none"&&plan.safety.message&&<div className={`simpleSafety ${plan.safety.level}`}>{plan.safety.message}</div>}
       </div>
