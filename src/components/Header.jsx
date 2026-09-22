@@ -1,72 +1,45 @@
-import {lazy,Suspense,useEffect,useState} from "react";
-import {Globe2,HeartHandshake,IdCard,MessageCircleMore,Sparkles} from "lucide-react";
+import {Globe2,HeartHandshake,IdCard,MessageCircleMore} from "lucide-react";
 import {Link,NavLink,useLocation} from "react-router-dom";
-const OnlinePresence=lazy(()=>import("./OnlinePresence"));
 
 const labels={
-  uk:{profile:"Можливості",needs:"Потреби",requests:"Мої запити",chat:"Чат",market:"Куплю / Продам",tomatoes:"Помідори",solution:"Рішення",passport:"Паспорт",home:"Головна",matches:"Збіги",nav:"Головна навігація",goHome:"На головну",openPassport:"Відкрити Паспорт"},
-  en:{profile:"Opportunities",needs:"Needs",requests:"My requests",chat:"Chat",market:"Buy / Sell",tomatoes:"Tomatoes",solution:"Solution",passport:"Passport",home:"Home",matches:"Matches",nav:"Main navigation",goHome:"Go home",openPassport:"Open Passport"}
+  uk:{profile:"Можливості",needs:"Потреби",chat:"Чат",home:"Головна",nav:"Головна навігація",goHome:"На головну",openPassport:"Моя сторінка в Atlas"},
+  en:{profile:"Opportunities",needs:"Needs",chat:"Chat",home:"Home",nav:"Main navigation",goHome:"Go home",openPassport:"My Atlas page"}
 };
 
 function copy(lang){return labels[lang]||labels.uk;}
-function pageTitle(pathname,lang){
-  const l=copy(lang);
-  if(pathname.startsWith("/profile"))return l.profile;
-  if(pathname.startsWith("/needs"))return l.needs;
-  if(pathname.startsWith("/requests"))return l.requests;
-  if(pathname.startsWith("/chat"))return l.chat;
-  if(pathname.startsWith("/market"))return l.market;
-  if(pathname.startsWith("/tomatoes"))return l.tomatoes;
-  if(pathname.startsWith("/solution"))return l.solution;
-  if(pathname.startsWith("/p/"))return l.passport;
-  return l.home;
-}
 
 export default function Header({lang,setLang}){
   const location=useLocation();
-  const [presenceReady,setPresenceReady]=useState(false);
-  const [mobile,setMobile]=useState(()=>window.matchMedia?.("(max-width: 760px)")?.matches??false);
-  useEffect(()=>{
-    let cancelled=false;
-    const start=()=>{if(!cancelled)setPresenceReady(true)};
-    const idle=window.requestIdleCallback?window.requestIdleCallback(start,{timeout:1400}):window.setTimeout(start,800);
-    return()=>{
-      cancelled=true;
-      if(window.cancelIdleCallback&&typeof idle==="number")window.cancelIdleCallback(idle);
-      else window.clearTimeout(idle);
-    };
-  },[]);
-  useEffect(()=>{
-    const media=window.matchMedia?.("(max-width: 760px)");
-    if(!media)return;
-    const sync=event=>setMobile(event.matches);
-    setMobile(media.matches);
-    media.addEventListener?.("change",sync);
-    return()=>media.removeEventListener?.("change",sync);
-  },[]);
   const l=copy(lang);
   const homeActive=location.pathname==="/";
   const items=[
     {to:"/needs",label:l.needs,icon:HeartHandshake},
-    {to:"/matches",label:l.matches,icon:Sparkles},
     {to:"/profile",label:l.profile,icon:IdCard},
     {to:"/chat",label:l.chat,icon:MessageCircleMore}
   ];
-  const chatRoute=location.pathname.startsWith("/chat");
-  return <header className={`atlasHeader ${chatRoute?"chatRouteHeader":""}`}>
-    <Link className={`brand ${homeActive?"active":""}`} to="/" aria-label={l.goHome}>
+
+  return <header className="atlasHeader">
+    <Link className={"brand "+(homeActive?"active":"")} to="/" aria-label={l.goHome}>
       <b>A</b><span className="brandText"><span>ATLAS</span><small>{l.home}</small></span>
     </Link>
-    <span className="headerPageTitle">{pageTitle(location.pathname,lang)}</span>
-    {mobile&&<nav className="mobileHeaderNav" aria-label={l.nav}>{items.map(item=>{
-      const Icon=item.icon;
-      return <NavLink key={item.to} to={item.to} className={({isActive})=>isActive?"active":""}><Icon size={19}/><span>{item.label}</span></NavLink>;
-    })}</nav>}
+
+    <nav className="mainHeaderNav" aria-label={l.nav}>
+      {items.map(item=>{
+        const Icon=item.icon;
+        return <NavLink key={item.to} to={item.to} className={({isActive})=>isActive?"active":""}>
+          <Icon size={18}/><span>{item.label}</span>
+        </NavLink>;
+      })}
+    </nav>
+
     <div className="actions">
-      {!mobile&&presenceReady&&<div className="desktopPresence"><Suspense fallback={null}><OnlinePresence lang={lang} compact/></Suspense></div>}
-      <label className="lang" aria-label="Language"><Globe2 size={17}/><select value={lang} onChange={event=>setLang(event.target.value)} aria-label="Language">
-        <option value="uk">UA</option><option value="en">EN</option>
-      </select></label>
+      <label className="lang" aria-label="Language">
+        <Globe2 size={17}/>
+        <select value={lang} onChange={event=>setLang(event.target.value)} aria-label="Language">
+          <option value="uk">UA</option>
+          <option value="en">EN</option>
+        </select>
+      </label>
       <Link className="profileAvatar" to="/profile" aria-label={l.openPassport}>Я</Link>
     </div>
   </header>;
