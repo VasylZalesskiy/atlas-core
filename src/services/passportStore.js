@@ -229,3 +229,18 @@ export async function respondToPassportRequest(id,status,passportId=null){
   if(error)throw error;
   return data;
 }
+
+
+export async function createAvailabilityCheck({passportId,opportunityId,requesterName="",message=""}){
+  await ensureAtlasSession();
+  const {data,error}=await supabase.rpc("atlas_create_availability_check",{
+    p_passport_id:passportId,
+    p_opportunity_id:opportunityId,
+    p_requester_name:String(requesterName||"").trim().slice(0,80),
+    p_message:String(message||"").trim()
+  });
+  if(error)throw error;
+  const created=(data||[])[0];
+  if(!created)throw fail("request-not-created");
+  return created;
+}
