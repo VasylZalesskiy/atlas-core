@@ -646,3 +646,14 @@ header{height:76px;padding:0 5vw;display:flex;justify-content:space-between;alig
     border-color:#cfe4d7;
   }
 }
+
+
+/* Bottom navigation is mobile-only */
+@media(min-width:761px){
+  .bottomNav{display:none!important}
+  .appPage{padding-bottom:56px}
+  footer{padding-bottom:36px}
+}
+@media(max-width:760px){
+  .bottomNav{display:grid!important}
+}
