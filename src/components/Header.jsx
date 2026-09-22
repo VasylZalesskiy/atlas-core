@@ -1,9 +1,9 @@
-import {Globe2,HeartHandshake,IdCard,MessageCircleMore} from "lucide-react";
+import {Globe2,HeartHandshake,IdCard,MessageCircleMore,UserRound} from "lucide-react";
 import {Link,NavLink,useLocation} from "react-router-dom";
 
 const labels={
-  uk:{profile:"Можливості",needs:"Потреби",chat:"Чат",home:"Головна",nav:"Головна навігація",goHome:"На головну",openPassport:"Моя сторінка в Atlas"},
-  en:{profile:"Opportunities",needs:"Needs",chat:"Chat",home:"Home",nav:"Main navigation",goHome:"Go home",openPassport:"My Atlas page"}
+  uk:{profile:"Можливості",needs:"Потреби",chat:"Чат",home:"Головна",nav:"Головна навігація",goHome:"На головну",myPage:"Моя сторінка"},
+  en:{profile:"Opportunities",needs:"Needs",chat:"Chat",home:"Home",nav:"Main navigation",goHome:"Go home",myPage:"My page"}
 };
 
 function copy(lang){return labels[lang]||labels.uk;}
@@ -11,19 +11,19 @@ function copy(lang){return labels[lang]||labels.uk;}
 export default function Header({lang,setLang}){
   const location=useLocation();
   const l=copy(lang);
-  const homeActive=location.pathname==="/";
   const items=[
     {to:"/needs",label:l.needs,icon:HeartHandshake},
     {to:"/profile",label:l.profile,icon:IdCard},
     {to:"/chat",label:l.chat,icon:MessageCircleMore}
   ];
 
-  return <header className="atlasHeader">
-    <Link className={"brand "+(homeActive?"active":"")} to="/" aria-label={l.goHome}>
-      <b>A</b><span className="brandText"><span>ATLAS</span><small>{l.home}</small></span>
+  return <header className="atlasTopbarV3">
+    <Link className="atlasTopbarV3Brand" to="/" aria-label={l.goHome}>
+      <b>A</b>
+      <span><strong>ATLAS</strong><small>{l.home}</small></span>
     </Link>
 
-    <nav className="mainHeaderNav" aria-label={l.nav}>
+    <nav className="atlasTopbarV3Nav" aria-label={l.nav}>
       {items.map(item=>{
         const Icon=item.icon;
         return <NavLink key={item.to} to={item.to} className={({isActive})=>isActive?"active":""}>
@@ -32,15 +32,17 @@ export default function Header({lang,setLang}){
       })}
     </nav>
 
-    <div className="actions">
-      <label className="lang" aria-label="Language">
+    <div className="atlasTopbarV3Right">
+      <label className="atlasTopbarV3Lang" aria-label="Language">
         <Globe2 size={17}/>
         <select value={lang} onChange={event=>setLang(event.target.value)} aria-label="Language">
           <option value="uk">UA</option>
           <option value="en">EN</option>
         </select>
       </label>
-      <Link className="profileAvatar" to="/profile" aria-label={l.openPassport}>Я</Link>
+      <Link className="atlasTopbarV3Me" to="/profile" aria-label={l.myPage}>
+        <UserRound size={17}/><span>{l.myPage}</span>
+      </Link>
     </div>
   </header>;
 }
