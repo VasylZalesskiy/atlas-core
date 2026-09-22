@@ -1,7 +1,53 @@
 import {extractRequestedKilograms,marketplaceSearchTerm} from "../../api/_search-utils.js";
 
 function clean(value){return String(value||"").replace(/\s+/g," ").trim()}
+
 function cleanTerms(query){return [...new Set(clean(query).toLowerCase().replace(/[.,!?;:()]/g," ").split(/\s+/).filter(word=>word.length>2))].slice(0,12)}
+
+function isServiceNeed(value){
+  return /шиномонтаж|ремонт|майстер|перукар|стомат|сервіс|послуг|монтаж|установ|налашту|мийк|евакуатор|нотаріус|адвокат|бухгалтер|service|repair|installer|mechanic|barber|dentist|lawyer|accountant/iu.test(String(value||""));
+}
+
+function isExplicitMarketplaceNeed(value){
+  return /куп|прод|придба|замов|товар|продукт|оренд(?:а|увати)|обмін|опт|гурт|постачаль|маркетплейс|оголош|buy|sell|order|product|rent|exchange|wholesale|supplier|marketplace|listing/iu.test(String(value||""));
+}
+
+export function createPassportSeedPlan(query,{lang="uk"}={}){
+  const goal=clean(query),terms=cleanTerms(goal),uk=lang==="uk";
+  return {
+    understood:Boolean(goal),
+    goal,
+    intent:"passport_search",
+    domain:"passport",
+    solution_scope:"local_action",
+    urgency:"planned",
+    needs_location:false,
+    clarification:{required:false,question:"",options:[]},
+    passport_search:{
+      terms,
+      capability_description:uk
+        ?"Можливість людини або компанії, яка прямо відповідає запиту"
+        :"A person or company capability that directly matches the request"
+    },
+    solution_steps:goal?[{
+      id:"passport-first",
+      title:uk?"Пошук у Паспорті можливостей":"Search Opportunity Passports",
+      purpose:goal,
+      passport_terms:terms,
+      nearby_query:"",
+      internet_query:"",
+      nearby_relevant:false,
+      internet_relevant:false
+    }]:[],
+    external_searches:[],
+    safety:{level:"none",message:""},
+    result_strategy:uk
+      ?"Спочатку тільки точний збіг у Паспорті можливостей."
+      :"First, only an exact Opportunity Passport match.",
+    fallback:true
+  };
+}
+
 
 function isProductNeed(value){
   const text=String(value||"");
@@ -33,14 +79,15 @@ function createHealthPlan(query,lang){
 export function createFallbackPlan(query,{lang="uk"}={}){
   const goal=clean(query),terms=cleanTerms(goal);
   if(isHealthNeed(goal))return createHealthPlan(goal,lang);
-  const uk=lang==="uk",lodging=isLodgingNeed(goal),product=!lodging&&isProductNeed(goal),agriculture=isAgricultureNeed(goal);
+  const uk=lang==="uk",lodging=isLodgingNeed(goal),service=!lodging&&isServiceNeed(goal),product=!lodging&&!service&&(isProductNeed(goal)||isExplicitMarketplaceNeed(goal)),agriculture=isAgricultureNeed(goal);
   const productTerm=marketplaceSearchTerm(goal)||goal;
-  const nearbyQuery=lodging?(uk?"готель":"hotel"):product?(uk?`${productTerm} магазин`:`${productTerm} store`):"";
+  const nearbyQuery=lodging?(uk?"готель":"hotel"):service?goal:product?(uk?`${productTerm} магазин`:`${productTerm} store`):"";
   const internetQuery=lodging?(uk?`готель ${goal}`:`hotel ${goal}`):product?(uk?`купити ${goal}`:`buy ${goal}`):goal;
   const searches=[];
-  if(lodging||product)searches.push({source:"maps",mode:"nearby",query:nearbyQuery,reason:uk?"Знайти реальні варіанти поруч":"Find real nearby options"});
-  if(goal)searches.push({source:product?"marketplace":"web",mode:"standard",query:internetQuery,reason:uk?"Знайти актуальну відповідь або конкретні варіанти у зовнішніх джерелах":"Find a current answer or concrete options from external sources"});
-  return {understood:Boolean(goal),goal,intent:lodging?"find_lodging":product?"buy":"solve",domain:lodging?"lodging":agriculture?"agriculture":product?"products":"general",solution_scope:lodging?"local_action":product?"transaction":"information",urgency:"planned",needs_location:lodging||product,clarification:{required:false,question:"",options:[]},passport_search:{terms,capability_description:uk?"Можливості людей, речі, навички або допомога, релевантні запиту":"People, items, skills or help relevant to the request"},solution_steps:goal?[{id:"main-result",title:uk?"Знайти рішення":"Find a solution",purpose:goal,passport_terms:terms,nearby_query:nearbyQuery,internet_query:internetQuery,nearby_relevant:Boolean(nearbyQuery),internet_relevant:true}]:[],external_searches:searches,safety:{level:"none",message:""},result_strategy:uk?"Спочатку релевантні можливості Atlas; для актуальної інформації та відсутніх відповідей — автоматично використати живі зовнішні джерела.":"Relevant Atlas capabilities first; for current information or missing answers, automatically use live external sources.",fallback:true};
+  if(lodging||service)searches.push({source:"maps",mode:"nearby",query:nearbyQuery,reason:uk?"Знайти конкретні місцеві послуги або місця":"Find concrete local services or places"});
+  if(product)searches.push({source:"marketplace",mode:"standard",query:internetQuery,reason:uk?"Знайти конкретні товари або оголошення":"Find concrete products or listings"});
+  if(!lodging&&!service&&!product&&goal)searches.push({source:"web",mode:"standard",query:internetQuery,reason:uk?"Знайти актуальну відповідь у відкритому інтернеті":"Find a current answer on the open web"});
+  return {understood:Boolean(goal),goal,intent:lodging?"find_lodging":service?"find_service":product?"buy":"solve",domain:lodging?"lodging":service?"services":agriculture?"agriculture":product?"products":"general",solution_scope:lodging||service?"local_action":product?"transaction":"information",urgency:"planned",needs_location:lodging||service,clarification:{required:false,question:"",options:[]},passport_search:{terms,capability_description:uk?"Можливості людей або компаній, релевантні запиту":"People or company capabilities relevant to the request"},solution_steps:goal?[{id:"main-result",title:uk?"Знайти рішення":"Find a solution",purpose:goal,passport_terms:terms,nearby_query:nearbyQuery,internet_query:internetQuery,nearby_relevant:Boolean(nearbyQuery),internet_relevant:Boolean(!lodging&&!service)}]:[],external_searches:searches,safety:{level:"none",message:""},result_strategy:uk?"Після відсутності точного збігу в Паспорті вибрати один правильний зовнішній канал: послуги — локальний пошук/карти, товари — маркетплейси, інформація — веб або офіційні джерела.":"After no exact Passport match, choose one appropriate external channel: services — local/maps, products — marketplaces, information — web or official sources.",fallback:true};
 }
 
 async function requestBrainPlan(query,{lang="uk",location=null,locationText="",signal}={}){
