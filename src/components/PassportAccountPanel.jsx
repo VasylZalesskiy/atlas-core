@@ -19,6 +19,13 @@ export default function PassportAccountPanel({accounts=[],passports=[],activePas
   const [error,setError]=useState("");
   const account=accounts[0]||null;
 
+  async function logout(){
+    if(busy)return;
+    setBusy("logout");setError("");
+    try{await onLogout(account?.account_id)}
+    catch(cause){setError(accountError(cause));setBusy("")}
+  }
+
   async function submit(kind){
     if(busy)return;
     setError("");
@@ -51,7 +58,7 @@ export default function PassportAccountPanel({accounts=[],passports=[],activePas
   return <section className="passportAccountPanel logged">
     <div className="passportAccountTop">
       <div className="passportAccountIntro"><UserRound size={22}/><div><strong>Мої сторінки Atlas</strong><span>Вхід: <b>{account.login}</b> · сторінок: {passports.length}</span></div></div>
-      <div className="passportAccountTopActions"><Link className="passportGroupsLink" to="/groups"><UsersRound size={16}/>Групи</Link><button type="button" className="passportLogout" onClick={()=>onLogout(account.account_id)}><LogOut size={16}/>Вийти</button></div>
+      <div className="passportAccountTopActions"><Link className="passportGroupsLink" to="/groups"><UsersRound size={16}/>Групи</Link><button type="button" className="passportLogout" disabled={busy==="logout"} onClick={logout}><LogOut size={16}/>{busy==="logout"?"Виходжу…":"Вийти"}</button></div>
     </div>
     <div className="passportSwitcher">
       <label><span>Вибрати сторінку</span>
