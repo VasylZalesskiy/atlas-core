@@ -1,11 +1,12 @@
 import {lazy,Suspense,useEffect,useRef,useState} from "react";
-import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,LogOut,MapPin,Search,Share2,Smartphone,X} from "lucide-react";
+import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,LogOut,MapPin,MessageSquare,Search,Share2,Smartphone,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
 const OnlinePresence=lazy(()=>import("./OnlinePresence"));
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import {ATLAS_SHARE_URL,atlasShareText} from "../services/shareApp";
+import {saveAtlasFeedback} from "../services/feedbackStore";
 import "../styles/mobilePilot.css";
 
 function readImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
@@ -36,6 +37,9 @@ export default function MobileHome({lang="uk"}){
   const [visionBusy,setVisionBusy]=useState(false);
   const [unreadCount,setUnreadCount]=useState(0);
   const [presenceReady,setPresenceReady]=useState(false);
+  const [feedback,setFeedback]=useState("");
+  const [feedbackBusy,setFeedbackBusy]=useState(false);
+  const [feedbackStatus,setFeedbackStatus]=useState("");
   const fileRef=useRef(null);
   const nav=useNavigate();
 
@@ -88,6 +92,19 @@ export default function MobileHome({lang="uk"}){
     try{await navigator.clipboard.writeText(ATLAS_SHARE_URL);alert(uk?"Посилання Atlas скопійовано":"Atlas link copied")}catch{window.prompt(uk?"Скопіюйте посилання":"Copy the link",ATLAS_SHARE_URL)}
   }
 
+  async function sendFeedback(event){
+    event.preventDefault();
+    if(feedbackBusy||feedback.trim().length<2)return;
+    setFeedbackBusy(true);setFeedbackStatus("");
+    try{
+      await saveAtlasFeedback(feedback,lang);
+      setFeedback("");
+      setFeedbackStatus(uk?"✓ Дякуємо. Відгук збережено.":"✓ Thank you. Your feedback was saved.");
+    }catch{
+      setFeedbackStatus(uk?"Не вдалося надіслати відгук. Спробуйте ще раз.":"Could not send feedback. Please try again.");
+    }finally{setFeedbackBusy(false)}
+  }
+
   async function choosePhoto(event){
     const file=event.target.files?.[0];
     if(!file)return;
@@ -124,7 +141,7 @@ export default function MobileHome({lang="uk"}){
     <div className="mobilePilotIntro">
       <span className="mobilePilotEyebrow">ATLAS · {uk?"ГОЛОВНА":"HOME"}</span>
       <h1>{uk?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task"}</h1>
-      <p>{uk?"У будинку Atlas поєднує те, що людям потрібно, з тим, що інші мешканці реально можуть дати або зробити.":"In the building, Atlas connects what people need with what neighbors can actually provide or do."}</p>
+      <p>{uk?"Atlas поєднує потреби з можливостями людей і компаній та допомагає знайти найкоротший шлях до рішення.":"Atlas connects needs with the capabilities of people and companies and helps find the shortest path to a solution."}</p>
     </div>
 
     <div className="mobilePassportGrid">
@@ -161,14 +178,22 @@ export default function MobileHome({lang="uk"}){
     </form>
 
     <div className="mobilePilotQuick">
-      <button type="button" onClick={()=>quick(uk?"Потрібна допомога сусіда":"I need help from a neighbor")}>🤝 {uk?"Потрібна допомога":"Need help"}</button>
-      <button type="button" onClick={()=>quick(uk?"Хто у будинку може цим поділитися?":"Who in the building can share this?")}>🏠 {uk?"Є у сусідів?":"Available nearby?"}</button>
+      <button type="button" onClick={()=>quick(uk?"Потрібна допомога":"I need help")}>🤝 {uk?"Потрібна допомога":"Need help"}</button>
+      <button type="button" onClick={()=>quick(uk?"Хто може це надати?":"Who can provide this?")}>🔎 {uk?"Хто може надати?":"Who can provide it?"}</button>
     </div>
 
     <Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
       <span className="mobileNotificationIcon"><Bell size={20}/>{unreadCount>0&&<i>{unreadCount>99?"99+":unreadCount}</i>}</span>
       <span><strong>{unreadCount>0?(uk?`Нові сповіщення: ${unreadCount}`:`New notifications: ${unreadCount}`):(uk?"Сповіщення та запити":"Notifications & requests")}</strong><small>{uk?"Тут будуть збіги між потребами та можливостями":"Matches between needs and capabilities appear here"}</small></span><b>→</b>
     </Link>
+    <section className="mobileFeedbackCard">
+      <div><MessageSquare size={20}/><span><strong>{uk?"Що ви думаєте про Atlas?":"What do you think about Atlas?"}</strong><small>{uk?"Напишіть, що незрозуміло, що не спрацювало або чого не вистачає.":"Tell us what is unclear, what did not work, or what is missing."}</small></span></div>
+      <form onSubmit={sendFeedback}>
+        <textarea value={feedback} onChange={event=>setFeedback(event.target.value)} maxLength={2000} placeholder={uk?"Ваш відгук…":"Your feedback…"}/>
+        <button type="submit" disabled={feedbackBusy||feedback.trim().length<2}>{feedbackBusy?(uk?"Надсилаю…":"Sending…"):(uk?"Надіслати відгук":"Send feedback")}</button>
+      </form>
+      {feedbackStatus&&<small className={feedbackStatus.startsWith("✓")?"success":"error"}>{feedbackStatus}</small>}
+    </section>
     <Link className="mobileInstallCard" to="/share"><Smartphone size={20}/><span><strong>{uk?"Встановити Atlas на телефон":"Install Atlas on your phone"}</strong><small>{uk?"Інструкція для iPhone та Android":"Instructions for iPhone and Android"}</small></span><b>→</b></Link>
   </section>;
 }
