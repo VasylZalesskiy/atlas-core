@@ -286,3 +286,77 @@ header{height:76px;padding:0 5vw;display:flex;justify-content:space-between;alig
     display:none;
   }
 }
+
+
+/* Stable desktop header: prevent brand/title/actions overlap */
+@media(min-width:761px){
+  .atlasHeader{
+    display:grid;
+    grid-template-columns:minmax(180px,1fr) minmax(120px,auto) minmax(220px,1fr);
+    column-gap:18px;
+    align-items:center;
+  }
+  .atlasHeader .brand{
+    justify-self:start;
+    min-width:0;
+    white-space:nowrap;
+  }
+  .atlasHeader .brandText{
+    min-width:0;
+    display:grid;
+    line-height:1.05;
+  }
+  .atlasHeader .brandText>span,
+  .atlasHeader .brandText>small{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .atlasHeader .headerPageTitle{
+    position:static;
+    left:auto;
+    transform:none;
+    justify-self:center;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .atlasHeader .actions{
+    justify-self:end;
+    min-width:0;
+    white-space:nowrap;
+  }
+}
+@media(min-width:761px) and (max-width:1040px){
+  .atlasHeader{
+    grid-template-columns:minmax(160px,1fr) auto;
+    column-gap:12px;
+    padding-inline:16px;
+  }
+  .atlasHeader .headerPageTitle{
+    display:none;
+  }
+  .atlasHeader .desktopPresence{
+    display:none;
+  }
+  .atlasHeader .actions{
+    gap:7px;
+  }
+  .atlasHeader .lang{
+    padding:7px 9px;
+  }
+}
+@media(min-width:761px) and (max-width:840px){
+  .atlasHeader .brandText small{
+    display:none;
+  }
+  .atlasHeader .brand{
+    font-size:18px;
+    gap:8px;
+  }
+  .atlasHeader .brand b{
+    width:34px;
+    height:34px;
+  }
+}
