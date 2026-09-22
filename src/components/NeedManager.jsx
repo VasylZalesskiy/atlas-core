@@ -40,7 +40,7 @@ function normalize(value){return String(value||"").toLowerCase().replace(/[^\p{L
 function stem(word){return word.length>5?word.slice(0,5):word}
 function tokens(value){return normalize(value).split(" ").filter(word=>word.length>2&&!/^\d/.test(word)).map(stem)}
 function formatDateRange(from,to,uk){const locale=uk?"uk-UA":"en-GB";const formatter=new Intl.DateTimeFormat(locale,{day:"numeric",month:"short",year:"numeric"});const start=from?formatter.format(new Date(`${from}T12:00:00`)):"—";const end=to?formatter.format(new Date(`${to}T12:00:00`)):"—";return `${start} — ${end}`}
-function friendlyNeedError(error,uk){const text=String(error?.message||error||"");if(/atlas_needs|atlas_need_groups|atlas_need_items|relation .*atlas_need.*does not exist/i.test(text))return uk?"Сховище потреб ще не активоване в Atlas.":"Needs storage is not active in Atlas yet.";if(/date-range-invalid/i.test(text))return uk?"Дата завершення не може бути раніше дати початку.":"The end date cannot be before the start date.";if(/quantity-invalid/i.test(text))return uk?"Вкажіть правильну кількість.":"Enter a valid quantity.";return text||(uk?"Не вдалося виконати дію.":"The action could not be completed.")}
+function friendlyNeedError(error,uk){const text=String(error?.message||error||"");if(/atlas_needs|atlas_need_groups|atlas_need_items|relation .*atlas_need.*does not exist/i.test(text))return uk?"Сховище потреб ще не активоване в Atlas.":"Needs storage is not active in Atlas yet.";if(/date-range-invalid/i.test(text))return uk?"Дата завершення не може бути раніше дати початку.":"The end date cannot be before the start date.";if(/quantity-invalid/i.test(text))return uk?"Вкажіть правильну кількість.":"Enter a valid quantity.";if(/apartment-invalid/i.test(text))return uk?"Вкажіть номер квартири від 1 до 170.":"Enter an apartment number from 1 to 170.";if(/pickup-slot-required/i.test(text))return uk?"Оберіть зручний час видачі.":"Choose a pickup time.";return text||(uk?"Не вдалося виконати дію.":"The action could not be completed.")}
 
 function quantityFromText(text,targetUnit){
   const match=normalize(text).match(/(\d+(?:[.,]\d+)?)\s*(кг|kg|кілограм\S*|т|тонн\S*|ton\S*|шт|штук\S*|pcs?)/iu);
@@ -74,7 +74,7 @@ export default function NeedManager({passportId,passportSlug="",passportCity="",
   const [catalogLoading,setCatalogLoading]=useState(true);
   const [needText,setNeedText]=useState("");
   const [showAll,setShowAll]=useState(false);
-  const [form,setForm]=useState({groupKey:"",itemKey:"",unit:"кг",quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7)});
+  const [form,setForm]=useState({groupKey:"",itemKey:"",unit:"кг",quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7),apartmentNumber:"",pickupSlot:"18:00–19:00"});
   const [adding,setAdding]=useState(false);
   const [busyId,setBusyId]=useState("");
   const [matchBusy,setMatchBusy]=useState("");
@@ -163,14 +163,14 @@ export default function NeedManager({passportId,passportSlug="",passportCity="",
     event.preventDefault();
     if(adding)return;
     if(!selectedItem){setError(uk?"Оберіть товар із підказок Atlas.":"Choose an item from Atlas suggestions.");return}
-    if(!form.quantity){setError(uk?"Вкажіть кількість.":"Enter a quantity.");return}
+    if(!form.quantity){setError(uk?"Вкажіть кількість.":"Enter a quantity.");return}if(!form.apartmentNumber){setError(uk?"Вкажіть номер квартири.":"Enter your apartment number.");return}if(!form.pickupSlot){setError(uk?"Оберіть час видачі.":"Choose a pickup time.");return}
     setError("");setNotice("");setAdding(true);
     try{
       const added=await addMyNeed(passportId,form);
       setNeeds(items=>[added,...items]);
       const itemName=uk?(selectedItem.name_uk||"Товар"):(selectedItem.name_en||selectedItem.name_uk||"Item");
       setNeedText("");
-      setForm({groupKey:"",itemKey:"",unit:"кг",quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7)});
+      setForm(value=>({groupKey:"",itemKey:"",unit:"кг",quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7),apartmentNumber:value.apartmentNumber,pickupSlot:value.pickupSlot||"18:00–19:00"}));
       setNotice(uk?`✓ Потребу «${itemName}» додано. Atlas шукає людей, які можуть допомогти.`:`✓ “${itemName}” was added. Atlas is looking for people who can help.`);
     }catch(e){setError(friendlyNeedError(e,uk))}finally{setAdding(false)}
   }
@@ -219,15 +219,17 @@ export default function NeedManager({passportId,passportSlug="",passportCity="",
 
       <div className="needStep">
         <div className="needStepTitle"><span>2</span><div><strong>{uk?"Скільки і коли потрібно?":"How much and when?"}</strong><small>{uk?"Atlas збере це як замовлення/потребу":"Atlas will save this as an order/need"}</small></div></div>
-        <div className="needDetailsGrid" style={{gridTemplateColumns:"minmax(170px,1fr) minmax(190px,1fr)"}}>
+        <div className="needDetailsGrid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))"}}>
           <label className="needQuantityLabel"><span><Scale size={16}/>{uk?"Кількість":"Quantity"}</span><div><input type="number" min="0.1" max="1000000" step="0.1" inputMode="decimal" required value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})} placeholder="0"/><b>{selectedItem?.unit||form.unit}</b></div></label>
           <label><span><CalendarRange size={16}/>{uk?"Потрібно до":"Needed by"}</span><input type="date" required min={form.neededFrom} value={form.neededUntil} onChange={e=>setForm({...form,neededUntil:e.target.value})}/></label>
+          <label><span><MapPin size={16}/>{uk?"Квартира":"Apartment"}</span><input type="number" min="1" max="170" inputMode="numeric" required value={form.apartmentNumber} onChange={e=>setForm({...form,apartmentNumber:e.target.value})} placeholder="1–170"/></label>
+          <label><span><Clock3 size={16}/>{uk?"Час видачі":"Pickup time"}</span><select required value={form.pickupSlot} onChange={e=>setForm({...form,pickupSlot:e.target.value})}><option>18:00–19:00</option><option>19:00–20:00</option></select></label>
         </div>
       </div>
 
       <div className="needComposerFooter">
-        <div><Clock3 size={17}/><span>{uk?"До цієї дати Atlas вважатиме потребу актуальною.":"Atlas will keep the need active until this date."}</span></div>
-        <button className="needAddButton" disabled={adding||!form.quantity||!selectedItem}><Plus size={19}/>{adding?(uk?"Додаю…":"Adding…"):(uk?"Додати до замовлення":"Add to order")}</button>
+        <div><Clock3 size={17}/><span>{uk?"Видача — під будинком у вибраний час. Квартира потрібна для ідентифікації замовлення.":"Pickup is by the building at your selected time. The apartment number identifies the order."}</span></div>
+        <button className="needAddButton" disabled={adding||!form.quantity||!form.apartmentNumber||!form.pickupSlot||!selectedItem}><Plus size={19}/>{adding?(uk?"Додаю…":"Adding…"):(uk?"Додати до замовлення":"Add to order")}</button>
       </div>
     </form>
 
@@ -248,7 +250,7 @@ export default function NeedManager({passportId,passportSlug="",passportCity="",
         const needTextValue=`${Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} ${item.unit} ${itemName}`;
         return <article className={`needRecord ${received?"received":""}`} key={item.id}>
           <div className="needRecordProduct"><span aria-hidden="true">{catalogItem?.icon||"📦"}</span><div><small>{groupName.toLocaleUpperCase(uk?"uk-UA":"en-GB")}</small><h4>{itemName}</h4></div></div>
-          <div className="needRecordMeta"><div><Scale size={16}/><span><small>{uk?"Кількість":"Quantity"}</small><strong>{Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} {item.unit}</strong></span></div><div><CalendarRange size={16}/><span><small>{uk?"Актуальність":"Validity"}</small><strong>{formatDateRange(item.needed_from,item.needed_until,uk)}</strong></span></div></div>
+          <div className="needRecordMeta"><div><Scale size={16}/><span><small>{uk?"Кількість":"Quantity"}</small><strong>{Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} {item.unit}</strong></span></div><div><CalendarRange size={16}/><span><small>{uk?"Актуальність":"Validity"}</small><strong>{formatDateRange(item.needed_from,item.needed_until,uk)}</strong></span></div>{item.apartment_number&&<div><MapPin size={16}/><span><small>{uk?"Квартира":"Apartment"}</small><strong>№ {item.apartment_number}</strong></span></div>}{item.pickup_slot&&<div><Clock3 size={16}/><span><small>{uk?"Видача":"Pickup"}</small><strong>{item.pickup_slot}</strong></span></div>}</div>
 
           {!received&&<div style={{gridColumn:"1/-1",marginTop:4,padding:matches?.length?18:14,border:matches?.length?"2px solid #58b87a":"1px solid #cfe4d7",borderRadius:16,background:matches?.length?"#eaf8ef":"#f8faf9"}}>
             <div style={{display:"flex",alignItems:"center",gap:8,color:"#08753f",fontWeight:900,fontSize:13}}><Sparkles size={17}/>{matches?.length?(uk?"ATLAS ЗНАЙШОВ ЛЮДЕЙ, ЯКІ МОЖУТЬ ДОПОМОГТИ":"ATLAS FOUND PEOPLE WHO MAY HELP"):(uk?"ATLAS MATCH":"ATLAS MATCH")}</div>
