@@ -21,11 +21,12 @@ function clean(value){return String(value||"").replace(/\s+/g," ").trim()}
 function savedAtlasCity(){try{return clean(localStorage.getItem("atlas-city")||"")}catch{return ""}}
 
 function sourceForInternetStep(step,plannedSources,index){
+  const planned=plannedSources[index]?.source||plannedSources[0]?.source;
+  if(planned)return planned;
   const text=`${step?.title||""} ${step?.purpose||""} ${step?.internet_query||""}`;
-  const commerce=/куп|прод|придба|замов|опт|гурт|товар|постач|маркетплейс|оголош|ціна|buy|sell|order|wholesale|supplier|marketplace|listing/i.test(text)
+  const commerce=/куп|прод|придба|замов|опт|гурт|товар|постач|маркетплейс|оголош|buy|sell|order|wholesale|supplier|marketplace|listing/i.test(text)
     ||/\d+(?:[\s.]\d{3})*(?:[.,]\d+)?\s*(?:кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|т(?!\p{L})|тонн(?:а|и|у)?|tonnes?\b)/iu.test(text);
-  if(commerce)return "marketplace";
-  return plannedSources[index]?.source||plannedSources[0]?.source||"web";
+  return commerce?"marketplace":"web";
 }
 
 function formatDistance(value){
