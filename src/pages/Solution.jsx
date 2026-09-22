@@ -131,8 +131,8 @@ function aiAnswerCandidate(plan,lang){
   if(!answer||plan?.solution_scope!=="information")return null;
   return {
     kind:"answer",
-    id:"qwen-direct-answer",
-    source:lang==="uk"?"Королева · Qwen":"Queen · Qwen",
+    id:"atlas-direct-answer",
+    source:"Atlas",
     title:lang==="uk"?"Відповідь":"Answer",
     description:answer,
     resolved:true
@@ -276,7 +276,7 @@ function candidatePriority(candidate,task){
 }
 
 function recommendationReason(candidate,lang){
-  if(candidate?.kind==="answer")return lang==="uk"?"Пряма відповідь AI Atlas.":"Direct Atlas AI answer.";
+  if(candidate?.kind==="answer")return lang==="uk"?"Відповідь Atlas.":"Atlas answer.";
   if(candidate?.kind==="direct")return candidate.recommendation||"";
   if(candidate?.kind==="passport")return lang==="uk"
     ?"Збіг знайдено серед можливостей людей і компаній Atlas."
