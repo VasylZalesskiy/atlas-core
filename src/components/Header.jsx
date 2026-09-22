@@ -5,9 +5,7 @@ const OnlinePresence=lazy(()=>import("./OnlinePresence"));
 
 const labels={
   uk:{profile:"Можливості",needs:"Потреби",requests:"Мої запити",chat:"Чат",market:"Куплю / Продам",tomatoes:"Помідори",solution:"Рішення",passport:"Паспорт",home:"Головна",matches:"Збіги",nav:"Головна навігація",goHome:"На головну",openPassport:"Відкрити Паспорт"},
-  en:{profile:"Opportunities",needs:"Needs",requests:"My requests",chat:"Chat",market:"Buy / Sell",tomatoes:"Tomatoes",solution:"Solution",passport:"Passport",home:"Home",matches:"Matches",nav:"Main navigation",goHome:"Go home",openPassport:"Open Passport"},
-  zh:{profile:"能力",needs:"需求",requests:"我的请求",chat:"聊天",market:"购买 / 出售",tomatoes:"番茄",solution:"解决方案",passport:"护照",home:"主页",matches:"匹配",nav:"主导航",goHome:"返回主页",openPassport:"打开护照"},
-  hi:{profile:"क्षमताएँ",needs:"ज़रूरतें",requests:"मेरे अनुरोध",chat:"चैट",market:"खरीदें / बेचें",tomatoes:"टमाटर",solution:"समाधान",passport:"पासपोर्ट",home:"होम",matches:"मिलान",nav:"मुख्य नेविगेशन",goHome:"होम पर जाएं",openPassport:"पासपोर्ट खोलें"}
+  en:{profile:"Opportunities",needs:"Needs",requests:"My requests",chat:"Chat",market:"Buy / Sell",tomatoes:"Tomatoes",solution:"Solution",passport:"Passport",home:"Home",matches:"Matches",nav:"Main navigation",goHome:"Go home",openPassport:"Open Passport"}
 };
 
 function copy(lang){return labels[lang]||labels.uk;}
@@ -67,7 +65,7 @@ export default function Header({lang,setLang}){
     <div className="actions">
       {!mobile&&presenceReady&&<div className="desktopPresence"><Suspense fallback={null}><OnlinePresence lang={lang} compact/></Suspense></div>}
       <label className="lang" aria-label="Language"><Globe2 size={17}/><select value={lang} onChange={event=>setLang(event.target.value)} aria-label="Language">
-        <option value="uk">UA</option><option value="en">EN</option><option value="zh">中文</option><option value="hi">हिंदी</option>
+        <option value="uk">UA</option><option value="en">EN</option>
       </select></label>
       <Link className="profileAvatar" to="/profile" aria-label={l.openPassport}>Я</Link>
     </div>
