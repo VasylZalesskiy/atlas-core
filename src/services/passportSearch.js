@@ -76,8 +76,9 @@ async function searchNewPassports(plan,{limit}){
       .limit(candidateLimit),
     supabase
       .from("atlas_opportunities")
-      .select("id,passport_id,kind,text,created_at")
+      .select("id,passport_id,kind,text,visibility_scope,created_at")
       .eq("is_active",true)
+      .in("visibility_scope",["global","both"])
       .textSearch("search_fts",query,{type:"websearch",config:"simple"})
       .limit(candidateLimit*2)
   ]);
