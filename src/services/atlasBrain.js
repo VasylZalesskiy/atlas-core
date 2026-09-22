@@ -145,15 +145,22 @@ function enforceTaskChannel(plan,query){
 
   if(information){
     next.solution_scope="information";
+    next.answer="";
     next.external_searches=(next.external_searches||[])
       .map(item=>item?.source==="marketplace"?{...item,source:"web"}:item)
       .filter(item=>item?.source!=="maps");
+    if(!next.external_searches.length){
+      next.external_searches=[{source:"web",mode:"standard",query:clean(next.goal)||clean(query),reason:"Find current external information"}];
+    }
     next.solution_steps=(next.solution_steps||[]).map(step=>({...step,
       nearby_relevant:false,
       nearby_query:"",
       internet_relevant:true,
       internet_query:clean(step?.internet_query)||clean(next.goal)||clean(query)
     }));
+    if(!next.solution_steps.length){
+      next.solution_steps=[{id:"web-result",title:"Web search",purpose:clean(next.goal)||clean(query),passport_terms:[],nearby_query:"",internet_query:clean(next.goal)||clean(query),nearby_relevant:false,internet_relevant:true}];
+    }
   }
   return next;
 }
