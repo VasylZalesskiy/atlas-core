@@ -1,7 +1,7 @@
-import {useEffect,useState} from "react";
+import {lazy,Suspense,useEffect,useState} from "react";
 import {Globe2,HeartHandshake,IdCard,MessageCircleMore,Sparkles} from "lucide-react";
 import {Link,NavLink,useLocation} from "react-router-dom";
-import OnlinePresence from "./OnlinePresence";
+const OnlinePresence=lazy(()=>import("./OnlinePresence"));
 
 const labels={
   uk:{profile:"Можливості",needs:"Потреби",requests:"Мої запити",chat:"Чат",market:"Куплю / Продам",tomatoes:"Помідори",solution:"Рішення",passport:"Паспорт",home:"Головна",matches:"Збіги",nav:"Головна навігація",goHome:"На головну",openPassport:"Відкрити Паспорт"},
@@ -26,7 +26,18 @@ function pageTitle(pathname,lang){
 
 export default function Header({lang,setLang}){
   const location=useLocation();
+  const [presenceReady,setPresenceReady]=useState(false);
   const [mobile,setMobile]=useState(()=>window.matchMedia?.("(max-width: 760px)")?.matches??false);
+  useEffect(()=>{
+    let cancelled=false;
+    const start=()=>{if(!cancelled)setPresenceReady(true)};
+    const idle=window.requestIdleCallback?window.requestIdleCallback(start,{timeout:1400}):window.setTimeout(start,800);
+    return()=>{
+      cancelled=true;
+      if(window.cancelIdleCallback&&typeof idle==="number")window.cancelIdleCallback(idle);
+      else window.clearTimeout(idle);
+    };
+  },[]);
   useEffect(()=>{
     const media=window.matchMedia?.("(max-width: 760px)");
     if(!media)return;
@@ -54,7 +65,7 @@ export default function Header({lang,setLang}){
       return <NavLink key={item.to} to={item.to} className={({isActive})=>isActive?"active":""}><Icon size={19}/><span>{item.label}</span></NavLink>;
     })}</nav>
     <div className="actions">
-      {!mobile&&<div className="desktopPresence"><OnlinePresence lang={lang} compact/></div>}
+      {!mobile&&presenceReady&&<div className="desktopPresence"><Suspense fallback={null}><OnlinePresence lang={lang} compact/></Suspense></div>}
       <label className="lang" aria-label="Language"><Globe2 size={17}/><select value={lang} onChange={event=>setLang(event.target.value)} aria-label="Language">
         <option value="uk">UA</option><option value="en">EN</option><option value="zh">中文</option><option value="hi">हिंदी</option>
       </select></label>
