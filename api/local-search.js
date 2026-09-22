@@ -77,9 +77,10 @@ async function nominatimSearch(query,locationText,origin,lang){
   const seen=new Set();return all.filter(item=>{const key=item.latitude+":"+item.longitude+":"+item.name;if(seen.has(key))return false;seen.add(key);return true}).sort((a,b)=>a.straightDistanceKm-b.straightDistanceKm);
 }
 export default async function handler(req,res){
-  if(req.method==="GET")return send(res,200,{status:"atlas-local-search-online"});
-  if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
-  let body={};try{body=typeof req.body==="string"?JSON.parse(req.body||"{}"):req.body||{}}catch{return send(res,400,{error:"invalid-json"})}
+  if(req.method!=="GET"&&req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
+  let body={};
+  if(req.method==="GET")body={query:req.query?.q||"",location_text:req.query?.where||"",language:req.query?.lang||"uk"};
+  else try{body=typeof req.body==="string"?JSON.parse(req.body||"{}"):req.body||{}}catch{return send(res,400,{error:"invalid-json"})}
   const query=clean(body.query).slice(0,160),locationText=clean(body.location_text).slice(0,160),lang=body.language==="en"?"en":"uk";
   if(!query)return send(res,400,{error:"query-required"});
   let origin=body.origin&&Number.isFinite(Number(body.origin.latitude))&&Number.isFinite(Number(body.origin.longitude))?{latitude:Number(body.origin.latitude),longitude:Number(body.origin.longitude)}:null;
