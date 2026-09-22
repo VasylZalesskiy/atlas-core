@@ -7,6 +7,14 @@ function fail(message){const error=new Error(message);error.code=message;return 
 export async function ensureAtlasSession(){if(!supabase)throw fail("supabase-unavailable");const {data:sessionData,error:sessionError}=await supabase.auth.getSession();if(sessionError)throw sessionError;if(sessionData?.session?.user)return sessionData.session.user;const {data,error}=await supabase.auth.signInAnonymously();if(error)throw error;if(!data?.user)throw fail("anonymous-auth-unavailable");return data.user}
 function slugBase(value){return String(value||"atlas").toLowerCase().normalize("NFKD").replace(/[^a-z0-9а-яіїєґ]+/gi,"-").replace(/^-+|-+$/g,"").slice(0,48)||"atlas"}
 function createSlug(displayName){const suffix=crypto.randomUUID().replace(/-/g,"").slice(0,8);return `${slugBase(displayName)}-${suffix}`}
+function expiresAtForDuration(duration){
+  const date=new Date();
+  if(duration==="hour")date.setHours(date.getHours()+1);
+  else if(duration==="day")date.setDate(date.getDate()+1);
+  else if(duration==="year")date.setFullYear(date.getFullYear()+1);
+  else date.setDate(date.getDate()+30);
+  return date.toISOString();
+}
 export async function loadAtlasAccounts(){
   await ensureAtlasSession();
   const {data,error}=await supabase.rpc("atlas_list_my_accounts");
@@ -125,7 +133,7 @@ export async function uploadOpportunityPhoto(file){
   const {data}=supabase.storage.from("opportunity-photos").getPublicUrl(path);return {url:data.publicUrl,path};
 }
 
-export async function addMyOpportunity(passportId,entry){const user=await ensureAtlasSession();const cleanText=String(entry?.text||"").trim();if(!passportId)throw fail("passport-required");if(!cleanText)throw fail("opportunity-required");const {data,error}=await supabase.from("atlas_opportunities").insert({passport_id:passportId,owner_id:user.id,kind:databaseKindForGroup(entry?.group),text:encodeOpportunityText(entry),is_active:true,photo_url:entry?.photoUrl||null,photo_label:entry?.photoLabel||null,photo_task:entry?.photoTask||null}).select("id,kind,text,is_active,photo_url,photo_label,photo_task,created_at").single();if(error)throw error;return decodeOpportunity(data)}
+export async function addMyOpportunity(passportId,entry){const user=await ensureAtlasSession();const cleanText=String(entry?.text||"").trim();if(!passportId)throw fail("passport-required");if(!cleanText)throw fail("opportunity-required");const {data,error}=await supabase.from("atlas_opportunities").insert({passport_id:passportId,owner_id:user.id,kind:databaseKindForGroup(entry?.group),text:encodeOpportunityText(entry),is_active:true,expires_at:expiresAtForDuration(entry?.duration),photo_url:entry?.photoUrl||null,photo_label:entry?.photoLabel||null,photo_task:entry?.photoTask||null}).select("id,kind,text,is_active,photo_url,photo_label,photo_task,created_at").single();if(error)throw error;return decodeOpportunity(data)}
 export async function updateMyOpportunity(id,entry){const user=await ensureAtlasSession();const cleanText=String(entry?.text||"").trim();if(!id||!cleanText)throw fail("opportunity-required");const {data,error}=await supabase.from("atlas_opportunities").update({kind:databaseKindForGroup(entry?.group),text:encodeOpportunityText(entry),photo_url:entry?.photo_url||entry?.photoUrl||null,photo_label:entry?.photo_label||entry?.photoLabel||null,photo_task:entry?.photo_task||entry?.photoTask||null}).eq("id",id).select("id,kind,text,is_active,photo_url,photo_label,photo_task,created_at").single();if(error)throw error;return decodeOpportunity(data)}
 export async function setMyOpportunityActive(id,isActive){await ensureAtlasSession();const {data,error}=await supabase.from("atlas_opportunities").update({is_active:Boolean(isActive)}).eq("id",id).select("id,kind,text,is_active,photo_url,photo_label,photo_task,created_at").single();if(error)throw error;return decodeOpportunity(data)}
 export async function deleteMyOpportunity(id){const user=await ensureAtlasSession();const {error}=await supabase.from("atlas_opportunities").delete().eq("id",id);if(error)throw error}
