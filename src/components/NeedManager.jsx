@@ -10,20 +10,28 @@ import "../styles/needs.css";
 const emptyNeeds=[];
 const quickNeeds={
   uk:[
-    {label:"Помідори",term:"помідор",icon:"🍅"},
     {label:"Картопля",term:"картопля",icon:"🥔"},
-    {label:"Огірки",term:"огірок",icon:"🥒"},
+    {label:"Помідори",term:"помідори",icon:"🍅"},
     {label:"Цибуля",term:"цибуля",icon:"🧅"},
+    {label:"Капуста",term:"капуста",icon:"🥬"},
     {label:"Морква",term:"морква",icon:"🥕"},
-    {label:"Капуста",term:"капуста",icon:"🥬"}
+    {label:"Буряк",term:"буряк",icon:"🫜"},
+    {label:"Квашені огірки",term:"квашені огірки",icon:"🥒"},
+    {label:"Крупи",term:"крупи",icon:"🌾"},
+    {label:"Олія",term:"олія",icon:"🫗"},
+    {label:"Цукор",term:"цукор",icon:"🧂"}
   ],
   en:[
-    {label:"Tomatoes",term:"tomato",icon:"🍅"},
-    {label:"Potatoes",term:"potato",icon:"🥔"},
-    {label:"Cucumbers",term:"cucumber",icon:"🥒"},
-    {label:"Onions",term:"onion",icon:"🧅"},
-    {label:"Carrots",term:"carrot",icon:"🥕"},
-    {label:"Cabbage",term:"cabbage",icon:"🥬"}
+    {label:"Potatoes",term:"potatoes",icon:"🥔"},
+    {label:"Tomatoes",term:"tomatoes",icon:"🍅"},
+    {label:"Onions",term:"onions",icon:"🧅"},
+    {label:"Cabbage",term:"cabbage",icon:"🥬"},
+    {label:"Carrots",term:"carrots",icon:"🥕"},
+    {label:"Beetroot",term:"beetroot",icon:"🫜"},
+    {label:"Pickled cucumbers",term:"pickled cucumbers",icon:"🥒"},
+    {label:"Groats",term:"groats",icon:"🌾"},
+    {label:"Oil",term:"oil",icon:"🫗"},
+    {label:"Sugar",term:"sugar",icon:"🧂"}
   ]
 };
 
@@ -75,7 +83,12 @@ export default function NeedManager({passportId,passportSlug="",passportCity="",
   const [error,setError]=useState("");
   const [matchesByNeed,setMatchesByNeed]=useState({});
 
-  const activeItems=useMemo(()=>catalogItems.filter(item=>item.is_active),[catalogItems]);
+  const activeItems=useMemo(()=>{
+    const activeGroupKeys=new Set(groups.filter(group=>group.is_active!==false).map(group=>group.group_key));
+    const available=catalogItems.filter(item=>item.is_active&&activeGroupKeys.has(item.group_key));
+    const delivery=available.filter(item=>item.group_key==="house-delivery");
+    return delivery.length?delivery:available;
+  },[catalogItems,groups]);
   const selectedItem=activeItems.find(item=>item.group_key===form.groupKey&&item.item_key===form.itemKey)||null;
   const catalogLookup=useMemo(()=>new Map(catalogItems.map(item=>[`${item.group_key}:${item.item_key}`,item])),[catalogItems]);
   const groupLookup=useMemo(()=>new Map(groups.map(group=>[group.group_key,group])),[groups]);
@@ -182,20 +195,20 @@ export default function NeedManager({passportId,passportSlug="",passportCity="",
     <div className="needsHeading">
       <div className="needsHeadingIcon"><Leaf size={24}/></div>
       <div>
-        <div className="needsEyebrow">ATLAS · {uk?"ПАСПОРТ ПОТРЕБ":"NEEDS PASSPORT"}</div>
-        <h2>{uk?"Що вам потрібно?":"What do you need?"}</h2>
-        <p>{uk?"Напишіть простими словами. Atlas допоможе вибрати товар і шукатиме людей, які можуть допомогти.":"Write it in simple words. Atlas will help identify the item and look for people who can help."}</p>
+        <div className="needsEyebrow">ATLAS · {uk?"ПАСПОРТ ПОТРЕБ · ДОСТАВКА":"NEEDS PASSPORT · DELIVERY"}</div>
+        <h2>{uk?"Що замовити або отримати?":"What would you like to order or receive?"}</h2>
+        <p>{uk?"Оберіть товар, кількість і дату. Для пілоту будинку Atlas зв’яже вашу потребу з продавцем або постачальником.":"Choose the item, quantity and date. For the building pilot, Atlas will connect your need with a seller or supplier."}</p>
       </div>
       <div className="needsHeadingTools"><div className="needsPilotBadge">{uk?"Atlas Match активний":"Atlas Match active"}</div></div>
     </div>
 
     <form className="needComposer" onSubmit={submitNeed}>
       <div className="needStep" style={{paddingBottom:10}}>
-        <div className="needStepTitle"><span>1</span><div><strong>{uk?"Напишіть потребу":"Describe your need"}</strong><small>{uk?"Наприклад: потрібно 10 кг помідорів":"For example: I need 10 kg of tomatoes"}</small></div></div>
+        <div className="needStepTitle"><span>1</span><div><strong>{uk?"Оберіть товар":"Choose an item"}</strong><small>{uk?"Наприклад: 10 кг картоплі або 5 кг помідорів":"For example: 10 kg of potatoes or 5 kg of tomatoes"}</small></div></div>
         <div style={{position:"relative"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,border:"2px solid #b9ddc7",borderRadius:16,padding:"4px 12px",background:"#fff"}}>
             <Search size={20} color="#0b7b43"/>
-            <input autoFocus value={needText} onChange={e=>onNeedTextChange(e.target.value)} placeholder={uk?"Що вам потрібно?":"What do you need?"} style={{width:"100%",border:0,outline:0,fontSize:17,padding:"13px 0",background:"transparent"}}/>
+            <input autoFocus value={needText} onChange={e=>onNeedTextChange(e.target.value)} placeholder={uk?"Що доставити?":"What should be delivered?"} style={{width:"100%",border:0,outline:0,fontSize:17,padding:"13px 0",background:"transparent"}}/>
           </div>
           {catalogLoading&&<div className="needCatalogLoading">{uk?"Завантажую підказки…":"Loading suggestions…"}</div>}
           {!catalogLoading&&suggestions.length>0&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:8,marginTop:10}}>{suggestions.map(option=><button key={`${option.group_key}-${option.item_key}`} type="button" onClick={()=>chooseItem(option)} style={{display:"flex",alignItems:"center",gap:9,textAlign:"left",padding:"10px 12px",border:selectedItem?.item_key===option.item_key?"2px solid #0b8c48":"1px solid #dce7df",borderRadius:12,background:selectedItem?.item_key===option.item_key?"#edf9f1":"#fff",cursor:"pointer"}}><span style={{fontSize:22}}>{option.icon||"📦"}</span><span><strong style={{display:"block",fontSize:14}}>{uk?option.name_uk:(option.name_en||option.name_uk)}</strong><small style={{color:"#6c786f"}}>{option.unit}</small></span>{selectedItem?.item_key===option.item_key&&<Check size={16} color="#0b8c48" style={{marginLeft:"auto"}}/>}</button>)}</div>}
@@ -205,7 +218,7 @@ export default function NeedManager({passportId,passportSlug="",passportCity="",
       </div>
 
       <div className="needStep">
-        <div className="needStepTitle"><span>2</span><div><strong>{uk?"Скільки і до коли?":"How much and by when?"}</strong><small>{uk?"Цього достатньо для створення потреби":"That is enough to create the need"}</small></div></div>
+        <div className="needStepTitle"><span>2</span><div><strong>{uk?"Скільки і коли потрібно?":"How much and when?"}</strong><small>{uk?"Atlas збере це як замовлення/потребу":"Atlas will save this as an order/need"}</small></div></div>
         <div className="needDetailsGrid" style={{gridTemplateColumns:"minmax(170px,1fr) minmax(190px,1fr)"}}>
           <label className="needQuantityLabel"><span><Scale size={16}/>{uk?"Кількість":"Quantity"}</span><div><input type="number" min="0.1" max="1000000" step="0.1" inputMode="decimal" required value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})} placeholder="0"/><b>{selectedItem?.unit||form.unit}</b></div></label>
           <label><span><CalendarRange size={16}/>{uk?"Потрібно до":"Needed by"}</span><input type="date" required min={form.neededFrom} value={form.neededUntil} onChange={e=>setForm({...form,neededUntil:e.target.value})}/></label>
@@ -214,16 +227,16 @@ export default function NeedManager({passportId,passportSlug="",passportCity="",
 
       <div className="needComposerFooter">
         <div><Clock3 size={17}/><span>{uk?"До цієї дати Atlas вважатиме потребу актуальною.":"Atlas will keep the need active until this date."}</span></div>
-        <button className="needAddButton" disabled={adding||!form.quantity||!selectedItem}><Plus size={19}/>{adding?(uk?"Додаю…":"Adding…"):(uk?"Додати потребу":"Add need")}</button>
+        <button className="needAddButton" disabled={adding||!form.quantity||!selectedItem}><Plus size={19}/>{adding?(uk?"Додаю…":"Adding…"):(uk?"Додати до замовлення":"Add to order")}</button>
       </div>
     </form>
 
     {(error||notice)&&<div className={`needMessage ${error?"errorState":"successState"}`} role="status" aria-live="polite">{error||notice}</div>}
 
-    <div className="needsListHeading"><div><h3>{uk?"Мої активні потреби":"My active needs"}</h3><p>{uk?"Atlas автоматично звіряє їх із Паспортами можливостей інших людей.":"Atlas automatically matches them with other people's Opportunity Passports."}</p></div><span>{openCount} {uk?"не отримано":"not received"}</span></div>
+    <div className="needsListHeading"><div><h3>{uk?"Мої замовлення та потреби":"My orders and needs"}</h3><p>{uk?"Atlas автоматично звіряє їх із Паспортами можливостей інших людей.":"Atlas automatically matches them with other people's Opportunity Passports."}</p></div><span>{openCount} {uk?"не отримано":"not received"}</span></div>
 
     <div className="needsList">
-      {needs.length===0&&<div className="needsEmpty"><Leaf size={24}/><strong>{uk?"Потреб ще немає":"No needs yet"}</strong><span>{uk?"Напишіть першу потребу вище — це займає кілька секунд.":"Add your first need above — it only takes a few seconds."}</span></div>}
+      {needs.length===0&&<div className="needsEmpty"><Leaf size={24}/><strong>{uk?"Замовлень ще немає":"No orders yet"}</strong><span>{uk?"Оберіть перший товар вище — це займає кілька секунд.":"Choose your first item above — it only takes a few seconds."}</span></div>}
       {needs.map(item=>{
         const received=item.status==="received";
         const deleting=confirmDeleteId===item.id;
