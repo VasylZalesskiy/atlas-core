@@ -406,7 +406,7 @@ ${initialWhere}`;
   const [plan,setPlan]=useState(()=>createPassportSeedPlan(initialTask,{lang}));
   const [brainLoading,setBrainLoading]=useState(false);
   const [brainReady,setBrainReady]=useState(false);
-  const [brainAnalyzedKey,setBrainAnalyzedKey]=useState("");
+  const brainRunRef=useRef("");
   const [brainError,setBrainError]=useState("");
   const [passportGroups,setPassportGroups]=useState([]);
   const [passportLoading,setPassportLoading]=useState(false);
@@ -451,7 +451,7 @@ ${initialWhere}`;
     setSortMode("recommended");
     setPlan(createPassportSeedPlan(initialTask,{lang}));
     setBrainReady(false);
-    setBrainAnalyzedKey("");
+    brainRunRef.current="";
     setBrainLoading(false);
     setSearchScope("");
     setNearbyGroups([]);
@@ -518,7 +518,8 @@ ${initialWhere}`;
   useEffect(()=>{
     if(!activeTask||!passportsChecked||exactPassportFound)return;
     const brainRunKey=`${searchRunId}:${activeTask}:${initialWhere}`;
-    if(brainAnalyzedKey===brainRunKey||brainLoading)return;
+    if(brainRunRef.current===brainRunKey)return;
+    brainRunRef.current=brainRunKey;
     const controller=new AbortController();
     setBrainLoading(true);
     setBrainReady(false);
@@ -531,7 +532,6 @@ ${initialWhere}`;
         if(controller.signal.aborted)return;
         setPlan(nextPlan);
         setBrainReady(true);
-        setBrainAnalyzedKey(brainRunKey);
         trackAtlas("Atlas Brain Started After Passport Miss",{language:lang});
       })
       .catch(error=>{
@@ -539,11 +539,10 @@ ${initialWhere}`;
         setBrainError(error?.message||"atlas-brain-unavailable");
         setPlan(createFallbackPlan(activeTask,{lang}));
         setBrainReady(true);
-        setBrainAnalyzedKey(brainRunKey);
       })
       .finally(()=>{if(!controller.signal.aborted)setBrainLoading(false)});
     return()=>controller.abort();
-  },[activeTask,passportsChecked,exactPassportFound,searchRunId,lang,initialWhere,brainAnalyzedKey,brainLoading,state?.geoLocation?.latitude,state?.geoLocation?.longitude]);
+  },[activeTask,passportsChecked,exactPassportFound,searchRunId,lang,initialWhere,state?.geoLocation?.latitude,state?.geoLocation?.longitude]);
 
   async function ensureOrigin(){
     if(origin)return origin;
@@ -796,7 +795,7 @@ ${initialWhere}`;
     setPlan(createPassportSeedPlan(cleanTask,{lang}));
     setBrainLoading(false);
     setBrainReady(false);
-    setBrainAnalyzedKey("");
+    brainRunRef.current="";
     setSearchScope("");
     setNearbyGroups([]);
     setInternetGroups([]);
