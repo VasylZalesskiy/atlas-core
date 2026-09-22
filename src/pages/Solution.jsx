@@ -4,7 +4,7 @@ import {
   ArrowLeft,Check,Clock3,ExternalLink,Globe2,MapPin,Navigation,
   Phone,RefreshCw,Search,UserRound
 } from "lucide-react";
-import {analyzeAtlasQuery,createFallbackPlan,createPassportSeedPlan} from "../services/atlasBrain";
+import {createFallbackPlan,createPassportSeedPlan} from "../services/atlasBrain";
 import {searchPassportProfiles} from "../services/passportSearch";
 import {searchExternalSources} from "../services/externalSearch";
 import {getDrivingRoute,openGoogleDirections,searchDestination,searchNearbyPlaces} from "../services/googleMaps";
@@ -530,40 +530,23 @@ ${initialWhere}`;
 
   useEffect(()=>{
     if(!activeTask||!passportsChecked||exactPassportFound)return;
-    const brainRunKey=`${searchRunId}:${activeTask}:${initialWhere}`;
-    if(brainRunRef.current===brainRunKey)return;
-    brainRunRef.current=brainRunKey;
+    const runKey=`${searchRunId}:${activeTask}:${initialWhere}`;
+    if(brainRunRef.current===runKey)return;
+    brainRunRef.current=runKey;
+
     const deterministicPlan=createFallbackPlan(activeTask,{lang});
-    if(["services","products","lodging","agriculture"].includes(deterministicPlan?.domain)){
-      setPlan({...deterministicPlan,location_text:initialWhere});
-      setBrainReady(true);
-      setBrainLoading(false);
-      setBrainError("");
-      return;
-    }
-    const controller=new AbortController();
-    setBrainLoading(true);
-    setBrainReady(false);
+    setPlan({...deterministicPlan,location_text:initialWhere});
+    setBrainReady(true);
+    setBrainLoading(false);
     setBrainError("");
     setSearchScope("");
     setNearbyGroups([]);
     setInternetGroups([]);
-    analyzeAtlasQuery(activeTask,{lang,location:state?.geoLocation||null,locationText:initialWhere,signal:controller.signal})
-      .then(nextPlan=>{
-        if(controller.signal.aborted)return;
-        setPlan(nextPlan);
-        setBrainReady(true);
-        trackAtlas("Atlas Brain Started After Passport Miss",{language:lang});
-      })
-      .catch(error=>{
-        if(error?.name==="AbortError")return;
-        setBrainError(error?.message||"atlas-brain-unavailable");
-        setPlan(createFallbackPlan(activeTask,{lang}));
-        setBrainReady(true);
-      })
-      .finally(()=>{if(!controller.signal.aborted)setBrainLoading(false)});
-    return()=>controller.abort();
-  },[activeTask,passportsChecked,exactPassportFound,searchRunId,lang,initialWhere,state?.geoLocation?.latitude,state?.geoLocation?.longitude]);
+    trackAtlas("Atlas Deterministic Search Started After Passport Miss",{
+      domain:deterministicPlan?.domain||"",
+      language:lang
+    });
+  },[activeTask,passportsChecked,exactPassportFound,searchRunId,lang,initialWhere]);
 
   async function ensureOrigin(){
     if(origin)return origin;
