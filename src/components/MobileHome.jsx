@@ -109,7 +109,7 @@ export default function MobileHome({lang="uk"}){
     }finally{setVisionBusy(false)}
   }
 
-  const needChips=uk?["Продукти","Побутова допомога","Транспорт","Речі та інструменти"]:["Food","Household help","Transport","Things & tools"];
+  const needChips=uk?["🥔 Картопля","🍅 Помідори","🧅 Цибуля","🥬 Капуста","🥒 Квашені огірки","🫗 Олія"]:["🥔 Potatoes","🍅 Tomatoes","🧅 Onions","🥬 Cabbage","🥒 Pickled cucumbers","🫗 Oil"];
 
   return <section className="mobilePilotHome">
     <div className="mobilePilotTopRow">
@@ -129,15 +129,15 @@ export default function MobileHome({lang="uk"}){
 
     <div className="mobilePassportGrid">
       <Link className="mobilePassportCard capability" to="/profile">
-        <IdCard size={27}/><div><strong>{uk?"Паспорт можливостей":"Capability passport"}</strong><span>{uk?"Заповніть, що маєте, вмієте або можете надати":"Add what you have, know, or can provide"}</span></div><b>{uk?"Заповнити →":"Fill in →"}</b>
+        <IdCard size={27}/><div><strong>{uk?"Продати / Паспорт можливостей":"Sell / Opportunity Passport"}</strong><span>{uk?"Додайте товар, ціну, кількість і можливість доставки":"Add an item, price, quantity and delivery option"}</span></div><b>{uk?"Додати пропозицію →":"Add offer →"}</b>
       </Link>
       <Link className="mobilePassportCard need" to="/needs">
-        <HeartHandshake size={27}/><div><strong>{uk?"Паспорт потреб":"Needs passport"}</strong><span>{uk?"Виберіть зі списку, що вам потрібно і коли":"Choose from the list what you need and when"}</span></div><b>{uk?"Додати потребу →":"Add need →"}</b>
+        <HeartHandshake size={27}/><div><strong>{uk?"Замовити / Паспорт потреб":"Order / Needs Passport"}</strong><span>{uk?"Оберіть товар, кількість і коли він потрібен":"Choose the item, quantity and when you need it"}</span></div><b>{uk?"Зробити замовлення →":"Place order →"}</b>
       </Link>
     </div>
 
     <div className="mobileNeedsHint">
-      <span>{uk?"Що зараз можна додати як потребу":"Current need categories"}</span>
+      <span>{uk?"Швидке замовлення для будинку":"Quick building order"}</span>
       <div>{needChips.map(item=><Link key={item} to="/needs">{item}</Link>)}</div>
     </div>
 
