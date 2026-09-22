@@ -23,6 +23,8 @@ const MatchSearch=lazy(()=>import("./pages/MatchSearch"));
 const ShareApp=lazy(()=>import("./pages/ShareApp"));
 const CatalogAdmin=lazy(()=>import("./pages/CatalogAdmin"));
 const TomatoPilot=lazy(()=>import("./pages/TomatoPilot"));
+const Groups=lazy(()=>import("./pages/Groups"));
+const GroupPage=lazy(()=>import("./pages/GroupPage"));
 
 const supportedLanguages=new Set(["uk","en"]);
 const normalizeLanguage=value=>{
@@ -98,6 +100,8 @@ export default function App(){
           <Route path="/share" element={<ShareApp lang={lang}/>}/>
           <Route path="/requests" element={<Requests lang={lang}/>}/>
           <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
+          <Route path="/groups" element={<Groups lang={lang}/>}/>
+          <Route path="/groups/:groupId" element={<GroupPage lang={lang}/>}/>
           <Route path="/chat" element={<Chat/>}/>
           <Route path="/market" element={<Market/>}/>
           <Route path="/tomatoes" element={<TomatoPilot lang={lang}/>}/>
