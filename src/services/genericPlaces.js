@@ -137,7 +137,7 @@ export async function searchNearbyPlaces(location,query,{lang="uk",radiusKm=30,l
     const response=await fetch("/api/local-search",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({query:q,origin,language:lang,radius_km:radiusKm,limit}),
+      body:JSON.stringify({query:q,origin,location_text:location?.label||"",language:lang,radius_km:radiusKm,limit}),
       signal
     });
     const data=await response.json().catch(()=>({}));
