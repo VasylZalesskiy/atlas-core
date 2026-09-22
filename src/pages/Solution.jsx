@@ -13,7 +13,7 @@ import useGeolocation from "../hooks/useGeolocation";
 import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
 import {saveSearchHistory} from "../services/searchHistory";
-import {loadMyPassport} from "../services/passportStore";
+import {createAvailabilityCheck,loadMyPassport} from "../services/passportStore";
 import "../styles/simpleSolution.css";
 import "../styles/solutionChains.css";
 
@@ -106,6 +106,27 @@ function passportCandidate(profile,lang){
   };
 }
 
+function historicalPassportCandidate(profile,lang){
+  return {
+    kind:"passport_history",
+    id:`history-${profile.opportunity_id||profile.slug||profile.name}`,
+    source:lang==="uk"?"Паспорт можливостей":"Opportunity Passport",
+    title:profile.name
+      ?(lang==="uk"?`${profile.name} — потрібно підтвердити`:`${profile.name} — needs confirmation`)
+      :(lang==="uk"?"Раніше була схожа можливість":"A similar opportunity existed before"),
+    description:lang==="uk"
+      ?"У цьому Паспорті нещодавно була схожа можливість, але її термін дії вже закінчився."
+      :"This Passport recently had a similar opportunity, but it has expired.",
+    city:profile.city||"",
+    passportUrl:profile.slug?`/p/${profile.slug}`:"",
+    passportId:profile.passport_id||"",
+    opportunityId:profile.opportunity_id||"",
+    matchedTerms:Array.isArray(profile.matched)?profile.matched:[],
+    matchScore:Number(profile.score)||0,
+    resolved:false
+  };
+}
+
 function placeCandidate(place,route,lang,{resolved=true}={}){
   return {
     ...place,
@@ -192,8 +213,30 @@ function googlePlaceUrl(candidate){
 }
 
 function CandidateAction({candidate,origin,lang}){
+  const [confirmBusy,setConfirmBusy]=useState(false);
+  const [confirmDone,setConfirmDone]=useState(false);
   if(candidate.kind==="passport"&&candidate.passportUrl){
     return <a className="chainAction" href={candidate.passportUrl}><UserRound size={16}/>{lang==="uk"?"Відкрити Паспорт":"Open Passport"}</a>;
+  }
+  if(candidate.kind==="passport_history"){
+    async function confirmAvailability(){
+      if(confirmBusy||confirmDone||!candidate.passportId||!candidate.opportunityId)return;
+      setConfirmBusy(true);
+      try{
+        await createAvailabilityCheck({
+          passportId:candidate.passportId,
+          opportunityId:candidate.opportunityId,
+          message:lang==="uk"?"Чи актуальна ще ця можливість?":"Is this opportunity still available?"
+        });
+        setConfirmDone(true);
+      }catch{}finally{setConfirmBusy(false)}
+    }
+    return <div className="chainActions">
+      <button className="chainAction" type="button" onClick={confirmAvailability} disabled={confirmBusy||confirmDone}>
+        <RefreshCw size={16}/>{confirmDone?(lang==="uk"?"Запит надіслано":"Request sent"):(confirmBusy?(lang==="uk"?"Надсилаю…":"Sending…"):(lang==="uk"?"Запитати, чи актуально":"Ask if still available"))}
+      </button>
+      {candidate.passportUrl&&<a className="chainAction secondaryAction" href={candidate.passportUrl}><UserRound size={16}/>{lang==="uk"?"Паспорт":"Passport"}</a>}
+    </div>;
   }
   if(candidate.kind==="direct"){
     if(candidate.actionType==="emergency")return <div className="chainActions">
@@ -276,6 +319,7 @@ function candidatePriority(candidate,task){
   if(candidate?.kind==="passport")return passportMatchesTask(candidate,task)
     ?500+Math.min(80,candidate.matchScore)
     :140+Math.min(40,candidate.matchScore);
+  if(candidate?.kind==="passport_history")return 340+Math.min(30,candidate.matchScore);
   if(candidate?.kind==="external"&&candidate.resultKind==="store_option")return 480;
   if(candidate?.kind==="external"&&candidate.resultKind==="listing")return 450;
   if(candidate?.kind==="external"&&["official_result","web_answer","web_result"].includes(candidate.resultKind))return 420;
@@ -516,8 +560,8 @@ ${initialWhere}`;
           capability_description:step.purpose
         }
       };
-      const {matches}=await searchPassportProfiles(stepPlan,{limit:2});
-      return {stepId:step.id,matches:matches||[]};
+      const {matches,historicalMatches}=await searchPassportProfiles(stepPlan,{limit:2});
+      return {stepId:step.id,matches:matches||[],historicalMatches:historicalMatches||[]};
     }))
       .then(groups=>{
         if(!alive)return;
@@ -844,6 +888,7 @@ ${initialWhere}`;
       plannedAnswerCandidate,
       plannedDirectCandidate,
       ...(exactPassportFound?passportGroups.flatMap(group=>group.matches.slice(0,2).map(match=>passportCandidate(match,lang))):[]),
+      ...(!exactPassportFound?passportGroups.flatMap(group=>(group.historicalMatches||[]).slice(0,2).map(match=>historicalPassportCandidate(match,lang))):[]),
       ...nearbyGroups.flatMap(group=>group.candidates||[]),
       ...internetGroups.flatMap(group=>group.candidates||[]),
       ...recoveryCandidates
@@ -866,9 +911,11 @@ ${initialWhere}`;
     });
   },[rankedCandidates,sortMode,activeTask]);
   const resolvedCandidates=sortedCandidates.filter(candidate=>candidate.resolved);
+  const historyCandidates=sortedCandidates.filter(candidate=>candidate?.kind==="passport_history");
   const preparedCandidates=sortedCandidates.filter(candidate=>candidate?.kind==="external"&&["search_page","maps_search"].includes(candidate.resultKind));
   const actionableCandidates=[
     ...resolvedCandidates,
+    ...historyCandidates.filter(candidate=>!resolvedCandidates.includes(candidate)),
     ...preparedCandidates.filter(candidate=>!resolvedCandidates.includes(candidate))
   ];
   const informationMode=plan?.solution_scope==="information";
