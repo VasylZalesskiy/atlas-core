@@ -1,33 +1,51 @@
-import {useEffect,useMemo,useState} from "react";
+import {lazy,Suspense,useEffect,useMemo,useState} from "react";
 import {Navigate,Routes,Route,useLocation} from "react-router-dom";
 import {Analytics} from "@vercel/analytics/react";
 import {SpeedInsights} from "@vercel/speed-insights/react";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
 import SolutionNavigation from "./components/SolutionNavigation";
-import MobileHome from "./components/MobileHome";
 import PilotGate from "./components/PilotGate";
 import MatchNotificationBridge from "./components/MatchNotificationBridge";
 import VoicePrivacyControl from "./components/VoicePrivacyControl";
-import Home from "./pages/Home";
-import Solution from "./pages/Solution";
-import Profile from "./pages/Profile";
-import PublicPassport from "./pages/PublicPassport";
-import Chat from "./pages/Chat";
-import Market from "./pages/Market";
-import Requests from "./pages/Requests";
-import Needs from "./pages/Needs";
-import MatchSearch from "./pages/MatchSearch";
-import ShareApp from "./pages/ShareApp";
-import CatalogAdmin from "./pages/CatalogAdmin";
-import TomatoPilot from "./pages/TomatoPilot";
 import i18n from "./i18n";
+
+const Home=lazy(()=>import("./pages/Home"));
+const MobileHome=lazy(()=>import("./components/MobileHome"));
+const Solution=lazy(()=>import("./pages/Solution"));
+const Profile=lazy(()=>import("./pages/Profile"));
+const PublicPassport=lazy(()=>import("./pages/PublicPassport"));
+const Chat=lazy(()=>import("./pages/Chat"));
+const Market=lazy(()=>import("./pages/Market"));
+const Requests=lazy(()=>import("./pages/Requests"));
+const Needs=lazy(()=>import("./pages/Needs"));
+const MatchSearch=lazy(()=>import("./pages/MatchSearch"));
+const ShareApp=lazy(()=>import("./pages/ShareApp"));
+const CatalogAdmin=lazy(()=>import("./pages/CatalogAdmin"));
+const TomatoPilot=lazy(()=>import("./pages/TomatoPilot"));
 
 const supportedLanguages=new Set(["uk","en","zh","hi"]);
 const normalizeLanguage=value=>{
   const code=String(value||"").toLowerCase().split("-")[0];
   return supportedLanguages.has(code)?code:"uk";
 };
+
+function RouteLoader(){
+  return <main style={{minHeight:"55vh",display:"grid",placeItems:"center",color:"#0b7540",fontWeight:800}}>ATLAS</main>;
+}
+
+function ResponsiveHome({t,lang}){
+  const [mobile,setMobile]=useState(()=>window.matchMedia?.("(max-width: 760px)")?.matches??false);
+  useEffect(()=>{
+    const media=window.matchMedia?.("(max-width: 760px)");
+    if(!media)return;
+    const sync=event=>setMobile(event.matches);
+    setMobile(media.matches);
+    media.addEventListener?.("change",sync);
+    return()=>media.removeEventListener?.("change",sync);
+  },[]);
+  return mobile?<MobileHome lang={lang}/>:<Home t={t} lang={lang}/>;
+}
 
 export default function App(){
   const [lang,setLangState]=useState(()=>normalizeLanguage(i18n.resolvedLanguage||i18n.language));
@@ -54,28 +72,30 @@ export default function App(){
   },[lang]);
 
   return <>
-    {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
-      <Header lang={lang} setLang={setLang}/>
-      <MatchNotificationBridge lang={lang}/>
-      {solutionRoute&&<SolutionNavigation lang={lang}/>} 
-      {chatRoute&&<VoicePrivacyControl/>}
-      <Routes>
-        <Route path="/" element={<><Home t={t} lang={lang}/><MobileHome lang={lang}/></>}/>
-        <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
-        <Route path="/needs" element={<Needs lang={lang}/>}/>
-        <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
-        <Route path="/share" element={<ShareApp lang={lang}/>}/>
-        <Route path="/requests" element={<Requests lang={lang}/>}/>
-        <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
-        <Route path="/chat" element={<Chat/>}/>
-        <Route path="/market" element={<Market/>}/>
-        <Route path="/tomatoes" element={<TomatoPilot lang={lang}/>}/>
-        <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
-        <Route path="*" element={<Navigate to="/" replace/>}/>
-      </Routes>
-      <BottomNav lang={lang}/>
-      <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":lang==="zh"?"测试版":lang==="hi"?"परीक्षण संस्करण":"Test version"} · {t.principle}</footer>
-    </PilotGate>}
+    <Suspense fallback={<RouteLoader/>}>
+      {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
+        <Header lang={lang} setLang={setLang}/>
+        <MatchNotificationBridge lang={lang}/>
+        {solutionRoute&&<SolutionNavigation lang={lang}/>}
+        {chatRoute&&<VoicePrivacyControl/>}
+        <Routes>
+          <Route path="/" element={<ResponsiveHome t={t} lang={lang}/>}/>
+          <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
+          <Route path="/needs" element={<Needs lang={lang}/>}/>
+          <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
+          <Route path="/share" element={<ShareApp lang={lang}/>}/>
+          <Route path="/requests" element={<Requests lang={lang}/>}/>
+          <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
+          <Route path="/chat" element={<Chat/>}/>
+          <Route path="/market" element={<Market/>}/>
+          <Route path="/tomatoes" element={<TomatoPilot lang={lang}/>}/>
+          <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
+          <Route path="*" element={<Navigate to="/" replace/>}/>
+        </Routes>
+        <BottomNav lang={lang}/>
+        <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":lang==="zh"?"测试版":lang==="hi"?"परीक्षण संस्करण":"Test version"} · {t.principle}</footer>
+      </PilotGate>}
+    </Suspense>
     <Analytics/>
     <SpeedInsights/>
   </>;
