@@ -1,7 +1,6 @@
 import {useEffect,useState} from "react";
 import {ArrowRight,HeartHandshake,IdCard,LockKeyhole,MapPin} from "lucide-react";
 import NeedManager from "../components/NeedManager";
-import PassportMenu from "../components/PassportMenu";
 import {loadMyPassport,saveMyPassport} from "../services/passportStore";
 import "../styles/needsPage.css";
 
@@ -18,7 +17,7 @@ export default function Needs({lang="uk"}){
   const [saving,setSaving]=useState(false);
   const [passport,setPassport]=useState(null);
   const [needs,setNeeds]=useState([]);
-  const [form,setForm]=useState({displayName:"",city:"",contact:"",profession:"",skills:""});
+  const [form,setForm]=useState({entityType:"person",displayName:"",city:"",contact:"",profession:"",skills:""});
   const [error,setError]=useState("");
 
   useEffect(()=>{
@@ -28,6 +27,7 @@ export default function Needs({lang="uk"}){
       setPassport(data.passport);
       setNeeds(data.needs||[]);
       setForm(value=>({...value,
+        entityType:data.passport?.entity_type||"person",
         displayName:data.passport?.display_name||"",
         city:data.passport?.city||"",
         contact:data.contact||""
@@ -48,12 +48,12 @@ export default function Needs({lang="uk"}){
 
   if(loading)return <main className="page appPage needsPage"><section className="needsPageLoading"><HeartHandshake size={28}/><span>{uk?"Відкриваю Паспорт потреб…":"Opening your Needs Passport…"}</span></section></main>;
 
-  if(!passport)return <main className="page appPage needsPage"><PassportMenu lang={lang}/><section className="needsOnboarding">
+  if(!passport)return <main className="page appPage needsPage"><section className="needsOnboarding">
     <div className="needsOnboardingIntro">
       <span className="needsOnboardingIcon"><HeartHandshake size={32}/></span>
       <span className="needsOnboardingEyebrow">ATLAS · {uk?"ПАСПОРТ ПОТРЕБ":"NEEDS PASSPORT"}</span>
-      <h1>{uk?"Що замовити або отримати?":"What would you like to order or receive?"}</h1>
-      <p>{uk?"Створіть профіль один раз — далі обирайте товар, кількість і дату. Atlas зіставить замовлення з Паспортами можливостей.":"Create your profile once, then choose the item, quantity and date. Atlas will match the order with Opportunity Passports."}</p>
+      <h1>{uk?"Що вам потрібно?":"What do you need?"}</h1>
+      <p>{uk?"Людина або компанія створює профіль один раз, а далі обирає потреби тільки зі списку Atlas із кількістю та терміном актуальності.":"A person or company creates a profile once, then selects needs only from the Atlas list with quantity and validity dates."}</p>
       <div className="needsOnboardingBenefits">
         <div><IdCard size={19}/><span><strong>{uk?"Один профіль":"One profile"}</strong><small>{uk?"для потреб і можливостей":"for needs and opportunities"}</small></span></div>
         <div><LockKeyhole size={19}/><span><strong>{uk?"Контакт приватний":"Private contact"}</strong><small>{uk?"відкривається лише за згодою":"revealed only with consent"}</small></span></div>
@@ -62,7 +62,8 @@ export default function Needs({lang="uk"}){
 
     <form className="needsOnboardingForm" onSubmit={createPassport}>
       <div><span>01</span><strong>{uk?"Створіть основу Паспорта":"Create your Passport"}</strong></div>
-      <label><span>{uk?"Ім’я або псевдонім":"Name or nickname"}</span><input required autoComplete="name" value={form.displayName} onChange={event=>setForm({...form,displayName:event.target.value})} placeholder={uk?"Як до вас звертатися":"How should Atlas address you"}/></label>
+      <label><span>{uk?"Хто створює Паспорт":"Who creates the Passport"}</span><select value={form.entityType} onChange={event=>setForm({...form,entityType:event.target.value})}><option value="person">{uk?"Людина":"Person"}</option><option value="company">{uk?"Компанія / організація":"Company / organization"}</option></select></label>
+      <label><span>{form.entityType==="company"?(uk?"Назва компанії":"Company name"):(uk?"Ім’я або псевдонім":"Name or nickname")}</span><input required autoComplete="name" value={form.displayName} onChange={event=>setForm({...form,displayName:event.target.value})} placeholder={form.entityType==="company"?(uk?"Назва компанії":"Company name"):(uk?"Як до вас звертатися":"How should Atlas address you")}/></label>
       <label><span><MapPin size={15}/>{uk?"Місто / район":"City / area"}</span><input autoComplete="address-level2" value={form.city} onChange={event=>setForm({...form,city:event.target.value})} placeholder={uk?"Наприклад: Тернопіль":"For example: Ternopil"}/></label>
       <label><span>{uk?"Приватний контакт":"Private contact"}</span><input required value={form.contact} onChange={event=>setForm({...form,contact:event.target.value})} placeholder={uk?"Телефон, email або месенджер":"Phone, email or messenger"}/><small>{uk?"Інші користувачі не бачать його без вашої згоди.":"Other users cannot see it without your consent."}</small></label>
       {error&&<div className="needsOnboardingError" role="alert">{error}</div>}
@@ -70,5 +71,5 @@ export default function Needs({lang="uk"}){
     </form>
   </section></main>;
 
-  return <main className="page appPage needsPage"><PassportMenu lang={lang}/><NeedManager passportId={passport.id} passportSlug={passport.slug} passportCity={passport.city||""} initialNeeds={needs} lang={lang}/>{error&&<div className="needsOnboardingError" role="alert">{error}</div>}</main>;
+  return <main className="page appPage needsPage"><NeedManager passportId={passport.id} initialNeeds={needs} lang={lang}/>{error&&<div className="needsOnboardingError" role="alert">{error}</div>}</main>;
 }
