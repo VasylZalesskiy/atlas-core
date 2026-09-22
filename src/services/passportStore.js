@@ -146,7 +146,7 @@ export async function loadPublicPassport(slug){
   const {data:passport,error:passportError}=await supabase.from("atlas_passports").select("id,owner_id,slug,display_name,entity_type,profession,skills,city,created_at").eq("slug",slug).maybeSingle();
   if(passportError)throw passportError;
   if(!passport)return {passport:null,opportunities:[]};
-  const {data,error}=await supabase.from("atlas_opportunities").select("id,kind,text,photo_url,photo_label,photo_task,created_at").eq("passport_id",passport.id).eq("is_active",true).order("created_at",{ascending:false});
+  const {data,error}=await supabase.from("atlas_opportunities").select("id,kind,text,visibility_scope,photo_url,photo_label,photo_task,created_at").eq("passport_id",passport.id).eq("is_active",true).in("visibility_scope",["global","both"]).order("created_at",{ascending:false});
   if(error)throw error;
   return {passport,opportunities:(data||[]).map(decodeOpportunity)};
 }
