@@ -133,6 +133,18 @@ export async function searchNearbyPlaces(location,query,{lang="uk",radiusKm=30,l
   const q=practicalNearbyQuery(query,lang);
   if(!q)return [];
   const origin={latitude:Number(location.latitude),longitude:Number(location.longitude)};
+  try{
+    const response=await fetch("/api/local-search",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({query:q,origin,language:lang,radius_km:radiusKm,limit}),
+      signal
+    });
+    const data=await response.json().catch(()=>({}));
+    if(response.ok&&Array.isArray(data?.results)&&data.results.length){
+      return data.results.slice(0,Math.min(Math.max(limit,1),15));
+    }
+  }catch(error){if(error?.name==="AbortError")throw error}
   if(/шиномонтаж|tyre repair|tire repair/i.test(q)){
     try{
       const tyreResults=await searchTyreServices(origin,{radiusKm,limit:Math.min(Math.max(limit,1),15),lang,signal});
