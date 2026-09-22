@@ -4,12 +4,12 @@ import {Analytics} from "@vercel/analytics/react";
 import {SpeedInsights} from "@vercel/speed-insights/react";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
-import SolutionNavigation from "./components/SolutionNavigation";
 import PilotGate from "./components/PilotGate";
-import MatchNotificationBridge from "./components/MatchNotificationBridge";
-import VoicePrivacyControl from "./components/VoicePrivacyControl";
 import i18n from "./i18n";
 
+const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBridge"));
+const SolutionNavigation=lazy(()=>import("./components/SolutionNavigation"));
+const VoicePrivacyControl=lazy(()=>import("./components/VoicePrivacyControl"));
 const Home=lazy(()=>import("./pages/Home"));
 const MobileHome=lazy(()=>import("./components/MobileHome"));
 const Solution=lazy(()=>import("./pages/Solution"));
@@ -48,6 +48,7 @@ function ResponsiveHome({t,lang}){
 }
 
 export default function App(){
+  const [backgroundReady,setBackgroundReady]=useState(false);
   const [lang,setLangState]=useState(()=>normalizeLanguage(i18n.resolvedLanguage||i18n.language));
   const setLang=next=>{
     const normalized=normalizeLanguage(next);
@@ -59,6 +60,17 @@ export default function App(){
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
   const solutionRoute=location.pathname==="/solution";
   const chatRoute=location.pathname==="/chat";
+
+  useEffect(()=>{
+    let cancelled=false;
+    const start=()=>{if(!cancelled)setBackgroundReady(true)};
+    const idle=window.requestIdleCallback?window.requestIdleCallback(start,{timeout:1200}):window.setTimeout(start,650);
+    return()=>{
+      cancelled=true;
+      if(window.cancelIdleCallback&&typeof idle==="number")window.cancelIdleCallback(idle);
+      else window.clearTimeout(idle);
+    };
+  },[]);
 
   useEffect(()=>{
     const sync=lng=>setLangState(normalizeLanguage(lng));
@@ -75,9 +87,9 @@ export default function App(){
     <Suspense fallback={<RouteLoader/>}>
       {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
         <Header lang={lang} setLang={setLang}/>
-        <MatchNotificationBridge lang={lang}/>
-        {solutionRoute&&<SolutionNavigation lang={lang}/>}
-        {chatRoute&&<VoicePrivacyControl/>}
+        {backgroundReady&&<Suspense fallback={null}><MatchNotificationBridge lang={lang}/></Suspense>}
+        {solutionRoute&&<Suspense fallback={null}><SolutionNavigation lang={lang}/></Suspense>}
+        {chatRoute&&<Suspense fallback={null}><VoicePrivacyControl/></Suspense>}
         <Routes>
           <Route path="/" element={<ResponsiveHome t={t} lang={lang}/>}/>
           <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
