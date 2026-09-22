@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useState} from "react";
 import {ArrowLeft,CheckCircle2,Copy,MapPin,MessageCircle,PlusCircle,Send} from "lucide-react";
 import {Link,useParams,useSearchParams} from "react-router-dom";
-import {createPassportRequest,ensureAtlasSession,loadMyRequestsForPassport,loadPublicPassport,opportunityGroups} from "../services/passportStore";
+import {createPassportRequest,loadMyPassports,loadMyRequestsForPassport,loadPublicPassport,opportunityGroups} from "../services/passportStore";
 
 const kindLabels={help:{uk:"Може допомогти",en:"Can help"},share:{uk:"Може поділитися",en:"Can share"},sell:{uk:"Продає",en:"Selling"},give:{uk:"Подарує",en:"Giving away"},lend:{uk:"Позичить",en:"Can lend"},rent:{uk:"Здає в оренду",en:"Renting out"},other:{uk:"Можливість",en:"Opportunity"}};
 const groupLabels=Object.fromEntries(opportunityGroups.map(item=>[item.value,item.label]));
@@ -42,8 +42,8 @@ export default function PublicPassport({lang="uk"}){
       setPassport(data.passport);setOpportunities(data.opportunities||[]);
       if(data.passport?.id){
         try{
-          const user=await ensureAtlasSession();
-          if(alive)setIsOwner(user.id===data.passport.owner_id);
+          const mineState=await loadMyPassports();
+          if(alive)setIsOwner((mineState.passports||[]).some(item=>item.id===data.passport.id));
           const mine=await loadMyRequestsForPassport(data.passport.id);
           if(alive)setRequests(mine||[]);
         }catch(e){if(alive&&/atlas_requests|relation .* does not exist/i.test(String(e?.message||"")))setRequestError(uk?"Запити через Atlas ще не активовані в базі.":"Atlas requests are not active in the database yet.")}
