@@ -89,7 +89,7 @@ export default function Groups(){
   return <main className="groupsPage">
     <section className="groupsShell">
       <div className="groupsHeading">
-        <div><span>ATLAS · ГРУПИ</span><h1>Мої групи</h1><p>Створіть закритий простір для будинку, гуртожитку, команди або спільноти. Учасники можуть ділитися тим, що мають і що можуть.</p></div>
+        <div><span>ATLAS · ГРУПИ</span><h1>Мої групи</h1><p>Об’єднайте користувачів будинку, гуртожитку, команди або спільноти. Можливості залишаються в Паспорті, а група задає коло людей для пошуку.</p></div>
         <UsersRound size={34}/>
       </div>
 
