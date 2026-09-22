@@ -18,6 +18,21 @@ import "../styles/simpleSolution.css";
 import "../styles/solutionChains.css";
 
 function clean(value){return String(value||"").replace(/\s+/g," ").trim()}
+function searchCore(value){
+  let text=clean(value);
+  const patterns=[
+    /^(?:будь ласка\s+)?(?:мені\s+)?(?:потрібен|потрібна|потрібні|потрібно|треба|хочу|шукаю)\s+/iu,
+    /^(?:будь ласка\s+)?(?:знайди|покажи)\s+(?:мені\s+)?/iu,
+    /^(?:i\s+)?(?:need|want|am looking for|looking for|find me|show me)\s+/iu
+  ];
+  for(let i=0;i<3;i++){
+    const before=text;
+    for(const pattern of patterns)text=text.replace(pattern,"");
+    text=clean(text);
+    if(text===before)break;
+  }
+  return text||clean(value);
+}
 function savedAtlasCity(){try{return clean(localStorage.getItem("atlas-city")||"")}catch{return ""}}
 
 function sourceForInternetStep(step,plannedSources,index){
@@ -534,7 +549,7 @@ ${initialWhere}`;
     if(brainRunRef.current===runKey)return;
     brainRunRef.current=runKey;
 
-    const deterministicPlan=createFallbackPlan(activeTask,{lang});
+    const deterministicPlan=createFallbackPlan(searchCore(activeTask),{lang});
     setPlan({...deterministicPlan,location_text:initialWhere});
     setBrainReady(true);
     setBrainLoading(false);
@@ -706,101 +721,116 @@ ${initialWhere}`;
   },[passportsChecked,brainReady,exactPassportFound,searchScope,stepsKey,activeTask,lang,plan,searchRunId]);
 
   useEffect(()=>{
-    if(!activeTask||!passportsChecked||exactPassportFound||!brainReady||brainLoading||nearbyLoading||internetLoading)return;
+    if(!activeTask||!passportsChecked||exactPassportFound||!brainReady)return;
     if(!searchScope)return;
+
     const primaryCandidates=[
       plannedAnswerCandidate,
       plannedDirectCandidate,
       ...nearbyGroups.flatMap(group=>group.candidates||[]),
       ...internetGroups.flatMap(group=>group.candidates||[])
     ].filter(Boolean);
-    if(primaryCandidates.some(candidate=>candidate.resolved||["search_page","maps_search"].includes(candidate.resultKind)))return;
+    if(primaryCandidates.some(candidate=>candidate.resolved))return;
 
     const runKey=`${searchRunId}:${activeTask}:${initialWhere}`;
     if(recoveryRunRef.current===runKey)return;
     recoveryRunRef.current=runKey;
 
-    const controller=new AbortController();
+    const coreQuery=searchCore(activeTask);
+    const placeQuery=clean([coreQuery,initialWhere].filter(Boolean).join(" "));
+    const prepared=[
+      {
+        kind:"external",
+        id:"fallback-google-maps",
+        source:"Google Maps",
+        title:lang==="uk"?"Показати на карті":"Show on map",
+        description:placeQuery,
+        url:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeQuery)}`,
+        resultKind:"maps_search",
+        resolved:false
+      },
+      {
+        kind:"external",
+        id:"fallback-google-web",
+        source:"Google",
+        title:lang==="uk"?"Пошук в інтернеті":"Search the web",
+        description:placeQuery,
+        url:`https://www.google.com/search?q=${encodeURIComponent(placeQuery)}`,
+        resultKind:"search_page",
+        resolved:false
+      }
+    ];
+    setRecoveryCandidates(prepared);
     setRecoveryLoading(true);
-    setRecoveryCandidates([]);
 
-    (async()=>{
-      let resolvedOrigin=origin;
-      if(!resolvedOrigin&&initialWhere){
-        try{
-          const locations=await searchDestination(null,initialWhere,{lang,limit:1,signal:controller.signal});
-          const place=locations[0];
-          if(place)resolvedOrigin={latitude:place.latitude,longitude:place.longitude,label:initialWhere};
-        }catch(error){if(error?.name==="AbortError")throw error}
-      }
+    const controller=new AbortController();
 
-      if(resolvedOrigin){
-        try{
-          const places=await searchNearbyPlaces(resolvedOrigin,activeTask,{lang,limit:12,signal:controller.signal});
-          if(places.length){
-            const candidates=await Promise.all(places.slice(0,12).map(async(place,index)=>{
-              const route=index<3?await getDrivingRoute(resolvedOrigin,place,{lang,signal:controller.signal}).catch(()=>null):null;
-              return placeCandidate(place,route,lang,{resolved:true});
-            }));
-            if(!controller.signal.aborted&&candidates.length){
-              setRecoveryCandidates(candidates);
-              trackAtlas("Atlas Recovery Local Search Completed",{results:candidates.length,language:lang});
-              return;
-            }
-          }
-        }catch(error){if(error?.name==="AbortError")throw error}
-      }
-
+    const withTimeout=async(promiseFactory,ms)=>{
+      let timer;
       try{
-        const query=clean([activeTask,initialWhere].filter(Boolean).join(" "));
+        return await Promise.race([
+          promiseFactory(),
+          new Promise(resolve=>{timer=setTimeout(()=>resolve([]),ms)})
+        ]);
+      }finally{clearTimeout(timer)}
+    };
+
+    const localPromise=withTimeout(async()=>{
+      try{
+        const response=await fetch("/api/local-search",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            query:coreQuery,
+            location_text:initialWhere,
+            origin:origin?{latitude:origin.latitude,longitude:origin.longitude}:null,
+            language:lang,
+            radius_km:30,
+            limit:12
+          }),
+          signal:controller.signal
+        });
+        const data=await response.json().catch(()=>({}));
+        if(!response.ok||!Array.isArray(data?.results))return [];
+        return data.results.slice(0,12).map(place=>placeCandidate(place,null,lang,{resolved:true}));
+      }catch(error){
+        if(error?.name==="AbortError")return [];
+        return [];
+      }
+    },6500);
+
+    const webPromise=withTimeout(async()=>{
+      try{
         const results=await searchExternalSources({
           original_query:activeTask,
-          goal:activeTask,
+          goal:coreQuery,
           domain:"general",
           solution_scope:"information",
           location_text:initialWhere,
-          external_searches:[{source:"web",mode:"standard",query,reason:"fallback"}]
+          external_searches:[{source:"web",mode:"standard",query:placeQuery||coreQuery,reason:"fallback"}]
         },{lang,signal:controller.signal});
-        if(!controller.signal.aborted&&results.length){
-          setRecoveryCandidates(results.slice(0,10).map((item,index)=>internetCandidate(item,index,lang)));
-          trackAtlas("Atlas Recovery Web Search Completed",{results:results.length,language:lang});
-          return;
-        }
-      }catch(error){if(error?.name==="AbortError")throw error}
+        return results.slice(0,10).map((item,index)=>internetCandidate(item,index,lang));
+      }catch(error){
+        if(error?.name==="AbortError")return [];
+        return [];
+      }
+    },6500);
 
-      if(controller.signal.aborted)return;
-      const placeQuery=clean([activeTask,initialWhere].filter(Boolean).join(" "));
-      setRecoveryCandidates([
-        {
-          kind:"external",
-          id:"fallback-google-maps",
-          source:"Google Maps",
-          title:lang==="uk"?"Пошук на карті":"Search on map",
-          description:placeQuery,
-          url:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeQuery)}`,
-          resultKind:"maps_search",
-          resolved:false
-        },
-        {
-          kind:"external",
-          id:"fallback-google-web",
-          source:"Google",
-          title:lang==="uk"?"Пошук в інтернеті":"Search the web",
-          description:placeQuery,
-          url:`https://www.google.com/search?q=${encodeURIComponent(placeQuery)}`,
-          resultKind:"search_page",
-          resolved:false
-        }
-      ]);
-    })()
-      .catch(()=>{})
+    Promise.all([localPromise,webPromise])
+      .then(([localResults,webResults])=>{
+        if(controller.signal.aborted)return;
+        const concrete=[...localResults,...webResults].filter(Boolean);
+        setRecoveryCandidates(concrete.length?[...concrete,...prepared]:prepared);
+        if(localResults.length)trackAtlas("Atlas Recovery Local Search Completed",{results:localResults.length,language:lang});
+        if(webResults.length)trackAtlas("Atlas Recovery Web Search Completed",{results:webResults.length,language:lang});
+      })
       .finally(()=>{if(!controller.signal.aborted)setRecoveryLoading(false)});
 
     return()=>controller.abort();
   },[
-    activeTask,passportsChecked,exactPassportFound,brainReady,brainLoading,nearbyLoading,internetLoading,
-    searchScope,plannedAnswerCandidate,plannedDirectCandidate,nearbyGroups,internetGroups,searchRunId,
-    initialWhere,origin?.latitude,origin?.longitude,lang
+    activeTask,passportsChecked,exactPassportFound,brainReady,searchScope,
+    plannedAnswerCandidate,plannedDirectCandidate,nearbyGroups,internetGroups,
+    searchRunId,initialWhere,origin?.latitude,origin?.longitude,lang
   ]);
 
   const passportByStep=useMemo(()=>new Map(passportGroups.map(group=>[
@@ -953,7 +983,7 @@ ${initialWhere}`;
   }
 
   const externalBusy=nearbyLoading||internetLoading||originLoading||recoveryLoading;
-  const solutionBusy=passportLoading||brainLoading||externalBusy||Boolean(activeTask&&!passportsChecked)||Boolean(passportsChecked&&!exactPassportFound&&!brainReady&&!brainLoading);
+  const solutionBusy=passportLoading||Boolean(activeTask&&!passportsChecked)||Boolean(passportsChecked&&!exactPassportFound&&!brainReady);
   const locationText=origin?(initialWhere||(lang==="uk"?"поточна локація":"current location")):(initialWhere||(lang==="uk"?"не визначена":"not set"));
   const scopeChoiceAvailable=false;
   const informationSearchAvailable=false;
