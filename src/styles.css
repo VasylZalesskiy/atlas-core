@@ -360,3 +360,69 @@ header{height:76px;padding:0 5vw;display:flex;justify-content:space-between;alig
     height:34px;
   }
 }
+
+
+/* Core Atlas navigation: Home via logo, then Needs / Opportunities / Chat */
+@media(min-width:761px){
+  .atlasHeader{
+    display:grid;
+    grid-template-columns:minmax(150px,1fr) auto minmax(150px,1fr);
+    gap:14px;
+    align-items:center;
+    padding-inline:max(18px,calc((100vw - 1180px)/2));
+  }
+  .mainHeaderNav{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    min-width:0;
+  }
+  .mainHeaderNav a{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    min-height:38px;
+    padding:8px 11px;
+    border-radius:11px;
+    color:#526159;
+    font-size:13px;
+    font-weight:850;
+    white-space:nowrap;
+    transition:background .16s ease,color .16s ease;
+  }
+  .mainHeaderNav a:hover{
+    background:#f1f7f3;
+    color:#0b7440;
+  }
+  .mainHeaderNav a.active{
+    background:#e8f5ed;
+    color:#0b7440;
+  }
+  .atlasHeader .actions{
+    justify-self:end;
+  }
+}
+@media(min-width:761px) and (max-width:920px){
+  .atlasHeader{
+    grid-template-columns:auto minmax(0,1fr) auto;
+    padding-inline:12px;
+    gap:8px;
+  }
+  .atlasHeader .brandText small{
+    display:none;
+  }
+  .mainHeaderNav{
+    gap:2px;
+  }
+  .mainHeaderNav a{
+    padding:8px 7px;
+    font-size:12px;
+  }
+  .atlasHeader .lang{
+    padding:7px 8px;
+  }
+}
+.bottomNav{
+  grid-template-columns:repeat(4,1fr);
+}
