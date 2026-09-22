@@ -92,7 +92,7 @@ function placeCandidate(place,route,lang,{resolved=true}={}){
   return {
     ...place,
     kind:"place",
-    source:lang==="uk"?"Поруч":"Nearby",
+    source:place.source|| (lang==="uk"?"Поруч":"Nearby"),
     title:place.name,
     description:[place.typeLabel,place.address].filter(Boolean).join(" · "),
     distanceKm:route?.distanceKm??place.straightDistanceKm,
