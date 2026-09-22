@@ -5,6 +5,31 @@ function normalize(value){
   return String(value||"").toLowerCase().replace(/[.,!?;:()]/g," ").replace(/\s+/g," ").trim();
 }
 
+
+const synonymGroups=[
+  ["гумові","гумова","гумовий","гумове","резинові","резинова","резиновий","резинове","rubber"],
+  ["рукавиці","рукавички","рукавиця","перчатки","перчатка","gloves","glove"],
+  ["шини","шина","покришки","покришка","резина","tyres","tyre","tires","tire"],
+  ["причіп","прицеп","trailer"],
+  ["ящики","ящик","тара","коробки","коробка","boxes","box"],
+  ["картопля","картошка","potato","potatoes"],
+  ["вантажівка","грузовик","truck","lorry"]
+];
+
+function expandSynonyms(values){
+  const source=[...new Set((values||[]).map(normalize).filter(Boolean))];
+  const expanded=[...source];
+  for(const value of source){
+    const words=value.split(" ");
+    for(const group of synonymGroups){
+      if(group.some(term=>words.includes(term)||value.includes(term))){
+        for(const term of group)if(!expanded.includes(term))expanded.push(term);
+      }
+    }
+  }
+  return expanded;
+}
+
 function isMedicalPlan(plan){
   const text=normalize([
     plan?.goal,
@@ -20,7 +45,7 @@ function termsFromPlan(plan){
   const explicit=Array.isArray(plan?.passport_search?.terms)?plan.passport_search.terms:[];
   const capability=normalize(plan?.passport_search?.capability_description||"");
   const fallback=normalize(plan?.goal||plan?.originalGoal||plan?.normalizedGoal||"").split(" ").filter(word=>word.length>2);
-  return [...new Set([...explicit,capability,...fallback].map(normalize).filter(Boolean))].slice(0,24);
+  return expandSynonyms([...explicit,capability,...fallback].map(normalize).filter(Boolean)).slice(0,40);
 }
 
 function searchWords(plan){
@@ -155,6 +180,28 @@ async function searchNewPassports(plan,{limit}){
   return ranked;
 }
 
+
+async function searchRecentPassportHistory(plan,{limit}){
+  const terms=searchWords(plan);
+  if(!terms.length)return [];
+  const {data,error}=await supabase.rpc("atlas_search_recent_passport_history",{
+    p_terms:terms,
+    p_limit:Math.max(1,Math.min(limit,10))
+  });
+  if(error)throw error;
+  return (data||[]).map(item=>({
+    passport_id:item.passport_id,
+    slug:item.slug,
+    name:item.display_name,
+    city:item.city||"",
+    opportunity_id:item.opportunity_id,
+    matched:Array.isArray(item.matched_terms)?item.matched_terms:[],
+    last_seen_at:item.last_seen_at,
+    historical:true,
+    score:Math.max(1,(item.matched_terms||[]).length*5)
+  }));
+}
+
 async function searchLegacyProfiles(plan,{limit}){
   const query=fullTextQuery(plan);
   if(!query)return [];
@@ -198,17 +245,18 @@ function rankLegacy(data,plan,limit){
  * NOT recommend an unverified self-declared profile as a care provider.
  */
 export async function searchPassportProfiles(plan,{limit=5}={}){
-  if(isMedicalPlan(plan))return {matches:[],error:"unverified-medical-passports-disabled"};
-  if(!supabase)return {matches:[],error:"supabase-unavailable"};
+  if(isMedicalPlan(plan))return {matches:[],historicalMatches:[],error:"unverified-medical-passports-disabled"};
+  if(!supabase)return {matches:[],historicalMatches:[],error:"supabase-unavailable"};
 
   try{
     const matches=await searchNewPassports(plan,{limit});
-    return {matches,error:null};
+    const historicalMatches=matches.length?[]:await searchRecentPassportHistory(plan,{limit}).catch(()=>[]);
+    return {matches,historicalMatches,error:null};
   }catch(error){
     if(/atlas_opportunities|atlas_passports|search_fts|profession|skills|relation .* does not exist/i.test(String(error?.message||""))){
       const matches=await searchLegacyProfiles(plan,{limit});
-      return {matches,error:"production-passports-not-initialized"};
+      return {matches,historicalMatches:[],error:"production-passports-not-initialized"};
     }
-    return {matches:[],error:error?.message||"passport-search-failed"};
+    return {matches:[],historicalMatches:[],error:error?.message||"passport-search-failed"};
   }
 }
