@@ -657,3 +657,15 @@ header{height:76px;padding:0 5vw;display:flex;justify-content:space-between;alig
 @media(max-width:760px){
   .bottomNav{display:grid!important}
 }
+
+
+/* Opportunity audience selector */
+.opportunityVisibility{display:grid;gap:9px;padding:14px;border:1px solid #cfe2d6;border-radius:15px;background:#f7fbf8}
+.opportunityVisibility legend{padding:0 6px;color:#28513b;font-size:12px;font-weight:900}
+.opportunityVisibility>select{min-height:42px;border:1px solid #d5e2da;border-radius:11px;padding:0 10px;background:#fff;color:#24352c;font-weight:800;outline:none}
+.opportunityVisibility>select:focus{border-color:#16834a;box-shadow:0 0 0 3px #e6f3eb}
+.opportunityVisibility small{color:#6e7a73;font-size:10px;line-height:1.4}
+.opportunityGroupChoices{display:flex;flex-wrap:wrap;gap:7px}
+.opportunityGroupChoices label{display:inline-flex!important;grid-template-columns:none!important;align-items:center;gap:6px;padding:8px 10px;border:1px solid #dce6df;border-radius:999px;background:#fff;color:#315140;font-size:11px;font-weight:800}
+.opportunityGroupChoices input{width:16px;height:16px;margin:0;accent-color:#0b8447}
+@media(max-width:760px){.opportunityGroupChoices{display:grid;grid-template-columns:1fr}.opportunityGroupChoices label{border-radius:11px}}
