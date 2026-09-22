@@ -38,11 +38,33 @@ export async function forgetAtlasAccount(accountId){
   const {error}=await supabase.rpc("atlas_forget_account",{p_account_id:accountId});
   if(error)throw error;
 }
-export async function logoutAtlasAccount(accountId){
-  if(accountId)await forgetAtlasAccount(accountId);
-  try{localStorage.removeItem("atlas-active-passport")}catch{}
-  const {error}=await supabase.auth.signOut();
-  if(error)throw error;
+function clearAtlasLocalSession(){
+  try{
+    localStorage.removeItem("atlas-active-passport");
+    localStorage.removeItem("atlas-city");
+    for(let index=localStorage.length-1;index>=0;index--){
+      const key=localStorage.key(index);
+      if(key&&/^sb-.*-auth-token$/i.test(key))localStorage.removeItem(key);
+    }
+  }catch{}
+  try{
+    for(let index=sessionStorage.length-1;index>=0;index--){
+      const key=sessionStorage.key(index);
+      if(key&&/^sb-.*-auth-token$/i.test(key))sessionStorage.removeItem(key);
+    }
+  }catch{}
+}
+
+export async function logoutAtlasAccount(){
+  clearAtlasLocalSession();
+  if(!supabase)return;
+  try{
+    await Promise.race([
+      supabase.auth.signOut({scope:"local"}),
+      new Promise(resolve=>setTimeout(resolve,2200))
+    ]);
+  }catch{}
+  clearAtlasLocalSession();
 }
 export async function loadMyPassports(){
   const user=await ensureAtlasSession();
