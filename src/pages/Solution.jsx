@@ -454,6 +454,8 @@ ${initialWhere}`;
 
   const steps=useMemo(()=>normalizeSteps(plan,activeTask,lang),[plan,activeTask,lang]);
   const stepsKey=useMemo(()=>JSON.stringify(steps),[steps]);
+  const plannedDirectCandidate=useMemo(()=>directCandidate(plan?.direct_action,initialWhere,lang),[plan?.direct_action,initialWhere,lang]);
+  const plannedAnswerCandidate=useMemo(()=>aiAnswerCandidate(plan,lang),[plan,lang]);
   const passportRunKey=`${searchRunId}:${activeTask}`;
 
   useEffect(()=>{
@@ -660,9 +662,6 @@ ${initialWhere}`;
   ])),[passportGroups,lang]);
   const nearbyByStep=useMemo(()=>new Map(nearbyGroups.map(group=>[group.stepId,group.candidates||[]])),[nearbyGroups]);
   const internetByStep=useMemo(()=>new Map(internetGroups.map(group=>[group.stepId,group.candidates||[]])),[internetGroups]);
-  const plannedDirectCandidate=useMemo(()=>directCandidate(plan?.direct_action,initialWhere,lang),[plan?.direct_action,initialWhere,lang]);
-  const plannedAnswerCandidate=useMemo(()=>aiAnswerCandidate(plan,lang),[plan,lang]);
-
   const rankedCandidates=useMemo(()=>{
     const candidates=[
       plannedAnswerCandidate,
