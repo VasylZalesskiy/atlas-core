@@ -7,6 +7,30 @@ import "./styles/styles.css";
 import "./styles/brainSolution.css";
 import "./styles/atlas26.css";
 
+
+const recoverFromStaleBundle=()=>{
+  const key="atlas-stale-bundle-reload";
+  const now=Date.now();
+  let last=0;
+  try{last=Number(sessionStorage.getItem(key)||0)}catch{}
+  if(now-last<10000)return false;
+  try{sessionStorage.setItem(key,String(now))}catch{}
+  window.location.reload();
+  return true;
+};
+
+window.addEventListener("vite:preloadError",event=>{
+  event.preventDefault();
+  recoverFromStaleBundle();
+});
+window.addEventListener("unhandledrejection",event=>{
+  const text=String(event?.reason?.message||event?.reason||"");
+  if(/dynamically imported module|failed to fetch.*module|chunkloaderror|loading chunk/i.test(text)){
+    event.preventDefault();
+    recoverFromStaleBundle();
+  }
+});
+
 window.addEventListener("beforeinstallprompt",event=>{
   event.preventDefault();
   window.atlasInstallPrompt=event;
