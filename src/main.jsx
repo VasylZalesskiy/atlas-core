@@ -31,6 +31,28 @@ window.addEventListener("unhandledrejection",event=>{
   }
 });
 
+
+const currentAtlasAsset=(()=>{
+  try{return new URL(import.meta.url).pathname}catch{return ""}
+})();
+let lastBuildCheck=0;
+async function checkAtlasBuild(){
+  if(!currentAtlasAsset.includes("/assets/"))return;
+  const now=Date.now();
+  if(now-lastBuildCheck<15000)return;
+  lastBuildCheck=now;
+  try{
+    const response=await fetch("/?_atlas_build="+now,{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
+    const html=await response.text();
+    const match=html.match(/<script[^>]+src="([^"]+\/assets\/[^"]+\.js)"/i)||html.match(/<script[^>]+src="(\/assets\/[^"]+\.js)"/i);
+    const latest=match?.[1]||"";
+    if(latest&&latest!==currentAtlasAsset)recoverFromStaleBundle();
+  }catch{}
+}
+window.addEventListener("focus",checkAtlasBuild);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkAtlasBuild()});
+setInterval(()=>{if(document.visibilityState==="visible")checkAtlasBuild()},60000);
+
 window.addEventListener("beforeinstallprompt",event=>{
   event.preventDefault();
   window.atlasInstallPrompt=event;
