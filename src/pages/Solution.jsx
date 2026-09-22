@@ -424,6 +424,9 @@ ${initialWhere}`;
   const [nearbyError,setNearbyError]=useState("");
   const [internetGroups,setInternetGroups]=useState([]);
   const [internetLoading,setInternetLoading]=useState(false);
+  const [recoveryCandidates,setRecoveryCandidates]=useState([]);
+  const [recoveryLoading,setRecoveryLoading]=useState(false);
+  const recoveryRunRef=useRef("");
   const [internetError,setInternetError]=useState("");
   const [typedOrigin,setTypedOrigin]=useState(null);
   const [originLoading,setOriginLoading]=useState(false);
@@ -463,6 +466,9 @@ ${initialWhere}`;
     setSearchScope("");
     setNearbyGroups([]);
     setInternetGroups([]);
+    setRecoveryCandidates([]);
+    setRecoveryLoading(false);
+    recoveryRunRef.current="";
     setSearchRunId(value=>value+1);
   },[routeSignature,initialTask]);
 
@@ -716,6 +722,98 @@ ${initialWhere}`;
     return()=>controller.abort();
   },[passportsChecked,brainReady,exactPassportFound,searchScope,stepsKey,activeTask,lang,plan,searchRunId]);
 
+  useEffect(()=>{
+    if(!activeTask||!passportsChecked||exactPassportFound||!brainReady||brainLoading||nearbyLoading||internetLoading)return;
+    if(!searchScope)return;
+    const primaryCandidates=[
+      plannedAnswerCandidate,
+      plannedDirectCandidate,
+      ...nearbyGroups.flatMap(group=>group.candidates||[]),
+      ...internetGroups.flatMap(group=>group.candidates||[])
+    ].filter(Boolean);
+    if(primaryCandidates.some(candidate=>candidate.resolved||["search_page","maps_search"].includes(candidate.resultKind)))return;
+
+    const runKey=`${searchRunId}:${activeTask}:${initialWhere}`;
+    if(recoveryRunRef.current===runKey)return;
+    recoveryRunRef.current=runKey;
+
+    const controller=new AbortController();
+    setRecoveryLoading(true);
+    setRecoveryCandidates([]);
+
+    (async()=>{
+      let resolvedOrigin=origin;
+      if(!resolvedOrigin&&initialWhere)resolvedOrigin=await ensureOrigin();
+
+      if(resolvedOrigin){
+        try{
+          const places=await searchNearbyPlaces(resolvedOrigin,activeTask,{lang,limit:12,signal:controller.signal});
+          if(places.length){
+            const candidates=await Promise.all(places.slice(0,12).map(async(place,index)=>{
+              const route=index<3?await getDrivingRoute(resolvedOrigin,place,{lang,signal:controller.signal}).catch(()=>null):null;
+              return placeCandidate(place,route,lang,{resolved:true});
+            }));
+            if(!controller.signal.aborted&&candidates.length){
+              setRecoveryCandidates(candidates);
+              trackAtlas("Atlas Recovery Local Search Completed",{results:candidates.length,language:lang});
+              return;
+            }
+          }
+        }catch(error){if(error?.name==="AbortError")throw error}
+      }
+
+      try{
+        const query=clean([activeTask,initialWhere].filter(Boolean).join(" "));
+        const results=await searchExternalSources({
+          original_query:activeTask,
+          goal:activeTask,
+          domain:"general",
+          solution_scope:"information",
+          location_text:initialWhere,
+          external_searches:[{source:"web",mode:"standard",query,reason:"fallback"}]
+        },{lang,signal:controller.signal});
+        if(!controller.signal.aborted&&results.length){
+          setRecoveryCandidates(results.slice(0,10).map((item,index)=>internetCandidate(item,index,lang)));
+          trackAtlas("Atlas Recovery Web Search Completed",{results:results.length,language:lang});
+          return;
+        }
+      }catch(error){if(error?.name==="AbortError")throw error}
+
+      if(controller.signal.aborted)return;
+      const placeQuery=clean([activeTask,initialWhere].filter(Boolean).join(" "));
+      setRecoveryCandidates([
+        {
+          kind:"external",
+          id:"fallback-google-maps",
+          source:"Google Maps",
+          title:lang==="uk"?"Пошук на карті":"Search on map",
+          description:placeQuery,
+          url:`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeQuery)}`,
+          resultKind:"maps_search",
+          resolved:false
+        },
+        {
+          kind:"external",
+          id:"fallback-google-web",
+          source:"Google",
+          title:lang==="uk"?"Пошук в інтернеті":"Search the web",
+          description:placeQuery,
+          url:`https://www.google.com/search?q=${encodeURIComponent(placeQuery)}`,
+          resultKind:"search_page",
+          resolved:false
+        }
+      ]);
+    })()
+      .catch(()=>{})
+      .finally(()=>{if(!controller.signal.aborted)setRecoveryLoading(false)});
+
+    return()=>controller.abort();
+  },[
+    activeTask,passportsChecked,exactPassportFound,brainReady,brainLoading,nearbyLoading,internetLoading,
+    searchScope,plannedAnswerCandidate,plannedDirectCandidate,nearbyGroups,internetGroups,searchRunId,
+    initialWhere,origin?.latitude,origin?.longitude,lang
+  ]);
+
   const passportByStep=useMemo(()=>new Map(passportGroups.map(group=>[
     group.stepId,
     exactPassportFound&&group.matches[0]?passportCandidate(group.matches[0],lang):null
@@ -728,13 +826,14 @@ ${initialWhere}`;
       plannedDirectCandidate,
       ...(exactPassportFound?passportGroups.flatMap(group=>group.matches.slice(0,2).map(match=>passportCandidate(match,lang))):[]),
       ...nearbyGroups.flatMap(group=>group.candidates||[]),
-      ...internetGroups.flatMap(group=>group.candidates||[])
+      ...internetGroups.flatMap(group=>group.candidates||[]),
+      ...recoveryCandidates
     ];
     return candidates
       .filter(Boolean)
       .filter((candidate,index,array)=>array.findIndex(item=>candidateIdentity(item)===candidateIdentity(candidate))===index)
       .sort((a,b)=>candidatePriority(b,activeTask)-candidatePriority(a,activeTask));
-  },[plannedAnswerCandidate,plannedDirectCandidate,passportGroups,nearbyGroups,internetGroups,lang,activeTask,exactPassportFound]);
+  },[plannedAnswerCandidate,plannedDirectCandidate,passportGroups,nearbyGroups,internetGroups,recoveryCandidates,lang,activeTask,exactPassportFound]);
   const sortedCandidates=useMemo(()=>{
     if(sortMode==="recommended")return rankedCandidates;
     const direction=sortMode==="price-desc"?-1:1;
@@ -817,6 +916,9 @@ ${initialWhere}`;
     setSearchScope("");
     setNearbyGroups([]);
     setInternetGroups([]);
+    setRecoveryCandidates([]);
+    setRecoveryLoading(false);
+    recoveryRunRef.current="";
     setSortMode("recommended");
     const next=new URLSearchParams();
     next.set("q",cleanTask);
@@ -860,7 +962,7 @@ ${initialWhere}`;
     if((scope==="nearby"||scope==="both")&&initialWhere&&!origin&&!originLoading)ensureOrigin();
   }
 
-  const externalBusy=nearbyLoading||internetLoading||originLoading;
+  const externalBusy=nearbyLoading||internetLoading||originLoading||recoveryLoading;
   const solutionBusy=passportLoading||brainLoading||externalBusy||Boolean(activeTask&&!passportsChecked)||Boolean(passportsChecked&&!exactPassportFound&&!brainReady&&!brainLoading);
   const locationText=origin?(initialWhere||(lang==="uk"?"поточна локація":"current location")):(initialWhere||(lang==="uk"?"не визначена":"not set"));
   const scopeChoiceAvailable=false;
@@ -957,7 +1059,7 @@ ${initialWhere}`;
 
       {originError&&<div className="simpleEmpty">{lang==="uk"?"Не вдалося визначити цю локацію. Вкажіть місто на головній сторінці або дозвольте геолокацію.":"Could not resolve this location. Enter a city on the home page or allow geolocation."}</div>}
 
-      {!plan?.clarification?.required&&!recommendedCandidate&&!solutionBusy&&<div className="simpleEmpty">
+      {!plan?.clarification?.required&&!recommendedCandidate&&!solutionBusy&&recoveryRunRef.current&&<div className="simpleEmpty">
         {lang==="uk"?"Нічого конкретного не знайдено. Спробуйте уточнити запит або місто.":"No concrete result was found. Try refining the request or location."}
       </div>}
 
