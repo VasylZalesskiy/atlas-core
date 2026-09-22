@@ -65,6 +65,7 @@ export default function Profile({lang="uk"}){
     setActiveAccountId(d.passport?.account_id||d.accounts?.[0]?.account_id||null);
     setOpportunities(d.opportunities||[]);
     setForm({entityType:d.passport?.entity_type||"person",displayName:d.passport?.display_name||"",city:d.passport?.city||"",contact:d.contact||"",profession:d.passport?.profession||"",skills:d.passport?.skills||""});
+    if(d.passport?.city){try{localStorage.setItem("atlas-city",d.passport.city)}catch{}}
     if(d.passport?.id){try{setRequests(await loadIncomingRequests(d.passport.id))}catch{setRequests([])}}else setRequests([]);
   }
   async function reloadProfile(passportId=null,{showLoader=false}={}){
@@ -87,6 +88,7 @@ export default function Profile({lang="uk"}){
       setAccounts(d.accounts||[]);setPassports(d.passports||[]);setPassport(d.passport||null);setActiveAccountId(d.passport?.account_id||d.accounts?.[0]?.account_id||null);
       setOpportunities(d.opportunities||[]);
       setForm({entityType:d.passport?.entity_type||"person",displayName:d.passport?.display_name||"",city:d.passport?.city||"",contact:d.contact||"",profession:d.passport?.profession||"",skills:d.passport?.skills||""});
+      if(d.passport?.city){try{localStorage.setItem("atlas-city",d.passport.city)}catch{}}
       if(d.passport?.id){try{setRequests(await loadIncomingRequests(d.passport.id))}catch{}}
     }).catch(e=>alive&&setError(friendlyError(e))).finally(()=>alive&&setLoading(false));
     return()=>{alive=false};
@@ -106,6 +108,7 @@ export default function Profile({lang="uk"}){
     e.preventDefault();setSaving(true);setError("");
     try{
       const saved=await saveMyPassport({...form,passportId:passport?.id||null,accountId:passport?.account_id||activeAccountId||accounts[0]?.account_id||null});
+      if(form.city.trim()){try{localStorage.setItem("atlas-city",form.city.trim())}catch{}}
       await reloadProfile(saved.id);
       setNotice(passport?.id?"Паспорт збережено.":"Нову сторінку Atlas створено.");
     }catch(cause){setError(friendlyError(cause))}finally{setSaving(false)}
