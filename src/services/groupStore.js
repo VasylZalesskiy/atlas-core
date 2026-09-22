@@ -158,3 +158,34 @@ export async function leaveAtlasGroup(groupId,accountId){
     .eq("account_id",accountId);
   if(error)throw error;
 }
+
+
+export async function setOpportunityVisibility({opportunityId,visibilityScope="global",groupIds=[]}){
+  await ensureAtlasSession();
+  const scope=["global","groups","both"].includes(visibilityScope)?visibilityScope:"global";
+  const ids=Array.isArray(groupIds)?groupIds.filter(Boolean):[];
+  const {data,error}=await supabase.rpc("atlas_set_opportunity_visibility",{
+    p_opportunity_id:opportunityId,
+    p_visibility_scope:scope,
+    p_group_ids:ids
+  });
+  if(error)throw error;
+  return (data||[])[0]||null;
+}
+
+export async function loadOpportunityGroupMap(opportunityIds=[]){
+  await ensureAtlasSession();
+  const ids=[...new Set((opportunityIds||[]).filter(Boolean))];
+  if(!ids.length)return new Map();
+  const {data,error}=await supabase
+    .from("atlas_group_opportunities")
+    .select("opportunity_id,group_id")
+    .in("opportunity_id",ids);
+  if(error)throw error;
+  const map=new Map();
+  for(const row of data||[]){
+    if(!map.has(row.opportunity_id))map.set(row.opportunity_id,[]);
+    map.get(row.opportunity_id).push(row.group_id);
+  }
+  return map;
+}
