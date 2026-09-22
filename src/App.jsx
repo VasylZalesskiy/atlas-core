@@ -4,15 +4,15 @@ import {Analytics} from "@vercel/analytics/react";
 import {SpeedInsights} from "@vercel/speed-insights/react";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
+import SolutionNavigation from "./components/SolutionNavigation";
+import Solution from "./pages/Solution";
 import PilotGate from "./components/PilotGate";
 import i18n from "./i18n";
 
 const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBridge"));
-const SolutionNavigation=lazy(()=>import("./components/SolutionNavigation"));
 const VoicePrivacyControl=lazy(()=>import("./components/VoicePrivacyControl"));
 const Home=lazy(()=>import("./pages/Home"));
 const MobileHome=lazy(()=>import("./components/MobileHome"));
-const Solution=lazy(()=>import("./pages/Solution"));
 const Profile=lazy(()=>import("./pages/Profile"));
 const PublicPassport=lazy(()=>import("./pages/PublicPassport"));
 const Chat=lazy(()=>import("./pages/Chat"));
@@ -88,7 +88,7 @@ export default function App(){
       {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
         <Header lang={lang} setLang={setLang}/>
         {backgroundReady&&<Suspense fallback={null}><MatchNotificationBridge lang={lang}/></Suspense>}
-        {solutionRoute&&<Suspense fallback={null}><SolutionNavigation lang={lang}/></Suspense>}
+        {solutionRoute&&<SolutionNavigation lang={lang}/>}
         {chatRoute&&<Suspense fallback={null}><VoicePrivacyControl/></Suspense>}
         <Routes>
           <Route path="/" element={<ResponsiveHome t={t} lang={lang}/>}/>
