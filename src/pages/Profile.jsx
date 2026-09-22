@@ -110,7 +110,7 @@ export default function Profile({lang="uk"}){
 
   async function accountLogin(login,password){await loginAtlasAccount(login,password);await reloadProfile(null,{showLoader:true});setNotice("Вхід виконано. Ваші сторінки завантажено.")}
   async function accountRegister(login,password){await registerAtlasAccount(login,password);await reloadProfile(null,{showLoader:true});setNotice("Доступ створено. Тепер ці сторінки можна відкрити на іншому пристрої за логіном і паролем.")}
-  async function accountLogout(accountId){await logoutAtlasAccount(accountId);setAccounts([]);setPassports([]);setPassport(null);setOpportunities([]);setRequests([]);setForm(blankForm());setNotice("Ви вийшли з облікового запису Atlas.");await reloadProfile(null,{showLoader:true}).catch(()=>{})}
+  async function accountLogout(){setError("");setNotice("");await logoutAtlasAccount();window.location.replace("/")}
   async function selectPassport(id){if(!id)return;await reloadProfile(id,{showLoader:true});setNotice("")}
   function createNewPassport(accountId){
     setPassport(null);setOpportunities([]);setRequests([]);setEntry(emptyEntry());setForm(blankForm());setActiveAccountId(accountId||accounts[0]?.account_id||null);setError("");setNotice("Заповніть дані нової сторінки.");
