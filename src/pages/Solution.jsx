@@ -270,8 +270,8 @@ function recommendationReason(candidate,lang){
   if(candidate?.kind==="answer")return lang==="uk"?"Пряма відповідь AI Atlas.":"Direct Atlas AI answer.";
   if(candidate?.kind==="direct")return candidate.recommendation||"";
   if(candidate?.kind==="passport")return lang==="uk"
-    ?"Збіг знайдено серед можливостей людей Atlas."
-    :"A match was found among Atlas people's capabilities.";
+    ?"Збіг знайдено серед можливостей людей і компаній Atlas."
+    :"A match was found among Atlas people and companies' capabilities.";
   if(candidate?.kind==="external"&&["web_answer","official_result","web_result"].includes(candidate.resultKind))return lang==="uk"
     ?"Актуальна відповідь із зовнішнього джерела, яку Atlas знайшов для цього запиту."
     :"A current answer from an external source found by Atlas for this request.";
