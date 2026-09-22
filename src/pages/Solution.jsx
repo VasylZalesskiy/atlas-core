@@ -570,10 +570,10 @@ ${initialWhere}`;
     setNearbyError("");
     Promise.all(searchable.map(async step=>{
       try{
-        const places=await searchNearbyPlaces(origin,step.nearby_query,{lang,limit:2,signal:controller.signal});
+        const places=await searchNearbyPlaces(origin,step.nearby_query,{lang,limit:12,signal:controller.signal});
         const commerceStep=sourceForInternetStep(step,[],0)==="marketplace";
-        const candidates=await Promise.all(places.slice(0,2).map(async(place,index)=>{
-          const route=index===0?await getDrivingRoute(origin,place,{lang,signal:controller.signal}).catch(()=>null):null;
+        const candidates=await Promise.all(places.slice(0,12).map(async(place,index)=>{
+          const route=index<3?await getDrivingRoute(origin,place,{lang,signal:controller.signal}).catch(()=>null):null;
           return placeCandidate(place,route,lang,{resolved:!commerceStep});
         }));
         return {stepId:step.id,candidates,error:false};
