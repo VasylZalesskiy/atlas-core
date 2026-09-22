@@ -109,7 +109,7 @@ export default function MobileHome({lang="uk"}){
     }finally{setVisionBusy(false)}
   }
 
-  const needChips=uk?["🥔 Картопля","🍅 Помідори","🧅 Цибуля","🥬 Капуста","🥒 Квашені огірки","🫗 Олія"]:["🥔 Potatoes","🍅 Tomatoes","🧅 Onions","🥬 Cabbage","🥒 Pickled cucumbers","🫗 Oil"];
+  const needChips=uk?["Овочі"]:["Vegetables"];
 
   return <section className="mobilePilotHome">
     <div className="mobilePilotTopRow">
@@ -129,21 +129,21 @@ export default function MobileHome({lang="uk"}){
 
     <div className="mobilePassportGrid">
       <Link className="mobilePassportCard capability" to="/profile">
-        <IdCard size={27}/><div><strong>{uk?"Продати / Паспорт можливостей":"Sell / Opportunity Passport"}</strong><span>{uk?"Додайте товар, ціну, кількість і можливість доставки":"Add an item, price, quantity and delivery option"}</span></div><b>{uk?"Додати пропозицію →":"Add offer →"}</b>
+        <IdCard size={27}/><div><strong>{uk?"Паспорт можливостей":"Opportunity Passport"}</strong><span>{uk?"Людина або компанія вказує, що має, вміє або може надати":"A person or company adds what they have, know or can provide"}</span></div><b>{uk?"Заповнити →":"Fill in →"}</b>
       </Link>
       <Link className="mobilePassportCard need" to="/needs">
-        <HeartHandshake size={27}/><div><strong>{uk?"Замовити / Паспорт потреб":"Order / Needs Passport"}</strong><span>{uk?"Оберіть товар, кількість і коли він потрібен":"Choose the item, quantity and when you need it"}</span></div><b>{uk?"Зробити замовлення →":"Place order →"}</b>
+        <HeartHandshake size={27}/><div><strong>{uk?"Паспорт потреб":"Needs Passport"}</strong><span>{uk?"Оберіть потребу зі списку, кількість і термін актуальності":"Choose a need from the list, quantity and validity period"}</span></div><b>{uk?"Додати потребу →":"Add need →"}</b>
       </Link>
     </div>
 
     <div className="mobileNeedsHint">
-      <span>{uk?"Швидке замовлення для будинку":"Quick building order"}</span>
+      <span>{uk?"Активні категорії потреб":"Active need categories"}</span>
       <div>{needChips.map(item=><Link key={item} to="/needs">{item}</Link>)}</div>
     </div>
 
     <div className="mobilePilotSearchHead">
       <div><Search size={19}/><strong>{uk?"Знайти рішення":"Find a solution"}</strong></div>
-      <span>{uk?"Atlas спершу перевіряє можливості мешканців":"Atlas checks neighbors’ capabilities first"}</span>
+      <span>{uk?"Пошук перевіряє Паспорти можливостей людей і компаній":"Search checks Opportunity Passports of people and companies"}</span>
     </div>
 
     <form className="mobilePilotSearch" onSubmit={submit}>
