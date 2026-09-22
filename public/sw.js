@@ -1,4 +1,4 @@
-const CACHE="atlas-shell-v4";
+const CACHE="atlas-shell-v5";
 const SHELL=["/manifest.webmanifest","/atlas-icon.svg","/atlas-icon-180.png","/atlas-icon-192.png","/atlas-icon-512.png"];
 
 self.addEventListener("install",event=>{
@@ -20,12 +20,21 @@ self.addEventListener("fetch",event=>{
   if(url.origin!==self.location.origin||url.pathname.startsWith("/api/"))return;
 
   if(request.mode==="navigate"){
-    event.respondWith(fetch(request,{cache:"no-store"}).catch(()=>caches.match("/")));
+    event.respondWith(fetch(request,{cache:"no-store"}).then(response=>{
+      if(response.ok)caches.open(CACHE).then(cache=>cache.put("/",response.clone()));
+      return response;
+    }).catch(()=>caches.match("/") ));
     return;
   }
 
   if(url.pathname.startsWith("/assets/")){
-    event.respondWith(fetch(request,{cache:"no-store"}).catch(()=>caches.match(request)));
+    event.respondWith(caches.open(CACHE).then(async cache=>{
+      const cached=await cache.match(request);
+      if(cached)return cached;
+      const response=await fetch(request);
+      if(response.ok)cache.put(request,response.clone());
+      return response;
+    }));
     return;
   }
 
