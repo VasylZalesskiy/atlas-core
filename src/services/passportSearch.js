@@ -159,7 +159,7 @@ async function searchLegacyProfiles(plan,{limit}){
   if(!query)return [];
   const {data,error}=await supabase
     .from("profiles")
-    .select("slug,name,city,headline,can_help,can_share,needs")
+    .select("slug,name,city,headline,can_help,can_share")
     .textSearch("profiles_search_idx",query,{type:"websearch",config:"simple"})
     .limit(Math.max(20,limit*10));
   if(error){
