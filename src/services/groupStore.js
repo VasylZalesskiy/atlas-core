@@ -1,5 +1,5 @@
 import supabase from "./supabase";
-import {addMyOpportunity,deleteMyOpportunity,ensureAtlasSession,loadMyPassport} from "./passportStore";
+import {ensureAtlasSession,loadMyPassport} from "./passportStore";
 import {decodeOpportunityText,opportunityGroups} from "./opportunityCodec";
 
 function fail(message){const error=new Error(message);error.code=message;return error}
@@ -93,60 +93,6 @@ export async function loadAtlasGroup(groupId){
     .filter(item=>item.opportunity&&item.opportunity.is_active!==false&&(!item.opportunity.expires_at||new Date(item.opportunity.expires_at)>new Date()));
 
   return {group:groupResult.data,members:membersResult.data||[],opportunities};
-}
-
-export async function addGroupOpportunity({groupId,accountId,passportId,text,group="have"}){
-  await ensureAtlasSession();
-  const cleanText=clean(text);
-  if(!groupId)throw fail("group-required");
-  if(!accountId)throw fail("account-required");
-  if(!passportId)throw fail("passport-required");
-  if(!cleanText)throw fail("opportunity-required");
-
-  const opportunity=await addMyOpportunity(passportId,{
-    text:cleanText,
-    group,
-    duration:"month",
-    place:"",
-    radiusValue:"",
-    radiusUnit:"км",
-    online:false,
-    paymentType:group==="sell"?"paid":"free",
-    priceValue:"",
-    priceUnit:"шт.",
-    currency:"UAH",
-    saleQuantity:"",
-    saleUnit:"кг",
-    validUntil:"",
-    catalogGroupKey:"",
-    catalogItemKey:"",
-    catalogItemName:"",
-    minimumQuantity:"",
-    deliveryIncluded:false
-  });
-
-  const {error}=await supabase.from("atlas_group_opportunities").insert({
-    group_id:groupId,
-    opportunity_id:opportunity.id,
-    passport_id:passportId,
-    added_by_account_id:accountId
-  });
-
-  if(error){
-    await deleteMyOpportunity(opportunity.id).catch(()=>{});
-    throw error;
-  }
-  return opportunity;
-}
-
-export async function removeOpportunityFromGroup(groupId,opportunityId){
-  await ensureAtlasSession();
-  const {error}=await supabase
-    .from("atlas_group_opportunities")
-    .delete()
-    .eq("group_id",groupId)
-    .eq("opportunity_id",opportunityId);
-  if(error)throw error;
 }
 
 export async function leaveAtlasGroup(groupId,accountId){
