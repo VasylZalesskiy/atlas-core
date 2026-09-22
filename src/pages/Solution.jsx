@@ -860,8 +860,9 @@ ${initialWhere}`;
   ];
   const informationMode=plan?.solution_scope==="information";
   const informationCandidates=actionableCandidates.filter(candidate=>candidate?.kind==="answer"||(candidate?.kind==="external"&&["official_result","web_answer","web_result"].includes(candidate.resultKind)));
-  const recommendedCandidate=(informationMode?informationCandidates:actionableCandidates)[0]||null;
-  const recommendedAlternatives=informationMode?[]:actionableCandidates.slice(1,10);
+  const resultPool=informationMode&&informationCandidates.length?informationCandidates:actionableCandidates;
+  const recommendedCandidate=resultPool[0]||null;
+  const recommendedAlternatives=resultPool.slice(1,10);
   const structuredPriceCount=rankedCandidates.filter(candidate=>structuredPrice(candidate)).length;
 
   const chains=useMemo(()=>{
