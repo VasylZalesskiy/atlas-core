@@ -7,6 +7,7 @@ import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import {ATLAS_SHARE_URL,atlasShareText} from "../services/shareApp";
 import {saveAtlasFeedback} from "../services/feedbackStore";
 import "../styles/mobilePilot.css";
+import "../styles/mobilePilotOverrides.css";
 
 function readImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
 function compressImage(file){return new Promise(async(resolve,reject)=>{
@@ -36,6 +37,7 @@ export default function MobileHome({lang="uk"}){
   const [visionBusy,setVisionBusy]=useState(false);
   const [unreadCount,setUnreadCount]=useState(0);
   const [feedback,setFeedback]=useState("");
+  const [feedbackOpen,setFeedbackOpen]=useState(false);
   const [feedbackBusy,setFeedbackBusy]=useState(false);
   const [feedbackStatus,setFeedbackStatus]=useState("");
   const fileRef=useRef(null);
@@ -128,7 +130,6 @@ export default function MobileHome({lang="uk"}){
     <div className="mobilePilotIntro">
       <span className="mobilePilotEyebrow">ATLAS · {uk?"ГОЛОВНА":"HOME"}</span>
       <h1>{uk?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task"}</h1>
-      <p>{uk?"Atlas поєднує потреби з можливостями людей і компаній та допомагає знайти найкоротший шлях до рішення.":"Atlas connects needs with the capabilities of people and companies and helps find the shortest path to a solution."}</p>
     </div>
 
     <div className="mobilePassportGrid">
@@ -143,7 +144,6 @@ export default function MobileHome({lang="uk"}){
 
     <div className="mobilePilotSearchHead">
       <div><Search size={19}/><strong>{uk?"Знайти рішення":"Find a solution"}</strong></div>
-      <span>{uk?"Пошук перевіряє Паспорти можливостей людей і компаній":"Search checks Opportunity Passports of people and companies"}</span>
     </div>
 
     <form className="mobilePilotSearch" onSubmit={submit}>
@@ -165,12 +165,14 @@ export default function MobileHome({lang="uk"}){
       <button type="button" onClick={()=>quick(uk?"Хто може це надати?":"Who can provide this?")}>🔎 {uk?"Хто може надати?":"Who can provide it?"}</button>
     </div>
 
-    <section className="mobileFeedbackCard">
-      <div><MessageSquare size={20}/><span><strong>{uk?"Що ви думаєте про Atlas?":"What do you think about Atlas?"}</strong><small>{uk?"Напишіть, що незрозуміло, що не спрацювало або чого не вистачає.":"Tell us what is unclear, what did not work, or what is missing."}</small></span></div>
-      <form onSubmit={sendFeedback}>
-        <textarea value={feedback} onChange={event=>setFeedback(event.target.value)} maxLength={2000} placeholder={uk?"Ваш відгук…":"Your feedback…"}/>
-        <button type="submit" disabled={feedbackBusy||feedback.trim().length<2}>{feedbackBusy?(uk?"Надсилаю…":"Sending…"):(uk?"Надіслати відгук":"Send feedback")}</button>
-      </form>
+    <section className={`mobileFeedbackCompact ${feedbackOpen?"open":""}`}>
+      <button className="mobileFeedbackTrigger" type="button" onClick={()=>setFeedbackOpen(open=>!open)} aria-expanded={feedbackOpen}>
+        <MessageSquare size={17}/><span>{uk?"Відгук про Atlas":"Atlas feedback"}</span><b>{feedbackOpen?"−":"+"}</b>
+      </button>
+      {feedbackOpen&&<form onSubmit={sendFeedback}>
+        <textarea value={feedback} onChange={event=>setFeedback(event.target.value)} maxLength={2000} placeholder={uk?"Повідомлення для команди Atlas…":"Message for the Atlas team…"}/>
+        <button type="submit" disabled={feedbackBusy||feedback.trim().length<2}>{feedbackBusy?(uk?"Надсилаю…":"Sending…"):(uk?"Надіслати":"Send")}</button>
+      </form>}
       {feedbackStatus&&<small className={feedbackStatus.startsWith("✓")?"success":"error"}>{feedbackStatus}</small>}
     </section>
 

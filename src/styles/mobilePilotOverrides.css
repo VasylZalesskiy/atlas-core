@@ -1,0 +1,19 @@
+@media (max-width:760px){
+  .mobilePilotIntro{padding:2px 0 8px}
+  .mobilePilotIntro h1{font-size:25px;line-height:1.05;margin-bottom:0}
+  .mobilePilotSearchHead{margin:5px 0 8px}
+  .mobilePilotSearchHead>div{color:#08783e}
+  .mobilePilotSearchHead strong{font-size:21px}
+  .mobilePilotSearch{padding:12px;border:2px solid #0b8c48;background:#fff;box-shadow:0 12px 30px rgba(11,140,72,.17),0 0 0 4px rgba(11,140,72,.05)}
+  .mobilePilotSearch:focus-within{border-color:#067139;box-shadow:0 14px 34px rgba(11,140,72,.22),0 0 0 5px rgba(11,140,72,.09)}
+  .mobileFeedbackCompact{margin-top:2px;display:grid;gap:8px}
+  .mobileFeedbackTrigger{min-height:36px;width:max-content;max-width:100%;display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #dce6df;border-radius:10px;background:#f8faf9;color:#5e6d64;font-size:11px;font-weight:850}
+  .mobileFeedbackTrigger b{font-size:15px;line-height:1}
+  .mobileFeedbackCompact form{display:grid;gap:7px;padding:10px;border:1px solid #dfe8e2;border-radius:13px;background:#f8faf9}
+  .mobileFeedbackCompact textarea{min-height:68px;resize:vertical;border:1px solid #d9e4dd;border-radius:10px;padding:10px;font:inherit;font-size:13px}
+  .mobileFeedbackCompact form button{height:40px;border:0;border-radius:10px;background:#0b8c48;color:#fff;font-size:12px;font-weight:900}
+  .mobileFeedbackCompact form button:disabled{opacity:.5}
+  .mobileFeedbackCompact>small{font-size:10px}
+  .mobileFeedbackCompact>small.success{color:#0b7a41}
+  .mobileFeedbackCompact>small.error{color:#9a3434}
+}

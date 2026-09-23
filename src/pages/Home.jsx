@@ -89,16 +89,16 @@ export default function Home({t,lang}){
 
   const title=lang==="uk"?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task";
   const subtitle=lang==="uk"
-    ?"Напишіть задачу простими словами. Atlas спробує знайти найкоротший шлях до рішення."
-    :"Describe the task in simple words. Atlas will try to find the shortest path to a solution.";
+    ?"Опишіть задачу — Atlas знайде рішення."
+    :"Describe the task — Atlas will find a solution.";
   const placeholder=lang==="uk"
     ?"Наприклад: потрібен генератор на сьогодні"
     :"For example: I need a generator today";
   const locationLabel=lang==="uk"?"Де це потрібно? (необов'язково)":"Where is it needed? (optional)";
   const capabilityTitle=lang==="uk"?"А що можете ви?":"What can you offer?";
   const capabilityText=lang==="uk"
-    ?"Додайте те, що маєте, вмієте, можете позичити, продати, подарувати або зробити безкоштовно."
-    :"Add what you have, can do, lend, sell, give away, or help with for free.";
+    ?"Додайте те, що маєте або можете надати."
+    :"Add what you have or can provide.";
   const capabilityButton=lang==="uk"?"+ Додати можливість":"+ Add an opportunity";
   const aboutUrl=lang==="uk"?"/atlas-about-uk.txt":"/atlas-about-en.txt";
   const hasSearch=Boolean(task.trim()||where.trim());
@@ -112,11 +112,11 @@ export default function Home({t,lang}){
       <div style={{marginBottom:18,display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap"}}>
         <a href={aboutUrl} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,color:"#0d7a41",fontSize:13,fontWeight:800,textDecoration:"underline",textUnderlineOffset:3}}>
           <FileText size={16}/>
-          {lang==="uk"?"Вперше тут? Прочитайте за 1 хвилину, що робить Atlas →":"New here? Read in 1 minute what Atlas does →"}
+          {lang==="uk"?"Як працює Atlas →":"How Atlas works →"}
         </a>
         <Link to="/share" style={{display:"inline-flex",alignItems:"center",gap:7,padding:"8px 12px",borderRadius:12,background:"#e9f7ee",border:"1px solid #b9ddc7",color:"#08723d",fontSize:13,fontWeight:900}}>
           <Smartphone size={17}/>
-          {lang==="uk"?"Мобільна версія · QR · встановити на телефон →":"Mobile Atlas · QR · install on phone →"}
+          {lang==="uk"?"Встановити на телефон →":"Install on phone →"}
         </Link>
       </div>
 
@@ -125,7 +125,7 @@ export default function Home({t,lang}){
         <span style={{fontSize:"clamp(16px,1.8vw,20px)",lineHeight:1.45,letterSpacing:0,fontWeight:600,maxWidth:700,margin:"12px auto 0"}}>{subtitle}</span>
       </h1>
 
-      <form className="searchbox" onSubmit={go} style={{padding:20}}>
+      <form className="searchbox mainSearchbox" onSubmit={go} style={{padding:20}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
           <label style={{fontSize:12}}>{lang==="uk"?"Опишіть вашу задачу":"Describe your task"}</label>
           {hasSearch&&<button type="button" onClick={newSearch} style={{border:0,background:"transparent",color:"#0d7a41",display:"inline-flex",alignItems:"center",gap:6,fontSize:12,fontWeight:900,cursor:"pointer"}}><RotateCcw size={15}/>{lang==="uk"?"Новий пошук":"New search"}</button>}
@@ -144,8 +144,8 @@ export default function Home({t,lang}){
         </div>
         <small style={{color:"#69756e",lineHeight:1.45}}>
           {lang==="uk"
-            ?"Для покращення тестової версії Atlas зберігає текст задачі й технічні події. Координати та контакти не записуються. Не додавайте особисті дані."
-            :"To improve the test version, Atlas stores task text and technical events. Coordinates and contacts are not recorded. Do not include personal data."}
+            ?"Atlas зберігає текст запиту для покращення. Не додавайте особисті дані."
+            :"Atlas stores the query text for improvement. Do not include personal data."}
         </small>
       </form>
 
@@ -169,15 +169,14 @@ export default function Home({t,lang}){
         </div>
       </section>
 
-      <section style={{maxWidth:680,margin:"18px auto 0",padding:"18px 20px",background:"#f7faf8",border:"1px solid #dfe8e2",borderRadius:18,textAlign:"left"}}>
-        <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:6}}><MessageSquare size={20} color="#0d7a41"/><h2 style={{margin:0,fontSize:17}}>{lang==="uk"?"Допоможіть покращити Atlas":"Help improve Atlas"}</h2></div>
-        <p style={{margin:"0 0 12px",color:"#66746c",fontSize:13,lineHeight:1.45}}>{lang==="uk"?"Це тестова версія. Напишіть, що було незрозуміло, що не спрацювало або чого вам не вистачило.":"This is a test version. Tell us what was unclear, what did not work, or what was missing."}</p>
-        <form onSubmit={sendFeedback} style={{display:"grid",gap:9}}>
-          <textarea value={feedback} onChange={e=>setFeedback(e.target.value)} maxLength={2000} placeholder={lang==="uk"?"Ваш відгук…":"Your feedback…"} style={{minHeight:82,resize:"vertical",border:"1px solid #dce6df",borderRadius:12,padding:12,fontSize:14}}/>
-          <button className="secondary" type="submit" disabled={feedbackBusy||feedback.trim().length<2} style={{justifyContent:"center"}}>{feedbackBusy?(lang==="uk"?"Надсилаю…":"Sending…"):(lang==="uk"?"Надіслати відгук":"Send feedback")}</button>
+      <details className="homeFeedbackDisclosure">
+        <summary><MessageSquare size={17}/>{lang==="uk"?"Відгук про Atlas":"Atlas feedback"}</summary>
+        <form onSubmit={sendFeedback}>
+          <textarea value={feedback} onChange={e=>setFeedback(e.target.value)} maxLength={2000} placeholder={lang==="uk"?"Повідомлення для команди Atlas…":"Message for the Atlas team…"}/>
+          <button className="secondary" type="submit" disabled={feedbackBusy||feedback.trim().length<2}>{feedbackBusy?(lang==="uk"?"Надсилаю…":"Sending…"):(lang==="uk"?"Надіслати":"Send")}</button>
         </form>
-        {feedbackStatus&&<div style={{marginTop:9,fontSize:12,color:feedbackStatus.startsWith("✓")?"#0d7a41":"#765f20"}}>{feedbackStatus}</div>}
-      </section>
+        {feedbackStatus&&<div className={feedbackStatus.startsWith("✓")?"success":"error"}>{feedbackStatus}</div>}
+      </details>
 
       <p className="principle" style={{fontSize:13,marginTop:26}}>{t.principle}</p>
     </section>

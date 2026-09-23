@@ -46,16 +46,6 @@ export default function VoiceTaskInput({value,onChange,lang="uk",placeholder,cla
     onChange(event.target.value);
   }
 
-  const status=speech.listening
-    ?(speech.mobileSafe
-      ?(lang==="uk"?"● Слухаю — скажіть фразу.":"● Listening — say your phrase.")
-      :(lang==="uk"?"● Слухаю — говоріть. Текст з’являється одразу.":"● Listening — speak now. Text appears live."))
-    :(speech.supported
-      ?(speech.mobileSafe
-        ?(lang==="uk"?"Натисніть мікрофон і скажіть фразу":"Tap the microphone and say your phrase")
-        :(lang==="uk"?"Натисніть мікрофон і говоріть":"Tap the microphone and speak"))
-      :(lang==="uk"?"Використайте мікрофон на клавіатурі":"Use the microphone on your keyboard"));
-
   const clearButton=<button
     type="button"
     onClick={clearValue}
@@ -86,8 +76,7 @@ export default function VoiceTaskInput({value,onChange,lang="uk",placeholder,cla
       style={controlsBelow?{paddingRight:16}: {paddingRight:value?104:58}}
     />
 
-    {controlsBelow?<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,padding:"8px 10px 9px",borderTop:"1px solid #edf1ee",background:"#fafcfb"}}>
-      <small className={`voiceStatus ${speech.listening?"listening":""}`} style={{minWidth:0,flex:1,margin:0}}>{status}</small>
+    {controlsBelow?<div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:10,padding:"8px 10px 9px",borderTop:"1px solid #edf1ee",background:"#fafcfb"}}>
       <div style={{display:"flex",alignItems:"center",gap:8,flex:"0 0 auto"}}>
         {value&&clearButton}
         {micButton}
@@ -95,7 +84,6 @@ export default function VoiceTaskInput({value,onChange,lang="uk",placeholder,cla
     </div>:<>
       {value&&clearButton}
       {micButton}
-      <small className={`voiceStatus ${speech.listening?"listening":""}`}>{status}</small>
     </>}
 
     {speech.error&&<small className="voiceError">{speech.error}</small>}
