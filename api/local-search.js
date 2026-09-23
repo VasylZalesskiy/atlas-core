@@ -12,6 +12,11 @@ function distanceKm(a,b){
   const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
   return earth*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));
 }
+function boxFor(origin,radiusKm){
+  const dLat=radiusKm/111;
+  const dLon=radiusKm/(111*Math.max(.2,Math.cos(radians(origin.latitude))));
+  return `${origin.longitude-dLon},${origin.latitude+dLat},${origin.longitude+dLon},${origin.latitude-dLat}`;
+}
 function addressFromTags(tags={}){return [tags["addr:street"],tags["addr:housenumber"],tags["addr:city"]].filter(Boolean).join(", ")}
 async function fetchJson(url,options={},timeoutMs=9000){
   const controller=new AbortController();
@@ -27,13 +32,15 @@ async function geocode(locationText,lang="uk"){
 }
 function serviceConfig(query){
   const q=clean(query).toLowerCase();
-  if(/шиномонтаж|шини|колес|tire|tyre/.test(q))return {label:"Шиномонтаж",selectors:['["shop"="tyres"]','["shop"="car_repair"]["service:vehicle:tyres"="yes"]','["craft"="car_repair"]["service:vehicle:tyres"="yes"]','["name"~"шиномонтаж|шини|tire|tyre",i]']};
-  if(/перукар|barber|hair/.test(q))return {label:"Перукарня",selectors:['["shop"="hairdresser"]']};
-  if(/стомат|dent/.test(q))return {label:"Стоматологія",selectors:['["amenity"="dentist"]']};
-  if(/аптек|pharmacy/.test(q))return {label:"Аптека",selectors:['["amenity"="pharmacy"]']};
-  if(/готел|hotel|hostel/.test(q))return {label:"Готель",selectors:['["tourism"="hotel"]','["tourism"="hostel"]']};
-  if(/ресторан|кафе|restaurant|cafe/.test(q))return {label:"Заклад",selectors:['["amenity"="restaurant"]','["amenity"="cafe"]']};
-  return {label:clean(query)||"Послуга",selectors:[]};
+  if(/шиномонтаж|шини|колес|tire|tyre/.test(q))return {category:"tyres",label:"Шиномонтаж",selectors:['["shop"="tyres"]','["shop"="car_repair"]["service:vehicle:tyres"="yes"]','["craft"="car_repair"]["service:vehicle:tyres"="yes"]','["name"~"шиномонтаж|шини|tire|tyre",i]']};
+  if(/перукар|barber|hair/.test(q))return {category:"hairdresser",label:"Перукарня",selectors:['["shop"="hairdresser"]']};
+  if(/стомат|dent/.test(q))return {category:"dentist",label:"Стоматологія",selectors:['["amenity"="dentist"]']};
+  if(/аптек|pharmacy/.test(q))return {category:"pharmacy",label:"Аптека",selectors:['["amenity"="pharmacy"]','["healthcare"="pharmacy"]']};
+  if(/невідклад|лікарн|швидк.*допомог|urgent|emergency|hospital/.test(q))return {category:"urgent-medical",label:"Медична допомога",selectors:['["amenity"~"^(hospital|clinic|doctors)$"]','["healthcare"~"^(hospital|clinic|doctor|health_post)$"]']};
+  if(/сімейн.*лікар|амбулатор|поліклін|медичн.*(?:центр|допомог)|лікар|doctor|clinic|medical care/.test(q))return {category:"medical",label:"Лікар / амбулаторія",selectors:['["amenity"~"^(clinic|doctors)$"]','["healthcare"~"^(clinic|doctor|health_post)$"]']};
+  if(/готел|hotel|hostel/.test(q))return {category:"lodging",label:"Готель",selectors:['["tourism"="hotel"]','["tourism"="hostel"]']};
+  if(/ресторан|кафе|restaurant|cafe/.test(q))return {category:"food",label:"Заклад",selectors:['["amenity"="restaurant"]','["amenity"="cafe"]']};
+  return {category:"other",label:clean(query)||"Послуга",selectors:[]};
 }
 async function overpass(origin,query,radiusKm=25){
   const cfg=serviceConfig(query);
@@ -59,13 +66,13 @@ async function overpass(origin,query,radiusKm=25){
     return {id:"osm-"+el.type+"-"+el.id,name,title:name,latitude,longitude,address:addressFromTags(tags),typeLabel:cfg.label,phone:tags["contact:phone"]||tags.phone||"",website:tags["contact:website"]||tags.website||"",openingHours:tags.opening_hours||"",straightDistanceKm:distanceKm(origin,{latitude,longitude}),source:"OpenStreetMap"};
   }).filter(Boolean).sort((a,b)=>a.straightDistanceKm-b.straightDistanceKm);
 }
-async function nominatimSearch(query,locationText,origin,lang){
+async function nominatimSearch(query,locationText,origin,lang,radiusKm=25){
   const variants=[clean(query+" "+locationText)];
   if(/шиномонтаж|шини|колес/i.test(query)){variants.push(clean("автосервіс "+locationText));variants.push(clean("шини "+locationText))}
   const all=[];
   for(const value of variants){
     try{
-      const params=new URLSearchParams({format:"jsonv2",q:value,limit:"12",addressdetails:"1",extratags:"1",namedetails:"1","accept-language":lang==="en"?"en":"uk"});
+      const params=new URLSearchParams({format:"jsonv2",q:value,limit:"12",addressdetails:"1",extratags:"1",namedetails:"1",viewbox:boxFor(origin,radiusKm),bounded:"1","accept-language":lang==="en"?"en":"uk"});
       const data=await fetchJson("https://nominatim.openstreetmap.org/search?"+params.toString(),{headers:{Accept:"application/json","User-Agent":"Atlas/2.6 atlas-core-two.vercel.app"}});
       for(const item of data||[]){
         const latitude=toNumber(item.lat),longitude=toNumber(item.lon);if(latitude===null||longitude===null)continue;
@@ -74,7 +81,10 @@ async function nominatimSearch(query,locationText,origin,lang){
       }
     }catch{}
   }
-  const seen=new Set();return all.filter(item=>{const key=item.latitude+":"+item.longitude+":"+item.name;if(seen.has(key))return false;seen.add(key);return true}).sort((a,b)=>a.straightDistanceKm-b.straightDistanceKm);
+  const seen=new Set();return all.filter(item=>{
+    if(item.straightDistanceKm>radiusKm)return false;
+    const key=item.latitude+":"+item.longitude+":"+item.name;if(seen.has(key))return false;seen.add(key);return true;
+  }).sort((a,b)=>a.straightDistanceKm-b.straightDistanceKm);
 }
 export default async function handler(req,res){
   if(req.method!=="GET"&&req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
@@ -86,12 +96,20 @@ export default async function handler(req,res){
   let origin=body.origin&&Number.isFinite(Number(body.origin.latitude))&&Number.isFinite(Number(body.origin.longitude))?{latitude:Number(body.origin.latitude),longitude:Number(body.origin.longitude)}:null;
   if(!origin&&locationText)origin=await geocode(locationText,lang).catch(()=>null);
   if(!origin)return send(res,200,{results:[],search_status:"location-required"});
-  let results=await overpass(origin,query,body.radius_km||25).catch(()=>[]);
+  const radiusKm=Math.min(Math.max(Number(body.radius_km||25),1.5),50);
+  const limit=Math.min(Math.max(Number(body.limit||15),1),15);
+  const service=serviceConfig(query);
+  let results=await overpass(origin,query,radiusKm).catch(()=>[]);
   if(results.length<5){
-    const extra=await nominatimSearch(query,locationText||origin.label||"",origin,lang);
+    const extra=await nominatimSearch(query,locationText||origin.label||"",origin,lang,radiusKm);
     const keyed=new Map(results.map(item=>[(item.latitude+":"+item.longitude+":"+item.name),item]));
     for(const item of extra){const key=item.latitude+":"+item.longitude+":"+item.name;if(!keyed.has(key))keyed.set(key,item)}
     results=[...keyed.values()].sort((a,b)=>a.straightDistanceKm-b.straightDistanceKm);
   }
-  return send(res,200,{results:results.slice(0,15),search_status:results.length?"live-results":"no-results",origin});
+  const nearby=results.filter(item=>Number(item.straightDistanceKm)<=radiusKm).slice(0,limit);
+  console.log(JSON.stringify({
+    level:"info",message:"atlas-local-search",category:service.category,
+    radius_km:radiusKm,result_count:nearby.length,discarded_distant_count:results.length-nearby.length
+  }));
+  return send(res,200,{results:nearby,search_status:nearby.length?"live-results":"no-results",origin});
 }
