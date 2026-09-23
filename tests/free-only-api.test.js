@@ -151,6 +151,48 @@ test("Brain uses OpenAI Responses as the primary Atlas provider",async()=>{
   }
 });
 
+test("Brain prefers OpenAI through Vercel AI Gateway when OIDC is available",async()=>{
+  const originalFetch=globalThis.fetch;
+  const previous={
+    openai:process.env.OPENAI_API_KEY,
+    gateway:process.env.AI_GATEWAY_API_KEY,
+    oidc:process.env.VERCEL_OIDC_TOKEN
+  };
+  process.env.OPENAI_API_KEY="exhausted-direct-key";
+  delete process.env.AI_GATEWAY_API_KEY;
+  process.env.VERCEL_OIDC_TOKEN="vercel-oidc-token";
+  const plan={
+    understood:true,goal:"100 кг гороху",intent:"buy",domain:"agriculture",solution_scope:"transaction",urgency:"planned",needs_location:true,
+    clarification:{required:false,question:"",options:[]},
+    passport_search:{terms:["горох"],capability_description:"Постачальники гороху"},
+    solution_steps:[{id:"buy",title:"Знайти горох",purpose:"Придбати 100 кг гороху",passport_terms:["горох"],nearby_query:"",internet_query:"купити 100 кг гороху",nearby_relevant:false,internet_relevant:true}],
+    external_searches:[{source:"marketplace",mode:"standard",query:"купити 100 кг гороху",reason:"знайти пропозиції"}],
+    safety:{level:"none",message:""},result_strategy:"Паспорти, потім перевірені пропозиції",answer:""
+  };
+  let call=null;
+  globalThis.fetch=async(url,options={})=>{
+    call={url:String(url),headers:options.headers||{},body:JSON.parse(options.body||"{}")};
+    return new Response(JSON.stringify({
+      status:"completed",model:"openai/gpt-6-sol",
+      output:[{type:"message",content:[{type:"output_text",text:JSON.stringify(plan)}]}]
+    }),{status:200,headers:{"Content-Type":"application/json"}});
+  };
+  try{
+    const res=recorder();
+    await brainHandler({method:"POST",body:{query:"100 кг гороху",language:"uk"},headers:{}},res);
+    assert.equal(res.statusCode,200);
+    assert.equal(res.body.ai_status,"openai");
+    assert.equal(call.url,"https://ai-gateway.vercel.sh/v1/responses");
+    assert.equal(call.headers.Authorization,"Bearer vercel-oidc-token");
+    assert.equal(call.body.model,"openai/gpt-6-sol");
+  }finally{
+    globalThis.fetch=originalFetch;
+    if(previous.openai===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=previous.openai;
+    if(previous.gateway===undefined)delete process.env.AI_GATEWAY_API_KEY;else process.env.AI_GATEWAY_API_KEY=previous.gateway;
+    if(previous.oidc===undefined)delete process.env.VERCEL_OIDC_TOKEN;else process.env.VERCEL_OIDC_TOKEN=previous.oidc;
+  }
+});
+
 test("grounded search uses OpenAI web_search and returns cited sources",async()=>{
   const originalFetch=globalThis.fetch;
   const previous=process.env.OPENAI_API_KEY;
