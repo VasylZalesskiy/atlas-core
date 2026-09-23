@@ -789,10 +789,12 @@ export default function Chat(){
     <label className="chatName"><span>Ваше ім’я</span><input maxLength={40} value={displayName} onChange={event=>setDisplayName(event.target.value)} placeholder="Наприклад: Василь"/></label>
 
     <div className="chatInviteActions">
-      <button className="primary" type="button" onClick={shareInvite}><Share2 size={18}/>Поділитися</button>
-      <button className="secondary" type="button" onClick={copyInvite}><Copy size={18}/>{copied?"Скопійовано ✓":"Копіювати"}</button>
+      <button className="primary chatInviteCopyButton" type="button" onClick={copyInvite}>
+        <Copy size={18}/>{copied?"Посилання скопійовано ✓":"Запросити товариша — скопіювати посилання"}
+      </button>
       {connection==="failed"&&<button className="secondary" type="button" onClick={()=>setReconnectKey(value=>value+1)}><RefreshCw size={17}/>Повторити</button>}
     </div>
+    {copied&&<div className="chatInviteCopiedHint">Посилання скопійовано — надішліть його товаришу в Telegram, Viber, WhatsApp або SMS.</div>}
 
     <section className="callPanel">
       {callState==="incoming"?<><div><strong>Вхідний дзвінок від {peerName}</strong><span>{incomingCall?.description?"Можна відповідати.":"Готуємо захищене аудіоз’єднання…"}</span></div><div>{!callSoundReady&&<button className="secondary" type="button" onClick={activateCallSound}><Volume2 size={17}/>Увімкнути звук</button>}</div></>
