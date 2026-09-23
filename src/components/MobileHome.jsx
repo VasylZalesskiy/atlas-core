@@ -126,7 +126,6 @@ export default function MobileHome({lang="uk"}){
     }finally{setVisionBusy(false)}
   }
 
-  const needChips=uk?["Овочі"]:["Vegetables"];
 
   return <section className="mobilePilotHome">
     <div className="mobilePilotTopRow">
@@ -153,10 +152,6 @@ export default function MobileHome({lang="uk"}){
       </Link>
     </div>
 
-    <div className="mobileNeedsHint">
-      <span>{uk?"Активні категорії потреб":"Active need categories"}</span>
-      <div>{needChips.map(item=><Link key={item} to="/needs">{item}</Link>)}</div>
-    </div>
 
     <div className="mobilePilotSearchHead">
       <div><Search size={19}/><strong>{uk?"Знайти рішення":"Find a solution"}</strong></div>
@@ -182,10 +177,6 @@ export default function MobileHome({lang="uk"}){
       <button type="button" onClick={()=>quick(uk?"Хто може це надати?":"Who can provide this?")}>🔎 {uk?"Хто може надати?":"Who can provide it?"}</button>
     </div>
 
-    <Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
-      <span className="mobileNotificationIcon"><Bell size={20}/>{unreadCount>0&&<i>{unreadCount>99?"99+":unreadCount}</i>}</span>
-      <span><strong>{unreadCount>0?(uk?`Нові сповіщення: ${unreadCount}`:`New notifications: ${unreadCount}`):(uk?"Сповіщення та запити":"Notifications & requests")}</strong><small>{uk?"Тут будуть збіги між потребами та можливостями":"Matches between needs and capabilities appear here"}</small></span><b>→</b>
-    </Link>
     <section className="mobileFeedbackCard">
       <div><MessageSquare size={20}/><span><strong>{uk?"Що ви думаєте про Atlas?":"What do you think about Atlas?"}</strong><small>{uk?"Напишіть, що незрозуміло, що не спрацювало або чого не вистачає.":"Tell us what is unclear, what did not work, or what is missing."}</small></span></div>
       <form onSubmit={sendFeedback}>
@@ -194,6 +185,11 @@ export default function MobileHome({lang="uk"}){
       </form>
       {feedbackStatus&&<small className={feedbackStatus.startsWith("✓")?"success":"error"}>{feedbackStatus}</small>}
     </section>
+
+    <Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
+      <span className="mobileNotificationIcon"><Bell size={20}/>{unreadCount>0&&<i>{unreadCount>99?"99+":unreadCount}</i>}</span>
+      <span><strong>{unreadCount>0?(uk?`Нові сповіщення: ${unreadCount}`:`New notifications: ${unreadCount}`):(uk?"Сповіщення та запити":"Notifications & requests")}</strong><small>{uk?"Тут будуть збіги між потребами та можливостями":"Matches between needs and capabilities appear here"}</small></span><b>→</b>
+    </Link>
     <Link className="mobileInstallCard" to="/share"><Smartphone size={20}/><span><strong>{uk?"Встановити Atlas на телефон":"Install Atlas on your phone"}</strong><small>{uk?"Інструкція для iPhone та Android":"Instructions for iPhone and Android"}</small></span><b>→</b></Link>
   </section>;
 }
