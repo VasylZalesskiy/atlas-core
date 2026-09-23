@@ -77,8 +77,8 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
     })
     :[];
 
-  // First ask Atlas's grounded web-answer endpoint. When no Gemini grounding key
-  // is configured (or Google grounding is temporarily unavailable), fall back
+  // First ask Atlas's OpenAI grounded web-answer endpoint. When OpenAI search
+  // is not configured (or temporarily unavailable), fall back
   // to the independent zero-cost retrieval endpoint below.
   const grounded=await groundedResults(plan,searches,{lang,signal});
   if(grounded.length)return uniqueResults([...grounded,...marketplaceFallback()]);

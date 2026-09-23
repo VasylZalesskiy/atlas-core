@@ -1,4 +1,6 @@
-const MODEL="gemini-2.5-flash";
+import {getOpenAIStatus,runOpenAIResponse} from "./_openai-ai.js";
+
+const MODEL=String(process.env.OPENAI_SEARCH_MODEL||process.env.OPENAI_MODEL||"gpt-6-luna").trim()||"gpt-6-luna";
 
 function send(res,status,body){
   res.status(status).setHeader("Content-Type","application/json; charset=utf-8");
@@ -9,21 +11,31 @@ function send(res,status,body){
 function clean(value,limit=4000){return String(value||"").replace(/\s+/g," ").trim().slice(0,limit)}
 function safeUrl(value){try{const url=new URL(String(value||""));return /^https?:$/.test(url.protocol)?url.toString():""}catch{return ""}}
 function host(url){try{return new URL(url).hostname.replace(/^www\./,"")}catch{return ""}}
-function geminiKey(){return String(process.env.GEMINI_FREE_TIER_API_KEY||process.env.GEMINI_API_KEY||process.env.GOOGLE_API_KEY||"").trim()}
-
 function collectGrounding(data){
-  const candidate=data?.candidates?.[0];
-  const answer=clean((candidate?.content?.parts||[]).map(part=>part?.text||"").join("\n"),7000);
-  const chunks=Array.isArray(candidate?.groundingMetadata?.groundingChunks)?candidate.groundingMetadata.groundingChunks:[];
+  const answerParts=[];
   const seen=new Set();
   const sources=[];
-  for(const chunk of chunks){
-    const url=safeUrl(chunk?.web?.uri);
-    if(!url||seen.has(url))continue;
+  const addSource=(rawUrl,rawTitle)=>{
+    const url=safeUrl(rawUrl);
+    if(!url||seen.has(url))return;
     seen.add(url);
-    sources.push({url,title:clean(chunk?.web?.title||host(url),240)});
+    sources.push({url,title:clean(rawTitle||host(url),240)});
+  };
+  for(const item of data?.output||[]){
+    if(item?.type==="message"){
+      for(const content of item?.content||[]){
+        if(content?.type==="output_text"&&content?.text)answerParts.push(content.text);
+        for(const annotation of content?.annotations||[]){
+          const citation=annotation?.url_citation||annotation;
+          addSource(citation?.url,citation?.title);
+        }
+      }
+    }
+    if(item?.type==="web_search_call"){
+      for(const source of item?.action?.sources||[])addSource(source?.url,source?.title);
+    }
   }
-  return {answer,sources:sources.slice(0,8)};
+  return {answer:clean(answerParts.join("\n"),7000),sources:sources.slice(0,8)};
 }
 
 function promptFor({goal,query,language,domain,locationText}){
@@ -38,32 +50,25 @@ function promptFor({goal,query,language,domain,locationText}){
 }
 
 async function groundedSearch({goal,query,language="uk",domain="",locationText=""}){
-  const key=geminiKey();
-  if(!key)return {configured:false,answer:"",sources:[],reason:"key-unavailable"};
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),12000);
+  const status=await getOpenAIStatus();
+  if(!status.configured)return {configured:false,answer:"",sources:[],reason:"key-unavailable"};
   try{
-    const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,{
-      method:"POST",
-      headers:{"Content-Type":"application/json","x-goog-api-key":key},
-      body:JSON.stringify({
-        contents:[{role:"user",parts:[{text:promptFor({goal,query,language,domain,locationText})}]}],
-        tools:[{google_search:{}}],
-        generationConfig:{temperature:0.15,maxOutputTokens:700}
-      }),
-      signal:controller.signal
+    const {data}=await runOpenAIResponse({
+      model:MODEL,
+      instructions:"You are Atlas's live web-search module. Search before answering and ground every factual claim in the sources you found.",
+      input:promptFor({goal,query,language,domain,locationText}),
+      tools:[{type:"web_search",search_context_size:"low"}],
+      toolChoice:"required",
+      include:["web_search_call.action.sources"],
+      maxOutputTokens:900,
+      timeoutMs:14000
     });
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok){
-      console.warn(JSON.stringify({level:"warning",message:"atlas_grounded_search_failed",status:response.status,error:data?.error?.message||"gemini-error"}));
-      return {configured:true,answer:"",sources:[],reason:`gemini-${response.status}`};
-    }
     const grounded=collectGrounding(data);
     return {configured:true,...grounded,reason:grounded.answer?"ok":"empty-answer"};
   }catch(error){
     console.warn(JSON.stringify({level:"warning",message:"atlas_grounded_search_unavailable",error:error?.name||error?.message||"unknown"}));
     return {configured:true,answer:"",sources:[],reason:error?.name==="AbortError"?"timeout":"network-error"};
-  }finally{clearTimeout(timer)}
+  }
 }
 
 function toResults({answer,sources,language,domain}){
@@ -104,9 +109,9 @@ function toResults({answer,sources,language,domain}){
 export default async function handler(req,res){
   if(req.method==="GET")return send(res,200,{
     status:"atlas-grounded-search-endpoint-online",
-    configured:Boolean(geminiKey()),
+    configured:(await getOpenAIStatus()).configured,
     model:MODEL,
-    provider:"gemini-google-search-grounding"
+    provider:"openai-web-search"
   });
   if(req.method!=="POST")return send(res,405,{error:"method-not-allowed"});
 
@@ -119,7 +124,7 @@ export default async function handler(req,res){
   const language=body.language==="en"?"en":"uk";
   const domain=clean(body.domain,120);
   const locationText=clean(body.location_text,180);
-  if(!goal||!query)return send(res,200,{results:[],configured:Boolean(geminiKey()),search_status:"no-query"});
+  if(!goal||!query)return send(res,200,{results:[],configured:(await getOpenAIStatus()).configured,search_status:"no-query"});
 
   const grounded=await groundedSearch({goal,query,language,domain,locationText});
   return send(res,200,{
