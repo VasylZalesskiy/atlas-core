@@ -512,6 +512,7 @@ header{height:76px;padding:0 5vw;display:flex;justify-content:space-between;alig
   background:#e8f5ed;
   color:#0b7440;
 }
+.atlasTopbarV3Presence{display:none}
 .atlasTopbarV3Right{
   justify-self:end;
   min-width:0;
@@ -604,6 +605,35 @@ header{height:76px;padding:0 5vw;display:flex;justify-content:space-between;alig
   .atlasTopbarV3Right{
     grid-area:right;
     gap:5px;
+  }
+  .atlasTopbarV3Presence{
+    display:block;
+    min-width:0;
+  }
+  .atlasTopbarV3Presence .atlasPresenceBar{
+    min-height:34px;
+    border-radius:10px;
+    box-shadow:none;
+  }
+  .atlasTopbarV3Presence .atlasPresenceButton,
+  .atlasTopbarV3Presence .atlasPresenceSound{
+    height:32px;
+  }
+  .atlasTopbarV3Presence .atlasPresenceButton{
+    gap:4px;
+    padding:0 6px;
+  }
+  .atlasTopbarV3Presence .atlasPresenceButton>span:last-child{
+    display:none;
+  }
+  .atlasTopbarV3Presence .atlasPresence.compact .atlasPresenceSound{
+    padding:0 6px;
+  }
+  .atlasTopbarV3Presence .atlasPresencePopup{
+    left:auto;
+    right:0;
+    top:40px;
+    width:min(290px,calc(100vw - 16px));
   }
   .atlasTopbarV3Lang{
     min-height:34px;

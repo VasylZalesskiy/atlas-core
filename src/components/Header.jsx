@@ -1,5 +1,6 @@
 import {Globe2,HeartHandshake,IdCard,MessageCircleMore,UserRound} from "lucide-react";
 import {Link,NavLink,useLocation} from "react-router-dom";
+import OnlinePresence from "./OnlinePresence";
 
 const labels={
   uk:{profile:"Можливості",needs:"Потреби",chat:"Чат",home:"Головна",nav:"Головна навігація",goHome:"На головну",myPage:"Моя сторінка"},
@@ -33,6 +34,7 @@ export default function Header({lang,setLang}){
     </nav>
 
     <div className="atlasTopbarV3Right">
+      <div className="atlasTopbarV3Presence"><OnlinePresence lang={lang} compact/></div>
       <label className="atlasTopbarV3Lang" aria-label="Language">
         <Globe2 size={17}/>
         <select value={lang} onChange={event=>setLang(event.target.value)} aria-label="Language">

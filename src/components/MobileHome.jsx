@@ -1,8 +1,7 @@
-import {lazy,Suspense,useEffect,useRef,useState} from "react";
+import {useEffect,useRef,useState} from "react";
 import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,LogOut,MapPin,MessageSquare,Search,Share2,Smartphone,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
-const OnlinePresence=lazy(()=>import("./OnlinePresence"));
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import {ATLAS_SHARE_URL,atlasShareText} from "../services/shareApp";
@@ -36,23 +35,12 @@ export default function MobileHome({lang="uk"}){
   const [vision,setVision]=useState(null);
   const [visionBusy,setVisionBusy]=useState(false);
   const [unreadCount,setUnreadCount]=useState(0);
-  const [presenceReady,setPresenceReady]=useState(false);
   const [feedback,setFeedback]=useState("");
   const [feedbackBusy,setFeedbackBusy]=useState(false);
   const [feedbackStatus,setFeedbackStatus]=useState("");
   const fileRef=useRef(null);
   const nav=useNavigate();
 
-  useEffect(()=>{
-    let cancelled=false;
-    const start=()=>{if(!cancelled)setPresenceReady(true)};
-    const idle=window.requestIdleCallback?window.requestIdleCallback(start,{timeout:1400}):window.setTimeout(start,800);
-    return()=>{
-      cancelled=true;
-      if(window.cancelIdleCallback&&typeof idle==="number")window.cancelIdleCallback(idle);
-      else window.clearTimeout(idle);
-    };
-  },[]);
 
   useEffect(()=>{
     const onNotifications=event=>setUnreadCount(Number(event?.detail?.unread)||0);
@@ -129,7 +117,7 @@ export default function MobileHome({lang="uk"}){
 
   return <section className="mobilePilotHome">
     <div className="mobilePilotTopRow">
-      <div className="mobilePilotStatusRow">{presenceReady&&<Suspense fallback={null}><OnlinePresence lang={lang} compact/></Suspense>}</div>
+      <div className="mobilePilotStatusRow" aria-hidden="true"/>
       <div className="mobilePilotTopActions">
         <Link to="/share" aria-label={uk?"Встановити Atlas":"Install Atlas"}><Smartphone size={18}/></Link>
         <button type="button" onClick={shareAtlas} aria-label={uk?"Поділитися Atlas":"Share Atlas"}><Share2 size={18}/></button>
