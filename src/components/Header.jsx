@@ -1,21 +1,21 @@
-import {Globe2,HeartHandshake,IdCard,MessageCircleMore,UserRound} from "lucide-react";
+import {Globe2,HeartHandshake,IdCard,MessagesSquare,UserRound} from "lucide-react";
 import {Link,NavLink,useLocation} from "react-router-dom";
 import OnlinePresence from "./OnlinePresence";
 
 const labels={
-  uk:{profile:"Можливості",needs:"Потреби",chat:"Чат",home:"Головна",nav:"Головна навігація",goHome:"На головну",myPage:"Моя сторінка"},
-  en:{profile:"Opportunities",needs:"Needs",chat:"Chat",home:"Home",nav:"Main navigation",goHome:"Go home",myPage:"My page"}
+  uk:{profile:"Можливості",needs:"Потреби",messages:"Повідомлення",home:"Головна",nav:"Головна навігація",goHome:"На головну",myPage:"Моя сторінка"},
+  en:{profile:"Opportunities",needs:"Needs",messages:"Messages",home:"Home",nav:"Main navigation",goHome:"Go home",myPage:"My page"}
 };
 
 function copy(lang){return labels[lang]||labels.uk;}
 
-export default function Header({lang,setLang}){
+export default function Header({lang,setLang,inboxUnread=0}){
   const location=useLocation();
   const l=copy(lang);
   const items=[
     {to:"/needs",label:l.needs,icon:HeartHandshake},
     {to:"/profile",label:l.profile,icon:IdCard},
-    {to:"/chat",label:l.chat,icon:MessageCircleMore}
+    {to:"/messages",label:l.messages,icon:MessagesSquare,badge:inboxUnread}
   ];
 
   return <header className="atlasTopbarV3">
@@ -28,7 +28,7 @@ export default function Header({lang,setLang}){
       {items.map(item=>{
         const Icon=item.icon;
         return <NavLink key={item.to} to={item.to} className={({isActive})=>isActive?"active":""}>
-          <Icon size={18}/><span>{item.label}</span>
+          <Icon size={18}/><span>{item.label}</span>{item.badge>0&&<b className="navUnreadBadge">{item.badge>99?"99+":item.badge}</b>}
         </NavLink>;
       })}
     </nav>

@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from "react";
 import {ArrowRight,Check,CheckCircle2,Clock3,HeartHandshake,IdCard,MapPin,MessageCircle,PackageCheck,PackageSearch,RefreshCw,Search,Sparkles,X} from "lucide-react";
-import {Link} from "react-router-dom";
+import {Link,useNavigate} from "react-router-dom";
 import {loadMyPassport} from "../services/passportStore";
 import {searchPassportProfiles} from "../services/passportSearch";
 import {findNeedsForOpportunity} from "../services/needMatchStore";
@@ -57,6 +57,7 @@ function findActiveFlow(flows,opportunityId,needId=null){
 
 export default function MatchSearch({lang="uk"}){
   const uk=lang!=="en";
+  const navigate=useNavigate();
   const [loading,setLoading]=useState(true);
   const [searching,setSearching]=useState(false);
   const [mode,setMode]=useState("need");
@@ -151,8 +152,9 @@ export default function MatchSearch({lang="uk"}){
     try{
       const selectedNeed=activeNeeds.find(value=>value.id===selectedNeedId);
       const needText=selectedNeed?needQuery(selectedNeed,uk):query.trim();
-      const result=await startOpportunityRequest({opportunityId:item.opportunity_id,needId:selectedNeedId||null,message:uk?`Atlas знайшов збіг. Мені потрібно: ${needText}. Хочу почати вирішення.`:`Atlas found a match. I need: ${needText}. I want to start solving it.`});
+      const result=await startOpportunityRequest({opportunityId:item.opportunity_id,needId:selectedNeedId||null,requesterPassportId:passport?.id||null,subject:item.headline||item.name||needText,message:uk?`Atlas знайшов збіг. Мені потрібно: ${needText}. Хочу почати вирішення.`:`Atlas found a match. I need: ${needText}. I want to start solving it.`});
       await reloadFlows();
+      if(result?.request?.id){navigate(`/messages?thread=${result.request.id}`);return}
       setNotice(result.duplicate?(uk?"Цей збіг уже в активному вирішенні.":"This match is already being solved."):(uk?"✓ Рішення запущено. Тепер Atlas веде його до завершення.":"✓ Solution started. Atlas will now guide it to completion."));
     }catch(cause){setError(String(cause?.message||cause||"solution-start-failed"))}finally{setFlowBusy("")}
   }
@@ -165,6 +167,7 @@ export default function MatchSearch({lang="uk"}){
     try{
       const result=await offerOpportunityToNeed({opportunityId:selectedOpportunityId,needId:item.need_id});
       await reloadFlows();
+      if(result?.request?.id){navigate(`/messages?thread=${result.request.id}`);return}
       setNotice(result.duplicate?(uk?"Ця пропозиція вже активна.":"This offer is already active."):(uk?"✓ Пропозицію допомоги надіслано. Atlas чекатиме відповідь власника потреби.":"✓ Help offer sent. Atlas will wait for the need owner's response."));
     }catch(cause){setError(String(cause?.message||cause||"offer-failed"))}finally{setFlowBusy("")}
   }
@@ -203,6 +206,7 @@ export default function MatchSearch({lang="uk"}){
           <div className="solutionFlowTop"><div><span className="matchFoundBadge">{flow.role==="provider"?(uk?"Я НАДАЮ":"I PROVIDE"):(uk?"МОЯ ПОТРЕБА":"MY NEED")}</span><strong>{title}</strong>{needText&&<small>{uk?"Потреба":"Need"}: {needText}</small>}{counterpart?.display_name&&<small><MapPin size={13}/>{counterpart.city||"Atlas"} · {counterpart.display_name}</small>}</div><b className={`flowStatus flow-${flow.status}`}>{flowStatus(flow,uk)}</b></div>
           {!closed&&<div className="flowSteps">{steps.map((label,index)=><div className={index+1<=stage?"done":""} key={label}><span>{index+1<stage?<Check size={13}/>:index+1}</span><small>{label}</small></div>)}</div>}
           <div className="flowActions">
+            <Link className="matchAction secondaryAction" to={`/messages?thread=${flow.id}`}><MessageCircle size={16}/>{uk?"Повідомлення":"Messages"}{Number(flow.unread_count)>0?` · ${flow.unread_count}`:""}</Link>
             {flow.status==="pending"&&!flow.is_initiator&&<><button className="matchAction actionButton" disabled={flowBusy===flow.id} onClick={()=>flowAction(flow,"accept")}><CheckCircle2 size={16}/>{uk?"Прийняти":"Accept"}</button><button className="matchAction secondaryAction actionButton" disabled={flowBusy===flow.id} onClick={()=>flowAction(flow,"decline")}><X size={16}/>{uk?"Відхилити":"Decline"}</button></>}
             {flow.status==="pending"&&flow.is_initiator&&<button className="matchAction secondaryAction actionButton" disabled={flowBusy===flow.id} onClick={()=>flowAction(flow,"cancel")}><X size={16}/>{uk?"Скасувати":"Cancel"}</button>}
             {["accepted","provided"].includes(flow.status)&&flow.chat_hash&&<Link className="matchAction" to={`/chat${flow.chat_hash}`}><MessageCircle size={16}/>{uk?"Відкрити кімнату":"Open room"}</Link>}
@@ -241,18 +245,18 @@ export default function MatchSearch({lang="uk"}){
         const existing=item.opportunity_id?findActiveFlow(flows,item.opportunity_id,selectedNeedId||null):null;
         return <article className="matchResultCard" key={`${item.slug}-${item.opportunity_id||item.headline}`}>
           <div className="matchResultCopy"><span className="matchFoundBadge">{uk?"МОЖЛИВІСТЬ":"OPPORTUNITY"}</span><strong>{item.headline||item.name}</strong><small>{item.city&&<><MapPin size={13}/>{item.city}</>} {item.name&&` · ${item.name}`}</small>{existing&&<b className={`resultFlowStatus flow-${existing.status}`}>{resultStatus(existing,uk)}</b>}</div>
-          {item.opportunity_id?(existing?<button className="matchAction actionButton matchLockedAction" type="button" disabled><CheckCircle2 size={16}/>{resultStatus(existing,uk)}</button>:<button className="matchAction actionButton" disabled={flowBusy===item.opportunity_id} onClick={()=>startRequest(item)}>{flowBusy===item.opportunity_id?(uk?"Запускаю…":"Starting…"):(uk?"Почати вирішення":"Start solving")}<ArrowRight size={16}/></button>):<Link className="matchAction secondaryAction" to={`/p/${item.slug}`}>{uk?"Відкрити паспорт":"Open Passport"}<ArrowRight size={16}/></Link>}
+          {item.opportunity_id?(existing?<Link className="matchAction secondaryAction" to={`/messages?thread=${existing.id}`}><MessageCircle size={16}/>{uk?"Відкрити розмову":"Open conversation"}</Link>:<button className="matchAction actionButton" disabled={flowBusy===item.opportunity_id} onClick={()=>startRequest(item)}>{flowBusy===item.opportunity_id?(uk?"Запускаю…":"Starting…"):(uk?"Написати й почати":"Message and start")}<ArrowRight size={16}/></button>):<Link className="matchAction" to={`/p/${item.slug}?contact=1&need=${encodeURIComponent(query.trim())}`}><MessageCircle size={16}/>{uk?"Написати":"Message"}<ArrowRight size={16}/></Link>}
         </article>;
       })}
       {mode==="opportunity"&&results.map(item=>{
         const existing=findActiveFlow(flows,selectedOpportunityId,item.need_id);
         return <article className="matchResultCard" key={item.need_id}>
           <div className="matchResultCopy"><span className="matchFoundBadge needBadge">{uk?"ПОТРЕБА":"NEED"}</span><strong>{needLabel(item,uk)}</strong><small>{item.city&&<><MapPin size={13}/>{item.city}</>} {item.display_name&&` · ${item.display_name}`} {item.needed_until&&` · ${uk?"до":"until"} ${formatDate(item.needed_until,uk)}`}</small>{item.coverage==="full"&&<em>{uk?"Вашої кількості достатньо для цієї потреби":"Your available quantity can fully cover this need"}</em>}{item.coverage==="partial"&&<em>{uk?"Можливе часткове покриття потреби":"This opportunity may partially cover the need"}</em>}{existing&&<b className={`resultFlowStatus flow-${existing.status}`}>{resultStatus(existing,uk)}</b>}</div>
-          {existing?<button className="matchAction actionButton matchLockedAction" type="button" disabled><CheckCircle2 size={16}/>{resultStatus(existing,uk)}</button>:<button className="matchAction actionButton" disabled={flowBusy===item.need_id} onClick={()=>sendOffer(item)}>{flowBusy===item.need_id?(uk?"Надсилаю…":"Sending…"):(uk?"Запропонувати допомогу":"Offer help")}<ArrowRight size={16}/></button>}
+          {existing?<Link className="matchAction secondaryAction" to={`/messages?thread=${existing.id}`}><MessageCircle size={16}/>{uk?"Відкрити розмову":"Open conversation"}</Link>:<button className="matchAction actionButton" disabled={flowBusy===item.need_id} onClick={()=>sendOffer(item)}>{flowBusy===item.need_id?(uk?"Надсилаю…":"Sending…"):(uk?"Запропонувати допомогу":"Offer help")}<ArrowRight size={16}/></button>}
         </article>;
       })}
     </section>
 
-    <div className="matchPrivacy"><Clock3 size={14}/>{uk?"Статус активного запиту оновлюється автоматично. Після прийняття Atlas відкриває тимчасову кімнату для домовленості.":"Active request status refreshes automatically. After acceptance, Atlas opens a temporary room for coordination."}</div>
+    <div className="matchPrivacy"><Clock3 size={14}/>{uk?"Усі звернення і відповіді зберігаються в «Повідомленнях». Після прийняття можна також відкрити захищену кімнату для дзвінка.":"All requests and replies stay in Messages. After acceptance, you can also open a secure room for a call."}</div>
   </section></main>;
 }

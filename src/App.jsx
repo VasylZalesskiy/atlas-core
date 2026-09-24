@@ -8,6 +8,7 @@ import SolutionNavigation from "./components/SolutionNavigation";
 import Solution from "./pages/Solution";
 import PilotGate from "./components/PilotGate";
 import i18n from "./i18n";
+import {loadSolutionFlows} from "./services/solutionFlowStore";
 
 const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBridge"));
 const VoicePrivacyControl=lazy(()=>import("./components/VoicePrivacyControl"));
@@ -16,6 +17,7 @@ const MobileHome=lazy(()=>import("./components/MobileHome"));
 const Profile=lazy(()=>import("./pages/Profile"));
 const PublicPassport=lazy(()=>import("./pages/PublicPassport"));
 const Chat=lazy(()=>import("./pages/Chat"));
+const Messages=lazy(()=>import("./pages/Messages"));
 const Market=lazy(()=>import("./pages/Market"));
 const Requests=lazy(()=>import("./pages/Requests"));
 const Needs=lazy(()=>import("./pages/Needs"));
@@ -51,6 +53,7 @@ function ResponsiveHome({t,lang}){
 
 export default function App(){
   const [backgroundReady,setBackgroundReady]=useState(false);
+  const [inboxUnread,setInboxUnread]=useState(0);
   const [lang,setLangState]=useState(()=>normalizeLanguage(i18n.resolvedLanguage||i18n.language));
   const setLang=next=>{
     const normalized=normalizeLanguage(next);
@@ -75,6 +78,31 @@ export default function App(){
   },[]);
 
   useEffect(()=>{
+    if(!backgroundReady||catalogAdminRoute)return;
+    let alive=true;
+    let busy=false;
+    const refresh=async()=>{
+      if(busy||!alive||document.visibilityState==="hidden")return;
+      busy=true;
+      try{
+        const flows=await loadSolutionFlows();
+        if(alive)setInboxUnread((flows||[]).reduce((sum,item)=>sum+Number(item.unread_count||0),0));
+      }catch{}finally{busy=false}
+    };
+    const onInbox=event=>{
+      const value=Number(event?.detail?.unread);
+      if(Number.isFinite(value))setInboxUnread(value);
+      else refresh();
+    };
+    const onVisible=()=>refresh();
+    refresh();
+    const timer=window.setInterval(refresh,15000);
+    window.addEventListener("atlas:inbox-changed",onInbox);
+    document.addEventListener("visibilitychange",onVisible);
+    return()=>{alive=false;window.clearInterval(timer);window.removeEventListener("atlas:inbox-changed",onInbox);document.removeEventListener("visibilitychange",onVisible)};
+  },[backgroundReady,catalogAdminRoute]);
+
+  useEffect(()=>{
     const sync=lng=>setLangState(normalizeLanguage(lng));
     i18n.on("languageChanged",sync);
     return ()=>i18n.off("languageChanged",sync);
@@ -88,7 +116,7 @@ export default function App(){
   return <>
     <Suspense fallback={<RouteLoader/>}>
       {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
-        <Header lang={lang} setLang={setLang}/>
+        <Header lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>
         {backgroundReady&&<Suspense fallback={null}><MatchNotificationBridge lang={lang}/></Suspense>}
         {solutionRoute&&<SolutionNavigation lang={lang}/>}
         {chatRoute&&<Suspense fallback={null}><VoicePrivacyControl/></Suspense>}
@@ -99,6 +127,7 @@ export default function App(){
           <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
           <Route path="/share" element={<ShareApp lang={lang}/>}/>
           <Route path="/requests" element={<Requests lang={lang}/>}/>
+          <Route path="/messages" element={<Messages lang={lang}/>}/>
           <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
           <Route path="/groups" element={<Groups lang={lang}/>}/>
           <Route path="/groups/:groupId" element={<GroupPage lang={lang}/>}/>
@@ -108,7 +137,7 @@ export default function App(){
           <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
           <Route path="*" element={<Navigate to="/" replace/>}/>
         </Routes>
-        <BottomNav lang={lang}/>
+        <BottomNav lang={lang} inboxUnread={inboxUnread}/>
         <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
       </PilotGate>}
     </Suspense>

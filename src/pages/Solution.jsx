@@ -2,7 +2,7 @@ import {useEffect,useMemo,useRef,useState} from "react";
 import {Link,useLocation,useSearchParams} from "react-router-dom";
 import {
   ArrowLeft,Check,Clock3,ExternalLink,Globe2,MapPin,Navigation,
-  Phone,RefreshCw,Search,UserRound
+  MessageCircle,Phone,RefreshCw,Search,UserRound
 } from "lucide-react";
 import {createFallbackPlan,createPassportSeedPlan} from "../services/atlasBrain";
 import {searchPassportProfiles} from "../services/passportSearch";
@@ -73,7 +73,7 @@ function normalizeSteps(plan,task,lang){
   }));
 }
 
-function passportCandidate(profile,lang){
+function passportCandidate(profile,lang,task=""){
   const priceValue=profile.price_value==null?"":String(profile.price_value);
   const priceUnit=profile.price_unit||"";
   const currency=profile.currency||"UAH";
@@ -85,6 +85,11 @@ function passportCandidate(profile,lang){
       :paymentType==="negotiable"
         ?(lang==="uk"?"За домовленістю":"Negotiable")
         :(lang==="uk"?"Безкоштовно":"Free");
+  const passportUrl=profile.slug?`/p/${profile.slug}`:"";
+  const contactParams=new URLSearchParams();
+  if(profile.opportunity_id)contactParams.set("opportunity",profile.opportunity_id);
+  else contactParams.set("contact","1");
+  if(task)contactParams.set("need",task);
   return {
     kind:"passport",
     id:profile.slug||profile.name,
@@ -92,7 +97,10 @@ function passportCandidate(profile,lang){
     title:profile.headline||profile.name||(lang==="uk"?"Можливість користувача Atlas":"Atlas opportunity"),
     description:profile.can_help||profile.can_share||"",
     city:profile.city||"",
-    passportUrl:profile.slug?`/p/${profile.slug}`:"",
+    passportUrl,
+    contactUrl:passportUrl?`${passportUrl}?${contactParams.toString()}`:"",
+    passportId:profile.passport_id||"",
+    opportunityId:profile.opportunity_id||"",
     matchScore:Number(profile.score)||0,
     matchedTerms:Array.isArray(profile.matched)?profile.matched:[],
     paymentType,
@@ -216,7 +224,10 @@ function CandidateAction({candidate,origin,lang}){
   const [confirmBusy,setConfirmBusy]=useState(false);
   const [confirmDone,setConfirmDone]=useState(false);
   if(candidate.kind==="passport"&&candidate.passportUrl){
-    return <a className="chainAction" href={candidate.passportUrl}><UserRound size={16}/>{lang==="uk"?"Відкрити Паспорт":"Open Passport"}</a>;
+    return <div className="chainActions">
+      <Link className="chainAction" to={candidate.contactUrl||candidate.passportUrl}><MessageCircle size={16}/>{lang==="uk"?"Написати":"Message"}</Link>
+      <Link className="chainAction secondaryAction" to={candidate.passportUrl}><UserRound size={16}/>{lang==="uk"?"Паспорт":"Passport"}</Link>
+    </div>;
   }
   if(candidate.kind==="passport_history"){
     async function confirmAvailability(){
@@ -584,7 +595,7 @@ ${initialWhere}`;
 
   const passportsChecked=Boolean(activeTask&&!passportLoading&&passportCheckedGoal===passportRunKey);
   const exactPassportFound=useMemo(()=>passportGroups.some(group=>(group.matches||[]).some(match=>{
-    return passportMatchesTask(passportCandidate(match,lang),activeTask);
+    return passportMatchesTask(passportCandidate(match,lang,activeTask),activeTask);
   })),[passportGroups,lang,activeTask]);
 
   useEffect(()=>{
@@ -879,15 +890,15 @@ ${initialWhere}`;
 
   const passportByStep=useMemo(()=>new Map(passportGroups.map(group=>[
     group.stepId,
-    exactPassportFound&&group.matches[0]?passportCandidate(group.matches[0],lang):null
-  ])),[passportGroups,lang,exactPassportFound]);
+    exactPassportFound&&group.matches[0]?passportCandidate(group.matches[0],lang,activeTask):null
+  ])),[passportGroups,lang,activeTask,exactPassportFound]);
   const nearbyByStep=useMemo(()=>new Map(nearbyGroups.map(group=>[group.stepId,group.candidates||[]])),[nearbyGroups]);
   const internetByStep=useMemo(()=>new Map(internetGroups.map(group=>[group.stepId,group.candidates||[]])),[internetGroups]);
   const rankedCandidates=useMemo(()=>{
     const candidates=[
       plannedAnswerCandidate,
       plannedDirectCandidate,
-      ...(exactPassportFound?passportGroups.flatMap(group=>group.matches.slice(0,2).map(match=>passportCandidate(match,lang))):[]),
+      ...(exactPassportFound?passportGroups.flatMap(group=>group.matches.slice(0,2).map(match=>passportCandidate(match,lang,activeTask))):[]),
       ...(!exactPassportFound?passportGroups.flatMap(group=>(group.historicalMatches||[]).slice(0,2).map(match=>historicalPassportCandidate(match,lang))):[]),
       ...nearbyGroups.flatMap(group=>group.candidates||[]),
       ...internetGroups.flatMap(group=>group.candidates||[]),

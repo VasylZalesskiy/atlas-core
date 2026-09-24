@@ -22,8 +22,12 @@ export async function loadSolutionFlows(){
   return Array.isArray(data.flows)?data.flows.map(decodeFlow):[];
 }
 
-export async function startOpportunityRequest({opportunityId,needId=null,message=""}){
-  return invoke("request",{opportunityId,needId,message});
+export async function startOpportunityRequest({opportunityId,needId=null,requesterPassportId=null,subject="",message=""}){
+  return invoke("request",{opportunityId,needId,requesterPassportId,subject,message});
+}
+
+export async function startPassportConversation({passportId,requesterPassportId=null,subject="",message=""}){
+  return invoke("passport_request",{passportId,requesterPassportId,subject,message});
 }
 
 export async function offerOpportunityToNeed({opportunityId,needId}){
@@ -44,4 +48,16 @@ export async function completeSolutionFlow(requestId){
 
 export async function cancelSolutionFlow(requestId){
   return invoke("cancel",{requestId});
+}
+
+export async function loadSolutionThread(requestId){
+  return invoke("thread",{requestId});
+}
+
+export async function sendSolutionMessage(requestId,message){
+  return invoke("message",{requestId,message});
+}
+
+export async function markSolutionThreadRead(requestId){
+  return invoke("mark_read",{requestId});
 }
