@@ -226,10 +226,10 @@ export default function Profile({lang="uk"}){
         <h1>Що можете запропонувати?</h1>
         <div className="passportMobileIdentity"><span className="passportMobileAvatar">{form.displayName?.trim().charAt(0).toUpperCase()||"А"}</span><span><strong>{form.displayName}{form.city?` · ${form.city}`:""}</strong><small>Моя сторінка Atlas</small></span><button type="button" className="passportEditName" onClick={()=>{setNameDraft(form.displayName);openMobileView("rename")}} aria-label="Редагувати назву сторінки"><Pencil size={16}/><span>Редагувати</span></button></div>
         <div className="passportQuickGrid">
-          <button type="button" onClick={()=>chooseOpportunityGroup("have")}><span className="quickIcon have"><Package size={23}/></span><strong>Я маю</strong><small>Товар або річ</small></button>
-          <button type="button" onClick={()=>chooseOpportunityGroup("sell")}><span className="quickIcon sell"><Tag size={23}/></span><strong>Продам</strong><small>Із ціною</small></button>
           <button type="button" onClick={()=>chooseOpportunityGroup("professional")}><span className="quickIcon skill"><Sparkles size={23}/></span><strong>Вмію</strong><small>Навички й послуги</small></button>
           <button type="button" onClick={()=>chooseOpportunityGroup("help")}><span className="quickIcon help"><HandHeart size={23}/></span><strong>Допоможу</strong><small>Безкоштовно</small></button>
+          <button type="button" onClick={()=>chooseOpportunityGroup("have")}><span className="quickIcon have"><Package size={23}/></span><strong>Я маю</strong><small>Товар або річ</small></button>
+          <button type="button" onClick={()=>chooseOpportunityGroup("sell")}><span className="quickIcon sell"><Tag size={23}/></span><strong>Продам</strong><small>Із ціною</small></button>
         </div>
         <button type="button" className="passportMoreButton" aria-expanded={showMoreGroups} onClick={()=>setShowMoreGroups(value=>!value)}><Plus size={18}/>Інші категорії<ChevronRight size={19}/></button>
         {showMoreGroups&&<div className="passportMoreGroups">{opportunityGroups.filter(group=>!["have","sell","professional","help"].includes(group.value)).map(group=><button type="button" key={group.value} onClick={()=>chooseOpportunityGroup(group.value)}>{group.label}<ChevronRight size={16}/></button>)}</div>}
