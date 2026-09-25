@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from "react";
 import {ArrowRight,Check,CheckCircle2,Clock3,HeartHandshake,IdCard,MapPin,MessageCircle,PackageCheck,PackageSearch,RefreshCw,Search,Sparkles,X} from "lucide-react";
-import {Link,useNavigate} from "react-router-dom";
+import {Link,useNavigate,useSearchParams} from "react-router-dom";
 import {loadMyPassport} from "../services/passportStore";
 import {searchPassportProfiles} from "../services/passportSearch";
 import {findNeedsForOpportunity} from "../services/needMatchStore";
@@ -10,8 +10,8 @@ import "../styles/matchSearch.css";
 const needNames={tomatoes:{uk:"Томати",en:"Tomatoes"}};
 const needAliases={tomatoes:["томати","томат","помідори","помідор","tomatoes","tomato"]};
 const flowSteps={
-  uk:["Збіг","Запит","Домовились","Виконано","Завершено"],
-  en:["Match","Request","Agreed","Done","Closed"]
+  uk:["Рішення","Запит","Домовились","Виконано","Завершено"],
+  en:["Solution","Request","Agreed","Done","Closed"]
 };
 const activeStatuses=new Set(["pending","accepted","provided"]);
 
@@ -58,9 +58,13 @@ function findActiveFlow(flows,opportunityId,needId=null){
 export default function MatchSearch({lang="uk"}){
   const uk=lang!=="en";
   const navigate=useNavigate();
+  const [searchParams]=useSearchParams();
+  const requestedMode=searchParams.get("mode")==="opportunity"?"opportunity":"need";
+  const requestedNeedId=searchParams.get("need")||"";
+  const requestedOpportunityId=searchParams.get("opportunity")||"";
   const [loading,setLoading]=useState(true);
   const [searching,setSearching]=useState(false);
-  const [mode,setMode]=useState("need");
+  const [mode,setMode]=useState(()=>requestedMode);
   const [passport,setPassport]=useState(null);
   const [ownSlugs,setOwnSlugs]=useState([]);
   const [needs,setNeeds]=useState([]);
@@ -102,8 +106,11 @@ export default function MatchSearch({lang="uk"}){
       setPassport(data.passport||null);setOwnSlugs((data.passports||[]).map(item=>item.slug));setNeeds(data.needs||[]);setOpportunities(data.opportunities||[]);setFlows(flowList||[]);
       const firstNeed=(data.needs||[]).find(item=>item.status==="not_received");
       const firstOpportunity=(data.opportunities||[]).find(item=>item.is_active);
-      if(firstNeed){setSelectedNeedId(firstNeed.id);setQuery(needQuery(firstNeed,uk))}
-      if(firstOpportunity)setSelectedOpportunityId(firstOpportunity.id);
+      const initialNeed=(data.needs||[]).find(item=>item.id===requestedNeedId&&item.status==="not_received")||firstNeed;
+      const initialOpportunity=(data.opportunities||[]).find(item=>item.id===requestedOpportunityId&&item.is_active)||firstOpportunity;
+      setMode(requestedMode);
+      if(initialNeed){setSelectedNeedId(initialNeed.id);setQuery(needQuery(initialNeed,uk))}
+      if(initialOpportunity)setSelectedOpportunityId(initialOpportunity.id);
     }).catch(cause=>{if(alive)setError(String(cause?.message||cause||"Помилка"))}).finally(()=>{if(alive)setLoading(false)});
     return()=>{alive=false};
   },[uk]);
@@ -153,10 +160,10 @@ export default function MatchSearch({lang="uk"}){
     try{
       const selectedNeed=activeNeeds.find(value=>value.id===selectedNeedId);
       const needText=selectedNeed?needQuery(selectedNeed,uk):query.trim();
-      const result=await startOpportunityRequest({opportunityId:item.opportunity_id,needId:selectedNeedId||null,requesterPassportId:passport?.id||null,subject:item.headline||item.name||needText,message:uk?`Atlas знайшов збіг. Мені потрібно: ${needText}. Хочу почати вирішення.`:`Atlas found a match. I need: ${needText}. I want to start solving it.`});
+      const result=await startOpportunityRequest({opportunityId:item.opportunity_id,needId:selectedNeedId||null,requesterPassportId:passport?.id||null,subject:item.headline||item.name||needText,message:uk?`Я знайшов можливе рішення в Atlas. Мені потрібно: ${needText}. Хочу почати вирішення.`:`I found a possible solution in Atlas. I need: ${needText}. I want to start solving it.`});
       await reloadFlows();
       if(result?.request?.id){navigate(`/messages?thread=${result.request.id}`);return}
-      setNotice(result.duplicate?(uk?"Цей збіг уже в активному вирішенні.":"This match is already being solved."):(uk?"✓ Рішення запущено. Тепер Atlas веде його до завершення.":"✓ Solution started. Atlas will now guide it to completion."));
+      setNotice(result.duplicate?(uk?"Це рішення вже в активному вирішенні.":"This solution is already being solved."):(uk?"✓ Рішення запущено. Тепер Atlas веде його до завершення.":"✓ Solution started. Atlas will now guide it to completion."));
     }catch(cause){setError(String(cause?.message||cause||"solution-start-failed"))}finally{setFlowBusy("")}
   }
 
@@ -224,7 +231,7 @@ export default function MatchSearch({lang="uk"}){
     {(error||notice)&&<div className={error?"matchError":"matchNotice"} role="status">{error||notice}</div>}
 
     <div className="matchMode" role="tablist">
-      <button type="button" className={mode==="need"?"active":""} onClick={()=>chooseMode("need")}><HeartHandshake size={20}/><span><strong>{uk?"У мене є потреба":"I have a need"}</strong><small>{uk?"Знайти можливості":"Find opportunities"}</small></span></button>
+      <button type="button" className={mode==="need"?"active":""} onClick={()=>chooseMode("need")}><HeartHandshake size={20}/><span><strong>{uk?"У мене є потреба":"I have a need"}</strong><small>{uk?"Знайти рішення":"Find a solution"}</small></span></button>
       <button type="button" className={mode==="opportunity"?"active":""} onClick={()=>chooseMode("opportunity")}><IdCard size={20}/><span><strong>{uk?"У мене є можливість":"I have an opportunity"}</strong><small>{uk?"Знайти потреби":"Find needs"}</small></span></button>
     </div>
 
@@ -232,14 +239,14 @@ export default function MatchSearch({lang="uk"}){
       <div className="manualMatchTitle"><Search size={20}/><div><strong>{uk?"Що шукаємо?":"What are we looking for?"}</strong><small>{uk?"Оберіть свою потребу або напишіть запит вручну.":"Choose your need or type a request manually."}</small></div></div>
       {activeNeeds.length>0&&<label><span>{uk?"Моя активна потреба":"My active need"}</span><select value={selectedNeedId} onChange={event=>chooseNeed(event.target.value)}><option value="">{uk?"Написати вручну":"Type manually"}</option>{activeNeeds.map(item=><option value={item.id} key={item.id}>{needLabel(item,uk)}</option>)}</select></label>}
       <label><span>{uk?"Пошук":"Search"}</span><input value={query} onChange={event=>{setQuery(event.target.value);setSelectedNeedId("")}} placeholder={uk?"Наприклад: потрібно 5 кг томатів":"For example: need 5 kg of tomatoes"}/></label>
-      <button className="matchSearchButton" disabled={searching||!query.trim()}><Search size={19}/>{searching?(uk?"Шукаю…":"Searching…"):(uk?"Знайти можливості":"Find opportunities")}</button>
+      <button className="matchSearchButton" disabled={searching||!query.trim()}><Search size={19}/>{searching?(uk?"Шукаю…":"Searching…"):(uk?"Знайти рішення":"Find a solution")}</button>
     </form>:<div className="manualMatchBox">
       <div className="manualMatchTitle"><PackageSearch size={20}/><div><strong>{uk?"Кому це потрібно?":"Who needs this?"}</strong><small>{uk?"Оберіть свою активну можливість і знайдіть актуальні потреби.":"Choose your active opportunity and find current needs."}</small></div></div>
       {activeOpportunities.length?<><label><span>{uk?"Моя можливість":"My opportunity"}</span><select value={selectedOpportunityId} onChange={event=>setSelectedOpportunityId(event.target.value)}>{activeOpportunities.map(item=><option value={item.id} key={item.id}>{item.text}</option>)}</select></label><button className="matchSearchButton" type="button" disabled={searching||!selectedOpportunityId} onClick={searchNeeds}><Search size={19}/>{searching?(uk?"Шукаю…":"Searching…"):(uk?"Знайти потреби":"Find needs")}</button></>:<div className="matchEmptyInline">{uk?"Спочатку додайте хоча б одну активну можливість у Паспорт.":"First add at least one active opportunity to your Passport."}<Link to="/profile">{uk?"Додати можливість":"Add opportunity"}<ArrowRight size={15}/></Link></div>}
     </div>}
 
     <section className="matchResults">
-      <div className="matchResultsTitle"><div><Sparkles size={20}/><strong>{uk?"Знайдені збіги":"Found matches"}</strong></div>{searched&&!searching&&<span>{results.length}</span>}</div>
+      <div className="matchResultsTitle"><div><Sparkles size={20}/><strong>{uk?"Можливі рішення":"Possible solutions"}</strong></div>{searched&&!searching&&<span>{results.length}</span>}</div>
       {!searched&&!searching&&<div className="matchBlank">{uk?"Запустіть пошук — Atlas покаже актуальні збіги.":"Run a search and Atlas will show current matches."}</div>}
       {searched&&!searching&&results.length===0&&<div className="matchBlank">{uk?"Зараз збігів не знайдено. Можна змінити запит і перевірити ще раз.":"No matches found right now. Change the query and try again."}</div>}
       {mode==="need"&&results.map(item=>{

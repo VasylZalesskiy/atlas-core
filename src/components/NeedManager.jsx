@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useState} from "react";
-import {ArrowLeft,CalendarRange,Check,ChevronRight,Clock3,HeartHandshake,PackageCheck,Pencil,Plus,Scale,Trash2,X} from "lucide-react";
+import {ArrowLeft,CalendarRange,Check,ChevronRight,Clock3,HeartHandshake,PackageCheck,Pencil,Plus,Scale,Search,Trash2,X} from "lucide-react";
 import {Link,useSearchParams} from "react-router-dom";
 import {addMyNeed,deleteMyNeed,updateMyNeedStatus} from "../services/passportStore";
 import {loadNeedCatalog} from "../services/catalogStore";
@@ -210,6 +210,7 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
           <div className="needRecordProduct"><span aria-hidden="true">{catalogItem?.icon||"📦"}</span><div><small>{String(groupName).toLocaleUpperCase(uk?"uk-UA":"en-GB")}</small><h4>{itemName}</h4></div></div>
           <div className="needRecordMeta"><div><Scale size={16}/><span><small>{uk?"Кількість":"Quantity"}</small><strong>{Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} {item.unit}</strong></span></div><div><CalendarRange size={16}/><span><small>{uk?"Актуальність":"Validity"}</small><strong>{formatDateRange(item.needed_from,item.needed_until,uk)}</strong></span></div></div>
           <div className="needRecordActions">
+            {!received&&<Link className="needArchiveAction needFindSolutionAction" to={`/matches?mode=need&need=${item.id}`}><Search size={16}/>{uk?"Знайти рішення":"Find a solution"}</Link>}
             <button type="button" className="needArchiveAction" disabled={busyId===item.id} onClick={()=>changeStatus(item,received?"not_received":"received")}>{received?<><Clock3 size={16}/>{uk?"Повернути":"Restore"}</>:<><PackageCheck size={16}/>{uk?"Отримано · в архів":"Received · archive"}</>}</button>
             {deleting?<div className="needDeleteConfirm"><span>{uk?"Точно видалити?":"Delete it?"}</span><button type="button" disabled={busyId===item.id} onClick={()=>removeNeed(item.id)}><Check size={16}/>{uk?"Так":"Yes"}</button><button type="button" onClick={()=>setConfirmDeleteId("")}><X size={16}/></button></div>:<button className="needDeleteButton" type="button" title={uk?"Видалити потребу":"Delete need"} onClick={()=>setConfirmDeleteId(item.id)}><Trash2 size={18}/></button>}
           </div>
