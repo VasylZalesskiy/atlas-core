@@ -1,5 +1,5 @@
 import {useEffect,useState} from "react";
-import {ArrowLeft,ArrowRight,LogOut,Share2,Smartphone} from "lucide-react";
+import {ArrowLeft,ArrowRight,LogOut,MessageCircle,Share2,Smartphone} from "lucide-react";
 import {Link,useLocation,useNavigate,useNavigationType} from "react-router-dom";
 import {loadAtlasAccounts,logoutAtlasAccount} from "../services/passportStore";
 import "../styles/navigationControls.css";
@@ -43,6 +43,7 @@ export default function NavigationControls({lang="uk"}){
       <button type="button" onClick={()=>navigate(1)} disabled={index>=furthest} aria-label={uk?"Вперед":"Forward"} title={uk?"Вперед":"Forward"}><ArrowRight size={19}/><span>{uk?"Вперед":"Forward"}</span></button>
     </div>
     <div className="atlasHistoryGroup atlasHistoryActions">
+      <Link to="/chat" aria-label={uk?"Чат":"Chat"} title={uk?"Чат":"Chat"}><MessageCircle size={19}/><span>{uk?"Чат":"Chat"}</span></Link>
       <button type="button" onClick={share} aria-label={uk?"Поділитися":"Share"} title={uk?"Поділитися":"Share"}><Share2 size={19}/><span>{uk?"Поділитися":"Share"}</span></button>
       <Link to="/share" aria-label={uk?"Atlas на телефон":"Atlas on phone"} title={uk?"Atlas на телефон":"Atlas on phone"}><Smartphone size={19}/><span>{uk?"На телефон":"On phone"}</span></Link>
       {hasAccount&&<button type="button" onClick={logout} disabled={leaving} aria-label={uk?"Вийти":"Sign out"} title={uk?"Вийти":"Sign out"}><LogOut size={19}/><span>{uk?"Вийти":"Sign out"}</span></button>}

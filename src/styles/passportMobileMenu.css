@@ -3,8 +3,8 @@
 .passportArchiveTabs button{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:8px 14px;border:1px solid #d9e7dc;border-radius:12px;background:#fff;color:#496252;font-weight:800;cursor:pointer}
 .passportArchiveTabs button.active{border-color:#0b874a;background:#e8f6ed;color:#087442}
 .passportArchiveTabs b{display:grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:50%;background:#e5efe8;font-size:11px}
-@media(max-width:760px){
   .passportAccountPanel.logged{padding:0;margin:0 auto 12px;gap:0;box-shadow:none}
+  .passportAccountPanel.logged{max-width:760px}
   .passportAccountMobileToggle{display:flex;align-items:center;gap:9px;width:100%;min-height:46px;padding:10px 14px;border:0;background:#fff;color:#12673d;font-weight:800;text-align:left}
   .passportAccountMobileToggle span{flex:1}
   .passportAccountMobileToggle svg:last-child{transition:transform .2s}
@@ -75,5 +75,5 @@
   .passportRenameScreen label{font-size:13px;font-weight:800;color:#344b3d}
   .passportRenameScreen input{width:100%;min-height:47px;padding:10px 12px;border:1px solid #d4e1d8;border-radius:11px;font:inherit}
   .passportRenameScreen .primary{min-height:47px;justify-content:center}
-}
 @media(max-width:420px){.passportMobileView-editor .opportunityPrice{grid-template-columns:1fr}.passportMobileView-editor .opportunityLocation{grid-template-columns:1fr 1fr}}
+@media(min-width:761px){.passportQuickGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.passportQuickGrid button{min-height:145px;padding:20px}.passportMobileMenu h1{font-size:30px}.passportMobileView-editor .opportunityEditor{padding:24px}}

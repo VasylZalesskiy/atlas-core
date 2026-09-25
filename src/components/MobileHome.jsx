@@ -1,10 +1,9 @@
 import {useEffect,useRef,useState} from "react";
-import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,LogOut,MapPin,MessageSquare,Search,Share2,Smartphone,X} from "lucide-react";
+import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,MessageSquare,Search,Smartphone,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
-import {ATLAS_SHARE_URL,atlasShareText} from "../services/shareApp";
 import {saveAtlasFeedback} from "../services/feedbackStore";
 import "../styles/mobilePilot.css";
 import "../styles/mobilePilotOverrides.css";
@@ -66,22 +65,6 @@ export default function MobileHome({lang="uk"}){
 
   function quick(value){setTask(value);window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
   function clearPhoto(){setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value=""}
-  function exitAtlas(){
-    try{window.close()}catch{}
-    window.setTimeout(()=>{
-      if(window.history.length>1)window.history.back();
-      else window.location.replace("about:blank");
-    },80);
-  }
-
-  async function shareAtlas(){
-    const text=atlasShareText(lang);
-    if(navigator.share){
-      try{await navigator.share({title:"Atlas",text,url:ATLAS_SHARE_URL});return}catch(error){if(error?.name==="AbortError")return}
-    }
-    try{await navigator.clipboard.writeText(ATLAS_SHARE_URL);alert(uk?"Посилання Atlas скопійовано":"Atlas link copied")}catch{window.prompt(uk?"Скопіюйте посилання":"Copy the link",ATLAS_SHARE_URL)}
-  }
-
   async function sendFeedback(event){
     event.preventDefault();
     if(feedbackBusy||feedback.trim().length<2)return;
@@ -118,15 +101,6 @@ export default function MobileHome({lang="uk"}){
 
 
   return <section className="mobilePilotHome">
-    <div className="mobilePilotTopRow">
-      <div className="mobilePilotStatusRow" aria-hidden="true"/>
-      <div className="mobilePilotTopActions">
-        <Link to="/share" aria-label={uk?"Встановити Atlas":"Install Atlas"}><Smartphone size={18}/></Link>
-        <button type="button" onClick={shareAtlas} aria-label={uk?"Поділитися Atlas":"Share Atlas"}><Share2 size={18}/></button>
-        <button className="mobilePilotExit" type="button" onClick={exitAtlas} aria-label={uk?"Вийти з Atlas":"Exit Atlas"}><LogOut size={17}/><span>{uk?"Вийти":"Exit"}</span></button>
-      </div>
-    </div>
-
     <div className="mobilePilotIntro">
       <span className="mobilePilotEyebrow">ATLAS · {uk?"ГОЛОВНА":"HOME"}</span>
       <h1>{uk?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task"}</h1>

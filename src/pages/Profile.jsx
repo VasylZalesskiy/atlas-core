@@ -72,6 +72,7 @@ export default function Profile({lang="uk"}){
   const [accounts,setAccounts]=useState([]),[passports,setPassports]=useState([]),[passport,setPassport]=useState(null),[activeAccountId,setActiveAccountId]=useState(null);
   const [opportunities,setOpportunities]=useState([]),[requests,setRequests]=useState([]),[catalog,setCatalog]=useState({groups:[],items:[]}),[availableGroups,setAvailableGroups]=useState([]);
   const [form,setForm]=useState({entityType:"person",displayName:"",city:"",contact:"",profession:"",skills:""}),[entry,setEntry]=useState(emptyEntry);
+  useEffect(()=>{if(mobileView!=="identity"&&passport)setEditingIdentity(false)},[mobileView,passport?.id]);
 
   const shareUrl=useMemo(()=>passport?.slug?window.location.origin+"/p/"+passport.slug:"",[passport?.slug]);
   const activeCount=opportunities.filter(i=>i.is_active&&!i.completedAt).length;
@@ -212,6 +213,7 @@ export default function Profile({lang="uk"}){
         <button type="button" className="passportMoreButton" aria-expanded={showMoreGroups} onClick={()=>setShowMoreGroups(value=>!value)}><Plus size={18}/>Інші категорії<ChevronRight size={19}/></button>
         {showMoreGroups&&<div className="passportMoreGroups">{opportunityGroups.filter(group=>!["have","sell","professional","help"].includes(group.value)).map(group=><button type="button" key={group.value} onClick={()=>chooseOpportunityGroup(group.value)}>{group.label}<ChevronRight size={16}/></button>)}</div>}
         <span className="passportMobileKicker passportMenuLabel">ВАШ ПАСПОРТ</span>
+        <button type="button" className="passportMenuRow" onClick={()=>{setEditingIdentity(true);openMobileView("identity")}}><span className="menuIcon"><Pencil size={20}/></span><span><strong>Мої дані</strong><small>Ім’я, місто та приватний контакт</small></span><ChevronRight size={20}/></button>
         <button type="button" className="passportMenuRow" onClick={()=>openMobileView("records")}><span className="menuIcon"><LayoutGrid size={20}/></span><span><strong>Мої записи</strong><small>{opportunities.length-archivedCount} актуальних · {archivedCount} в архіві</small></span><ChevronRight size={20}/></button>
         <Link className="passportMenuRow" to="/messages"><span className="menuIcon"><MessagesSquare size={20}/></span><span><strong>Повідомлення</strong><small>{pendingRequests.length?`${pendingRequests.length} нових звернень`:"Ваші розмови"}</small></span>{pendingRequests.length>0&&<b className="passportMenuBadge">{pendingRequests.length>99?"99+":pendingRequests.length}</b>}<ChevronRight size={20}/></Link>
       </div>}
