@@ -53,6 +53,22 @@
   .passportMobileBack{display:inline-flex;align-items:center;gap:7px;min-height:38px;margin:0 0 15px;padding:0 3px;border:0;background:transparent;color:#087944;font-size:13px;font-weight:800;cursor:pointer}
   .passportMobileBack svg{width:23px;height:23px;padding:4px;border-radius:50%;background:#eaf5ed}
   .passportPage .opportunityEditor .sectionTitle h2{margin-bottom:8px}
+  .passportMobileView-editor .opportunityEditor{padding:18px;border-radius:19px;box-shadow:0 8px 24px rgba(22,71,44,.05)}
+  .passportMobileView-editor .opportunityEditor .sectionTitle span{font-size:12px;letter-spacing:.06em}
+  .passportMobileView-editor .opportunityEditor .sectionTitle h2{margin:5px 0 20px;font-size:24px;line-height:1.2;color:#1b2d23}
+  .passportMobileView-editor .opportunityFields{gap:19px}
+  .passportMobileView-editor .opportunityFields label{gap:8px}
+  .passportMobileView-editor .opportunityFields label>span,.passportMobileView-editor .durationPicker legend,.passportMobileView-editor .opportunityVisibility legend{font-size:15px;line-height:1.35;color:#273d30;font-weight:800}
+  .passportMobileView-editor .opportunityFields input,.passportMobileView-editor .opportunityFields select,.passportMobileView-editor .opportunityFields textarea{min-height:50px;padding:12px 13px;border-radius:12px;font-size:16px;line-height:1.35;color:#1c2e23}
+  .passportMobileView-editor .opportunityFields textarea{min-height:112px;line-height:1.5}
+  .passportMobileView-editor .opportunityFields input::placeholder,.passportMobileView-editor .opportunityFields textarea::placeholder{color:#79867d;opacity:1}
+  .passportMobileView-editor .opportunityFields small,.passportMobileView-editor .opportunityVisibility small{font-size:12px;line-height:1.45;color:#65776b}
+  .passportMobileView-editor .durationPicker button{min-height:43px;padding:9px 14px;font-size:14px}
+  .passportMobileView-editor .opportunityVisibility{padding:16px;gap:12px}
+  .passportMobileView-editor .opportunityVisibility>select{width:100%;font-size:16px}
+  .passportMobileView-editor .opportunityPhotoButton{min-height:49px;font-size:15px}
+  .passportMobileView-editor .opportunityPrice{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:15px}
+  .passportMobileView-editor .addOpportunity{min-height:52px;margin-top:24px;font-size:16px;border-radius:13px}
   .passportMobileView-rename .passportRenameScreen{display:block}
   .passportRenameScreen h2{margin:0 0 20px;color:#192b22;font-size:23px}
   .passportRenameScreen form{display:grid;gap:12px;padding:18px;border:1px solid #dce8e0;border-radius:18px;background:#fff}
@@ -60,3 +76,4 @@
   .passportRenameScreen input{width:100%;min-height:47px;padding:10px 12px;border:1px solid #d4e1d8;border-radius:11px;font:inherit}
   .passportRenameScreen .primary{min-height:47px;justify-content:center}
 }
+@media(max-width:420px){.passportMobileView-editor .opportunityPrice{grid-template-columns:1fr}.passportMobileView-editor .opportunityLocation{grid-template-columns:1fr 1fr}}

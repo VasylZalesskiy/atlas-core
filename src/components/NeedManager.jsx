@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useState} from "react";
 import {ArrowLeft,CalendarRange,Check,ChevronRight,Clock3,HeartHandshake,PackageCheck,Pencil,Plus,Scale,Trash2,X} from "lucide-react";
-import {Link} from "react-router-dom";
+import {Link,useSearchParams} from "react-router-dom";
 import {addMyNeed,deleteMyNeed,updateMyNeedStatus} from "../services/passportStore";
 import {loadNeedCatalog} from "../services/catalogStore";
 import "../styles/needs.css";
@@ -34,6 +34,9 @@ function friendlyNeedError(error,uk){
 
 export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds,lang="uk"}){
   const uk=lang!=="en";
+  const [searchParams,setSearchParams]=useSearchParams();
+  const requestedView=searchParams.get("view");
+  const mobileView=["create","active","archive"].includes(requestedView)?requestedView:"menu";
   const [needs,setNeeds]=useState(()=>initialNeeds);
   const [groups,setGroups]=useState([]);
   const [catalogItems,setCatalogItems]=useState([]);
@@ -45,7 +48,6 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
   const [notice,setNotice]=useState("");
   const [error,setError]=useState("");
   const [showArchive,setShowArchive]=useState(false);
-  const [mobileView,setMobileView]=useState("menu");
 
   const activeGroups=useMemo(()=>groups.filter(group=>group.is_active!==false),[groups]);
   const activeItems=useMemo(()=>{
@@ -60,8 +62,10 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
   const archivedCount=needs.length-openCount;
   const visibleNeeds=needs.filter(item=>(item.status==="received")===showArchive);
 
-  function openView(view){setMobileView(view);setShowArchive(view==="archive");setError("");window.scrollTo({top:0,behavior:"auto"})}
+  function openView(view){setSearchParams(previous=>{const next=new URLSearchParams(previous);if(view==="menu")next.delete("view");else next.set("view",view);return next});setShowArchive(view==="archive");setError("");window.scrollTo({top:0,behavior:"auto"})}
   function openCreate(item){setForm(value=>({...value,groupKey:item.group_key,itemKey:item.item_key,unit:item.unit||"кг"}));openView("create")}
+
+  useEffect(()=>{if(mobileView==="archive")setShowArchive(true);else if(mobileView==="active")setShowArchive(false)},[mobileView]);
 
   useEffect(()=>{
     let alive=true;
