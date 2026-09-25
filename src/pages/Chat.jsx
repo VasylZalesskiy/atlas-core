@@ -508,9 +508,14 @@ export default function Chat(){
     if(!navigator.mediaDevices?.getUserMedia)throw new Error("microphone-unavailable");
     const current=localAudioRef.current;
     if(current?.getAudioTracks().some(track=>track.readyState==="live"))return current;
-    if(navigator.audioSession)navigator.audioSession.type="play-and-record";
     const stream=await navigator.mediaDevices.getUserMedia({video:false,audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     localAudioRef.current=stream;
+    // On phones, applying the call session after microphone capture lets the
+    // browser route the remote voice to the earpiece where supported.
+    if(navigator.audioSession){
+      try{navigator.audioSession.type="play-and-record";setAudioOutputName("Телефонний режим · автоматично")}
+      catch{setAudioOutputName("Автоматично")}
+    }else setAudioOutputName("Автоматично");
     refreshAudioOutputs().catch(()=>{});
     return stream;
   }
@@ -526,7 +531,7 @@ export default function Chat(){
   async function chooseAudioOutput(){
     const audio=remoteAudioRef.current;
     if(!audio?.setSinkId){
-      setError("Цей браузер сам керує розмовним і гучним динаміком.");
+      setError("На цьому телефоні аудіовихід вибирає браузер. Прикладіть телефон до вуха або перевірте керування звуком у системі.");
       return;
     }
     try{
@@ -798,7 +803,7 @@ export default function Chat(){
 
     <section className="callPanel">
       {callState==="incoming"?<><div><strong>Вхідний дзвінок від {peerName}</strong><span>{incomingCall?.description?"Можна відповідати.":"Готуємо захищене аудіоз’єднання…"}</span></div><div>{!callSoundReady&&<button className="secondary" type="button" onClick={activateCallSound}><Volume2 size={17}/>Увімкнути звук</button>}</div></>
-      :callState==="connected"?<><div><strong>Голосовий дзвінок триває</strong><span>Аудіовихід: {audioOutputName}</span></div><div>{audioNeedsResume&&<button className="secondary audioResumeButton" type="button" onClick={restoreConversationSound}><Volume2 size={17}/>Відновити звук</button>}<button className="secondary" type="button" onClick={chooseAudioOutput}><Headphones size={17}/>Аудіовихід</button><button className="secondary" type="button" onClick={toggleMute}>{muted?<><Mic size={17}/>Увімкнути</>:<><MicOff size={17}/>Вимкнути</>}</button><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Завершити</button></div></>
+      :callState==="connected"?<><div><strong>Голосовий дзвінок триває</strong><span>Аудіовихід: {audioOutputName}</span></div><div>{audioNeedsResume&&<button className="secondary audioResumeButton" type="button" onClick={restoreConversationSound}><Volume2 size={17}/>Відновити звук</button>}<button className="secondary" type="button" onClick={chooseAudioOutput}><Headphones size={17}/>Змінити динамік</button><button className="secondary" type="button" onClick={toggleMute}>{muted?<><Mic size={17}/>Увімкнути</>:<><MicOff size={17}/>Вимкнути</>}</button><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Завершити</button></div></>
       :callState==="calling"||callState==="ringing"||callState==="connecting"?<><div><strong>{callState==="ringing"?`${peerName} бачить виклик…`:callState==="calling"?`Надсилаємо виклик ${peerName}…`:"З’єднуємо голос…"}</strong><span>{callState==="ringing"?"Очікуємо відповіді.":"Зачекайте кілька секунд."}</span></div><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Скасувати</button></>
       :<><div><strong>Голосовий дзвінок</strong><span>{peerOnline?`${peerName} у кімнаті`:`Зателефонувати можна, коли товариш онлайн`}</span></div><div>{!callSoundReady&&<button className="secondary soundReadyButton" type="button" onClick={activateCallSound}><Volume2 size={17}/>Звук викликів</button>}<button className="secondary" type="button" disabled={!peerOnline||connection!=="ready"} onClick={startCall}><Phone size={17}/>Подзвонити</button></div></>}
       <audio ref={remoteAudioRef} autoPlay playsInline/>
