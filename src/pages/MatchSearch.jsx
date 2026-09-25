@@ -198,11 +198,11 @@ export default function MatchSearch({lang="uk"}){
   if(loading)return <main className="page appPage matchPage"><section className="matchShell"><div className="matchLoading"><RefreshCw size={22}/>{uk?"Готую Atlas Match…":"Preparing Atlas Match…"}</div></section></main>;
 
   return <main className="page appPage matchPage"><section className="matchShell">
-    <div className="matchHero"><span className="kicker">ATLAS MATCH</span><h1>{uk?"Збіг → готове рішення":"Match → completed solution"}</h1><p>{uk?"Atlas не зупиняється на збігу. Він веде обох людей від першого контакту до підтвердження, що задача реально завершена.":"Atlas does not stop at a match. It guides both people from first contact to confirmation that the task is actually complete."}</p></div>
+    <div className="matchHero"><span className="kicker">ATLAS · РІШЕННЯ</span><h1>{uk?"Від потреби → до готового рішення":"From need → to completed solution"}</h1><p>{uk?"Atlas допомагає пройти шлях від знайденого рішення до домовленості та підтвердження, що задача реально завершена.":"Atlas helps move from a found solution to agreement and confirmation that the task is complete."}</p></div>
 
     <section className="solutionFlows">
       <div className="matchResultsTitle"><div><CheckCircle2 size={20}/><strong>{uk?"Активні рішення":"Active solutions"}</strong></div><span>{activeFlows.length}</span></div>
-      {activeFlows.length===0&&<div className="matchBlank">{uk?"Поки немає активних рішень. Знайдіть збіг нижче і натисніть «Почати вирішення».":"No active solutions yet. Find a match below and choose “Start solving”."}</div>}
+      {activeFlows.length===0&&<div className="matchBlank">{uk?"Поки немає активних рішень. Знайдіть рішення нижче і почніть вирішення.":"No active solutions yet. Find a solution below and start solving."}</div>}
       {activeFlows.map(flow=>{
         const stage=stageFor(flow.status);
         const steps=flowSteps[uk?"uk":"en"];
@@ -247,8 +247,8 @@ export default function MatchSearch({lang="uk"}){
 
     <section className="matchResults">
       <div className="matchResultsTitle"><div><Sparkles size={20}/><strong>{uk?"Можливі рішення":"Possible solutions"}</strong></div>{searched&&!searching&&<span>{results.length}</span>}</div>
-      {!searched&&!searching&&<div className="matchBlank">{uk?"Запустіть пошук — Atlas покаже актуальні збіги.":"Run a search and Atlas will show current matches."}</div>}
-      {searched&&!searching&&results.length===0&&<div className="matchBlank">{uk?"Зараз збігів не знайдено. Можна змінити запит і перевірити ще раз.":"No matches found right now. Change the query and try again."}</div>}
+      {!searched&&!searching&&<div className="matchBlank">{uk?"Запустіть пошук — Atlas покаже можливі рішення.":"Run a search and Atlas will show possible solutions."}</div>}
+      {searched&&!searching&&results.length===0&&<div className="matchBlank">{uk?"Зараз рішень не знайдено. Можна змінити запит і перевірити ще раз.":"No solutions found right now. Change the query and try again."}</div>}
       {mode==="need"&&results.map(item=>{
         const existing=item.opportunity_id?findActiveFlow(flows,item.opportunity_id,selectedNeedId||null):null;
         return <article className="matchResultCard" key={`${item.slug}-${item.opportunity_id||item.headline}`}>
