@@ -1,4 +1,4 @@
-import {KeyRound,LogIn,LogOut,Plus,UserRound,UsersRound} from "lucide-react";
+import {ChevronDown,KeyRound,LogIn,LogOut,Plus,UserRound,UsersRound} from "lucide-react";
 import {useState} from "react";
 import {Link} from "react-router-dom";
 import "../styles/passportAccounts.css";
@@ -17,6 +17,7 @@ export default function PassportAccountPanel({accounts=[],passports=[],activePas
   const [password,setPassword]=useState("");
   const [busy,setBusy]=useState("");
   const [error,setError]=useState("");
+  const [mobileExpanded,setMobileExpanded]=useState(false);
   const account=accounts[0]||null;
 
   async function logout(){
@@ -55,7 +56,8 @@ export default function PassportAccountPanel({accounts=[],passports=[],activePas
     {error&&<div className="passportAccountError">{error}</div>}
   </section>;
 
-  return <section className="passportAccountPanel logged">
+  return <section className={"passportAccountPanel logged "+(mobileExpanded?"mobileExpanded":"")}>
+    <button type="button" className="passportAccountMobileToggle" aria-expanded={mobileExpanded} onClick={()=>setMobileExpanded(value=>!value)}><UserRound size={18}/><span>Мої сторінки Atlas</span><ChevronDown size={18}/></button>
     <div className="passportAccountTop">
       <div className="passportAccountIntro"><UserRound size={22}/><div><strong>Мої сторінки Atlas</strong><span>Вхід: <b>{account.login}</b> · сторінок: {passports.length}</span></div></div>
       <div className="passportAccountTopActions"><Link className="passportGroupsLink" to="/groups"><UsersRound size={16}/>Групи</Link><button type="button" className="passportLogout" disabled={busy==="logout"} onClick={logout}><LogOut size={16}/>{busy==="logout"?"Виходжу…":"Вийти"}</button></div>

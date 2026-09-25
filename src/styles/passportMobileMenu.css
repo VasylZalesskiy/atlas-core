@@ -1,0 +1,47 @@
+.passportMobileMenu,.mobileEditorClose,.passportAccountMobileToggle{display:none}
+@media(max-width:760px){
+  .passportAccountPanel.logged{padding:0;margin:0 auto 12px;gap:0;box-shadow:none}
+  .passportAccountMobileToggle{display:flex;align-items:center;gap:9px;width:100%;min-height:46px;padding:10px 14px;border:0;background:#fff;color:#12673d;font-weight:800;text-align:left}
+  .passportAccountMobileToggle span{flex:1}
+  .passportAccountMobileToggle svg:last-child{transition:transform .2s}
+  .passportAccountPanel.logged.mobileExpanded .passportAccountMobileToggle svg:last-child{transform:rotate(180deg)}
+  .passportAccountPanel.logged:not(.mobileExpanded) .passportAccountTop,.passportAccountPanel.logged:not(.mobileExpanded) .passportSwitcher,.passportAccountPanel.logged:not(.mobileExpanded) .passportAccountHint{display:none}
+  .passportAccountPanel.logged.mobileExpanded{padding-bottom:13px;gap:12px}
+  .passportAccountPanel.logged.mobileExpanded .passportAccountTop,.passportAccountPanel.logged.mobileExpanded .passportSwitcher,.passportAccountPanel.logged.mobileExpanded .passportAccountHint{margin-inline:13px}
+  .passportPage .passportDesktopIntro,.passportPage .passportActions{display:none}
+  .passportMobileMenu{display:grid;gap:0;margin-bottom:12px}
+  .passportMobileKicker{color:#087944;font-size:11px;font-weight:900;letter-spacing:.05em}
+  .passportMobileMenu h1{margin:9px 0 18px;font-size:clamp(20px,5vw,25px);line-height:1.2;letter-spacing:-.025em;color:#192b22}
+  .passportMobileIdentity{display:flex;align-items:center;gap:10px;width:100%;min-height:57px;padding:9px 13px;border:1px solid #dce8e0;border-radius:16px;background:#fff;text-align:left;color:#203229}
+  .passportMobileIdentity>span:nth-child(2){display:grid;gap:2px;min-width:0;flex:1}
+  .passportMobileIdentity strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+  .passportMobileIdentity small,.passportQuickGrid small,.passportMenuRow small{font-size:11px;color:#6b7c72}
+  .passportMobileIdentity>svg{color:#087944;flex:none}
+  .passportMobileAvatar{display:grid;place-items:center;flex:none;width:33px;height:33px;border-radius:50%;background:#e0f3e7;color:#087944;font-size:13px;font-weight:900}
+  .passportQuickGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:17px}
+  .passportQuickGrid button{display:grid;justify-items:start;align-content:start;min-width:0;min-height:125px;padding:14px;border:1px solid #dce8e0;border-radius:20px;background:#fff;text-align:left;color:#192b22;cursor:pointer}
+  .passportQuickGrid button:active,.passportMenuRow:active{transform:scale(.98)}
+  .passportQuickGrid strong{margin-top:12px;font-size:17px}
+  .passportQuickGrid small{margin-top:3px;white-space:nowrap}
+  .quickIcon{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;color:#087944;background:#e5f4e9}
+  .quickIcon.skill{background:#e7f1f5}.quickIcon.help{background:#f0eaf7}
+  .passportMoreButton{display:flex;align-items:center;gap:10px;min-height:51px;margin-top:17px;padding:0 17px;border:0;border-radius:16px;background:#eaf5ed;color:#087944;font-size:14px;font-weight:900;text-align:left;cursor:pointer}
+  .passportMoreButton svg:last-child{margin-left:auto;transition:transform .2s}
+  .passportMoreButton[aria-expanded=true] svg:last-child{transform:rotate(90deg)}
+  .passportMoreGroups{display:grid;gap:7px;margin-top:8px}
+  .passportMoreGroups button{display:flex;justify-content:space-between;align-items:center;min-height:47px;padding:9px 15px;border:1px solid #dce8e0;border-radius:12px;background:#fff;color:#274d38;text-align:left;font-weight:750}
+  .passportMenuLabel{margin:27px 2px 11px}
+  .passportMenuRow{display:flex;align-items:center;gap:12px;min-height:67px;margin-bottom:10px;padding:10px 14px;border:1px solid #dce8e0;border-radius:17px;background:#fff;color:#192b22;text-align:left;text-decoration:none;cursor:pointer}
+  .passportMenuRow>span:nth-child(2){display:grid;gap:3px;flex:1}
+  .passportMenuRow strong{font-size:16px}.passportMenuRow>svg{color:#087944;flex:none}
+  .menuIcon{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:11px;background:#e7f5eb;color:#087944}
+  .passportMenuBadge{display:grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:999px;background:#087944;color:#fff;font-size:11px}
+  .passportPage>.passportIdentitySummary{display:none}
+  .passportPage>.passportIdentity{margin-bottom:16px}
+  .passportPage .opportunityEditor{display:none;scroll-margin-top:90px}
+  .passportPage .opportunityEditor.mobileEditorOpen{display:block}
+  .mobileEditorClose{display:grid;place-items:center;width:36px;height:36px;border:1px solid #dce8e0;border-radius:10px;background:#fff;color:#52675a}
+  .passportPage .opportunityEditor .sectionTitle{display:flex;justify-content:space-between;align-items:start}
+  .passportPage .opportunityGroups{display:none;margin-top:20px;scroll-margin-top:90px}
+  .passportPage .opportunityGroups.mobileRecordsOpen{display:block}
+}
