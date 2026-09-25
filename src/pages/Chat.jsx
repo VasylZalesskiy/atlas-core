@@ -499,7 +499,8 @@ export default function Chat(){
 
   async function shareInvite(){
     if(navigator.share){
-      try{await navigator.share({title:`Atlas Chat · ${roomId}`,text:"Приєднуйся до моєї приватної кімнати Atlas",url:inviteUrl()});return}catch{return}
+      try{await navigator.share({title:"Запрошення в чат Atlas",text:"Відкрий це запрошення, щоб поговорити зі мною в Atlas. Посилання діє одну годину.",url:inviteUrl()});return}
+      catch(error){if(error?.name==="AbortError")return}
     }
     await copyInvite();
   }
@@ -793,13 +794,15 @@ export default function Chat(){
 
     <label className="chatName"><span>Ваше ім’я</span><input maxLength={40} value={displayName} onChange={event=>setDisplayName(event.target.value)} placeholder="Наприклад: Василь"/></label>
 
+    <div className="chatInviteGuide"><strong>Запросіть товариша до розмови</strong><span>Натисніть кнопку та виберіть людину в меню телефона. Вона відкриє запрошення і потрапить у цю кімнату.</span></div>
     <div className="chatInviteActions">
-      <button className="primary chatInviteCopyButton" type="button" onClick={copyInvite}>
-        <Copy size={18}/>{copied?"Посилання скопійовано ✓":"Запросити товариша — скопіювати посилання"}
+      <button className="primary chatInviteCopyButton" type="button" onClick={shareInvite} disabled={!roomId||!roomSecret}>
+        <Share2 size={18}/>Надіслати запрошення
       </button>
+      <button className="secondary" type="button" onClick={copyInvite} disabled={!roomId||!roomSecret}><Copy size={17}/>{copied?"Скопійовано ✓":"Копіювати посилання"}</button>
       {connection==="failed"&&<button className="secondary" type="button" onClick={()=>setReconnectKey(value=>value+1)}><RefreshCw size={17}/>Повторити</button>}
     </div>
-    {copied&&<div className="chatInviteCopiedHint">Посилання скопійовано — надішліть його товаришу в Telegram, Viber, WhatsApp або SMS.</div>}
+    {copied&&<div className="chatInviteCopiedHint" role="status">Посилання скопійовано. Відкрийте будь-яке повідомлення й вставте його для товариша.</div>}
 
     <section className="callPanel">
       {callState==="incoming"?<><div><strong>Вхідний дзвінок від {peerName}</strong><span>{incomingCall?.description?"Можна відповідати.":"Готуємо захищене аудіоз’єднання…"}</span></div><div>{!callSoundReady&&<button className="secondary" type="button" onClick={activateCallSound}><Volume2 size={17}/>Увімкнути звук</button>}</div></>

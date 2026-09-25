@@ -1,7 +1,6 @@
 import {useEffect,useState} from "react";
-import {ArrowLeft,ArrowRight,LogOut,MessageCircle,Share2,Smartphone} from "lucide-react";
+import {ArrowLeft,ArrowRight,MessageCircle,Smartphone} from "lucide-react";
 import {Link,useLocation,useNavigate,useNavigationType} from "react-router-dom";
-import {loadAtlasAccounts,logoutAtlasAccount} from "../services/passportStore";
 import "../styles/navigationControls.css";
 
 export default function NavigationControls({lang="uk"}){
@@ -10,31 +9,10 @@ export default function NavigationControls({lang="uk"}){
   const navigationType=useNavigationType();
   const index=window.history.state?.idx??0;
   const [furthest,setFurthest]=useState(index);
-  const [hasAccount,setHasAccount]=useState(false);
-  const [leaving,setLeaving]=useState(false);
-  const [error,setError]=useState("");
   useEffect(()=>{
     if(navigationType==="PUSH")setFurthest(index);
     else setFurthest(value=>Math.max(value,index));
   },[location.key,index,navigationType]);
-  useEffect(()=>{
-    let active=true;
-    const refresh=()=>loadAtlasAccounts().then(accounts=>{if(active)setHasAccount(accounts.length>0)}).catch(()=>{if(active)setHasAccount(false)});
-    refresh();
-    window.addEventListener("atlas:account-changed",refresh);
-    return()=>{active=false;window.removeEventListener("atlas:account-changed",refresh)};
-  },[]);
-  async function share(){
-    const url=window.location.href;
-    try{if(navigator.share)await navigator.share({title:"Atlas",url});else{await navigator.clipboard.writeText(url);setError(uk?"Посилання скопійовано":"Link copied")}}
-    catch(cause){if(cause?.name!=="AbortError")setError(uk?"Не вдалося поділитися":"Could not share")}
-  }
-  async function logout(){
-    if(leaving)return;
-    setLeaving(true);setError("");
-    try{await logoutAtlasAccount();window.location.replace("/")}
-    catch{setError(uk?"Не вдалося вийти":"Could not sign out");setLeaving(false)}
-  }
   const home=location.pathname==="/"&&!location.search&&!location.hash;
   const uk=lang!=="en";
   return <nav className="atlasHistoryNav" aria-label={uk?"Керування сторінками":"Page navigation"}>
@@ -44,10 +22,7 @@ export default function NavigationControls({lang="uk"}){
     </div>
     <div className="atlasHistoryGroup atlasHistoryActions">
       <Link to="/chat" aria-label={uk?"Чат":"Chat"} title={uk?"Чат":"Chat"}><MessageCircle size={19}/><span>{uk?"Чат":"Chat"}</span></Link>
-      <button type="button" onClick={share} aria-label={uk?"Поділитися":"Share"} title={uk?"Поділитися":"Share"}><Share2 size={19}/><span>{uk?"Поділитися":"Share"}</span></button>
       <Link to="/share" aria-label={uk?"Atlas на телефон":"Atlas on phone"} title={uk?"Atlas на телефон":"Atlas on phone"}><Smartphone size={19}/><span>{uk?"На телефон":"On phone"}</span></Link>
-      {hasAccount&&<button type="button" onClick={logout} disabled={leaving} aria-label={uk?"Вийти":"Sign out"} title={uk?"Вийти":"Sign out"}><LogOut size={19}/><span>{uk?"Вийти":"Sign out"}</span></button>}
     </div>
-    {error&&<span className="atlasHistoryNotice" role="status">{error}</span>}
   </nav>;
 }
