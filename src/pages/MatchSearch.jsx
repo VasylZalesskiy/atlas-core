@@ -85,6 +85,7 @@ export default function MatchSearch({lang="uk"}){
   },[needs]);
   const activeOpportunities=useMemo(()=>opportunities.filter(item=>item.is_active),[opportunities]);
   const activeFlows=useMemo(()=>flows.filter(item=>activeStatuses.has(item.status)),[flows]);
+  const activeFlowForSelectedNeed=useMemo(()=>selectedNeedId?activeFlows.find(item=>item.need_id===selectedNeedId):null,[activeFlows,selectedNeedId]);
   const closedFlows=useMemo(()=>flows.filter(item=>["completed","declined","cancelled"].includes(item.status)).slice(0,5),[flows]);
 
   async function reloadFlows(){
@@ -230,13 +231,13 @@ export default function MatchSearch({lang="uk"}){
 
     {(error||notice)&&<div className={error?"matchError":"matchNotice"} role="status">{error||notice}</div>}
 
-    {mode==="need"?<div className="manualMatchBox matchContextBox">
+    {mode==="need"&&!activeFlowForSelectedNeed?<div className="manualMatchBox matchContextBox">
       {activeNeeds.length?<><div className="manualMatchTitle"><HeartHandshake size={20}/><div><strong>{uk?"Шукаємо рішення для":"Finding a solution for"}</strong><small>{needLabel(activeNeeds.find(item=>item.id===selectedNeedId)||activeNeeds[0],uk)}</small></div></div><button className="matchSearchButton" type="button" disabled={searching||!query.trim()} onClick={searchOpportunities}><Search size={19}/>{searching?(uk?"Шукаю…":"Searching…"):(uk?"Знайти рішення":"Find a solution")}</button></>:<div className="matchEmptyInline">{uk?"Спочатку додайте активну потребу в Паспорт потреб.":"First add an active need to your Needs Passport."}<Link to="/needs">{uk?"Додати потребу":"Add a need"}<ArrowRight size={15}/></Link></div>}
-    </div>:<div className="manualMatchBox matchContextBox">
+    </div>:mode==="opportunity"?<div className="manualMatchBox matchContextBox">
       {activeOpportunities.length?<><div className="manualMatchTitle"><PackageSearch size={20}/><div><strong>{uk?"Шукаємо потреби для":"Finding needs for"}</strong><small>{activeOpportunities.find(item=>item.id===selectedOpportunityId)?.text||activeOpportunities[0]?.text}</small></div></div><button className="matchSearchButton" type="button" disabled={searching||!selectedOpportunityId} onClick={searchNeeds}><Search size={19}/>{searching?(uk?"Шукаю…":"Searching…"):(uk?"Знайти потреби":"Find needs")}</button></>:<div className="matchEmptyInline">{uk?"Спочатку додайте хоча б одну активну можливість у Паспорт.":"First add at least one active opportunity to your Passport."}<Link to="/profile">{uk?"Додати можливість":"Add opportunity"}<ArrowRight size={15}/></Link></div>}
-    </div>}
+    </div>:null}
 
-    <section className="matchResults">
+    {!activeFlowForSelectedNeed&&<section className="matchResults">
       <div className="matchResultsTitle"><div><Sparkles size={20}/><strong>{mode==="need"?(uk?"Можливі рішення":"Possible solutions"):(uk?"Знайдені потреби":"Found needs")}</strong></div>{searched&&!searching&&<span>{results.length}</span>}</div>
       {!searched&&!searching&&<div className="matchBlank">{mode==="need"?(uk?"Натисніть «Знайти рішення».":"Tap “Find a solution”"):(uk?"Натисніть «Знайти потреби».":"Tap “Find needs”")}</div>}
       {searched&&!searching&&results.length===0&&<div className="matchBlank">{uk?"Зараз рішень не знайдено. Можна змінити запит і перевірити ще раз.":"No solutions found right now. Change the query and try again."}</div>}
@@ -254,7 +255,7 @@ export default function MatchSearch({lang="uk"}){
           {existing?<Link className="matchAction secondaryAction" to={`/messages?thread=${existing.id}`}><MessageCircle size={16}/>{uk?"Відкрити розмову":"Open conversation"}</Link>:<button className="matchAction actionButton" disabled={flowBusy===item.need_id} onClick={()=>sendOffer(item)}>{flowBusy===item.need_id?(uk?"Надсилаю…":"Sending…"):(uk?"Запропонувати допомогу":"Offer help")}<ArrowRight size={16}/></button>}
         </article>;
       })}
-    </section>
+    </section>}
 
     <div className="matchPrivacy"><Clock3 size={14}/>{uk?"Усі звернення і відповіді зберігаються в «Повідомленнях». Після прийняття можна також відкрити захищену кімнату для дзвінка.":"All requests and replies stay in Messages. After acceptance, you can also open a secure room for a call."}</div>
   </section></main>;
