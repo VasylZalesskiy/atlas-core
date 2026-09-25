@@ -1,5 +1,5 @@
 import {useEffect,useState} from "react";
-import {ArrowLeft,ArrowRight,MessageCircle,Smartphone} from "lucide-react";
+import {ArrowLeft,ArrowRight,MessageCircle} from "lucide-react";
 import {Link,useLocation,useNavigate,useNavigationType} from "react-router-dom";
 import "../styles/navigationControls.css";
 
@@ -21,8 +21,7 @@ export default function NavigationControls({lang="uk"}){
       <button type="button" onClick={()=>navigate(1)} disabled={index>=furthest} aria-label={uk?"Вперед":"Forward"} title={uk?"Вперед":"Forward"}><ArrowRight size={19}/><span>{uk?"Вперед":"Forward"}</span></button>
     </div>
     <div className="atlasHistoryGroup atlasHistoryActions">
-      <Link to="/chat" aria-label={uk?"Чат":"Chat"} title={uk?"Чат":"Chat"}><MessageCircle size={19}/><span>{uk?"Чат":"Chat"}</span></Link>
-      <Link to="/share" aria-label={uk?"Atlas на телефон":"Atlas on phone"} title={uk?"Atlas на телефон":"Atlas on phone"}><Smartphone size={19}/><span>{uk?"На телефон":"On phone"}</span></Link>
+      <Link className="atlasChatRoomLink" to="/chat" aria-label={uk?"Чат кімната":"Chat room"} title={uk?"Чат кімната":"Chat room"}><MessageCircle size={19}/><span>{uk?"Чат кімната":"Chat room"}</span></Link>
     </div>
   </nav>;
 }

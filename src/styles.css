@@ -712,6 +712,42 @@ header{height:76px;padding:0 5vw;display:flex;justify-content:space-between;alig
 
 
 /* Opportunity audience selector */
+.chatPage .messengerTop{border-color:#cfe6d7;background:linear-gradient(135deg,#f5fbf7,#fff);box-shadow:0 10px 26px rgba(15,92,49,.09)}
+.chatPage .messengerIdentity strong{font-size:21px;line-height:1.2;color:#173a27}
+.chatPage .messengerIdentity span{margin-top:3px;font-size:12px}
+.chatPage .messengerAvatar{width:50px;height:50px;background:#daf0e3;color:#087442}
+.chatPage .messengerAvatar.online{background:#16814a;color:#fff}
+.chatPage .chatInviteGuide{margin-top:12px;padding:11px 14px}
+.chatPage .chatInviteGuide strong{font-size:15px}
+.chatPage .chatInviteGuide span{font-size:12px}
+.chatPage .chatInviteActions{margin-bottom:10px}
+.chatPage .callPanel{border-color:#cfe6d7;background:linear-gradient(135deg,#edf9f1,#fff);box-shadow:0 8px 22px rgba(12,99,51,.06)}
+.chatPage .callPanel>div:first-child strong{color:#17422a;font-size:17px}
+.chatPage .callPanel-connected{border-color:#8acaa2;background:#e9f8ef}
+.callStartButton{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 17px;border:0;border-radius:13px;background:linear-gradient(135deg,#087a42,#12a35a);color:#fff;font:inherit;font-size:14px;font-weight:900;box-shadow:0 7px 18px rgba(13,127,68,.22);cursor:pointer}
+.callStartButton:disabled{opacity:.5;box-shadow:none;cursor:not-allowed}
+.chatPage .chatWindow{border-color:#d5e7db;box-shadow:0 14px 32px rgba(14,79,41,.09)}
+.chatPage .messages{height:clamp(150px,25dvh,270px);min-height:0;max-height:38dvh;background:linear-gradient(180deg,#f6fbf8,#fff)}
+.chatPage .chatEmpty strong{font-size:16px;color:#1a4b2e}
+.chatPage .messageComposer{background:#fff}
+.chatPage .messageInputShell{border-width:2px;border-color:#b9dcc6;background:#f6fbf8}
+@media(max-width:760px){
+  .chatPage{padding-top:6px}
+  .chatPage .messengerIdentity strong{font-size:19px}
+  .chatPage .messengerAvatar{width:44px;height:44px}
+  .chatPage .securityStrip.compact{padding:8px 10px}
+  .chatPage .chatName{margin-top:9px}
+  .chatPage .chatInviteGuide{margin-top:9px;padding:9px 11px}
+  .chatPage .chatInviteActions{margin:8px 0}
+  .chatPage .callPanel{padding:10px 12px;gap:8px}
+  .chatPage .callPanel-idle>div:last-child{display:flex;gap:7px}
+  .chatPage .callPanel-idle .soundReadyButton{width:auto;flex:0 1 auto;padding:8px;font-size:11px}
+  .chatPage .callPanel-idle .callStartButton{width:auto;flex:1;padding-inline:8px;font-size:12px}
+  .chatPage .messages{height:clamp(115px,20dvh,190px);max-height:30dvh}
+  .chatPage .messageComposer .emojiRow{padding-bottom:5px}
+}
+
+/* Opportunity audience selector */
 .opportunityVisibility{display:grid;gap:9px;padding:14px;border:1px solid #cfe2d6;border-radius:15px;background:#f7fbf8}
 .opportunityVisibility legend{padding:0 6px;color:#28513b;font-size:12px;font-weight:900}
 .opportunityVisibility>select{min-height:42px;border:1px solid #d5e2da;border-radius:11px;padding:0 10px;background:#fff;color:#24352c;font-weight:800;outline:none}

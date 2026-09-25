@@ -3,7 +3,7 @@ import {NavLink,useLocation} from "react-router-dom";
 
 export default function BottomNav({lang="uk",inboxUnread=0}){
   const {pathname}=useLocation();
-  if(pathname.startsWith("/p/")||pathname==="/solution")return null;
+  if(pathname.startsWith("/p/")||pathname==="/solution"||pathname==="/chat")return null;
   const uk=lang!=="en";
   const items=[
     {to:"/",label:uk?"Пошук":"Search",icon:Search},

@@ -804,11 +804,11 @@ export default function Chat(){
     </div>
     {copied&&<div className="chatInviteCopiedHint" role="status">Посилання скопійовано. Відкрийте будь-яке повідомлення й вставте його для товариша.</div>}
 
-    <section className="callPanel">
+    <section className={`callPanel callPanel-${callState}`}>
       {callState==="incoming"?<><div><strong>Вхідний дзвінок від {peerName}</strong><span>{incomingCall?.description?"Можна відповідати.":"Готуємо захищене аудіоз’єднання…"}</span></div><div>{!callSoundReady&&<button className="secondary" type="button" onClick={activateCallSound}><Volume2 size={17}/>Увімкнути звук</button>}</div></>
       :callState==="connected"?<><div><strong>Голосовий дзвінок триває</strong><span>Аудіовихід: {audioOutputName}</span></div><div>{audioNeedsResume&&<button className="secondary audioResumeButton" type="button" onClick={restoreConversationSound}><Volume2 size={17}/>Відновити звук</button>}<button className="secondary" type="button" onClick={chooseAudioOutput}><Headphones size={17}/>Змінити динамік</button><button className="secondary" type="button" onClick={toggleMute}>{muted?<><Mic size={17}/>Увімкнути</>:<><MicOff size={17}/>Вимкнути</>}</button><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Завершити</button></div></>
       :callState==="calling"||callState==="ringing"||callState==="connecting"?<><div><strong>{callState==="ringing"?`${peerName} бачить виклик…`:callState==="calling"?`Надсилаємо виклик ${peerName}…`:"З’єднуємо голос…"}</strong><span>{callState==="ringing"?"Очікуємо відповіді.":"Зачекайте кілька секунд."}</span></div><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Скасувати</button></>
-      :<><div><strong>Голосовий дзвінок</strong><span>{peerOnline?`${peerName} у кімнаті`:`Зателефонувати можна, коли товариш онлайн`}</span></div><div>{!callSoundReady&&<button className="secondary soundReadyButton" type="button" onClick={activateCallSound}><Volume2 size={17}/>Звук викликів</button>}<button className="secondary" type="button" disabled={!peerOnline||connection!=="ready"} onClick={startCall}><Phone size={17}/>Подзвонити</button></div></>}
+      :<><div><strong>Поговорити голосом</strong><span>{peerOnline?`${peerName} у кімнаті — можна телефонувати`:`Запросіть товариша, щоб зателефонувати`}</span></div><div>{!callSoundReady&&<button className="secondary soundReadyButton" type="button" onClick={activateCallSound}><Volume2 size={17}/>Сигнал виклику</button>}<button className="callStartButton" type="button" disabled={!peerOnline||connection!=="ready"} onClick={startCall}><Phone size={19}/>Зателефонувати</button></div></>}
       <audio ref={remoteAudioRef} autoPlay playsInline/>
     </section>
 
