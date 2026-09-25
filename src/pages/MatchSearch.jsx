@@ -7,7 +7,7 @@ import {findNeedsForOpportunity} from "../services/needMatchStore";
 import {cancelSolutionFlow,completeSolutionFlow,loadSolutionFlows,markSolutionProvided,offerOpportunityToNeed,respondToSolutionFlow,startOpportunityRequest} from "../services/solutionFlowStore";
 import "../styles/matchSearch.css";
 
-const needNames={tomatoes:{uk:"Томати",en:"Tomatoes"}};
+const needNames={tomatoes:{uk:"Томати",en:"Tomatoes"},"veg-potato-table":{uk:"Картопля",en:"Potatoes"},potatoes:{uk:"Картопля",en:"Potatoes"}};
 const needAliases={tomatoes:["томати","томат","помідори","помідор","tomatoes","tomato"]};
 const flowSteps={
   uk:["Рішення","Запит","Домовились","Виконано","Завершено"],
