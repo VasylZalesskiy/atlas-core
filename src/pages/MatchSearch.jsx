@@ -230,24 +230,15 @@ export default function MatchSearch({lang="uk"}){
 
     {(error||notice)&&<div className={error?"matchError":"matchNotice"} role="status">{error||notice}</div>}
 
-    <div className="matchMode" role="tablist">
-      <button type="button" className={mode==="need"?"active":""} onClick={()=>chooseMode("need")}><HeartHandshake size={20}/><span><strong>{uk?"У мене є потреба":"I have a need"}</strong><small>{uk?"Знайти рішення":"Find a solution"}</small></span></button>
-      <button type="button" className={mode==="opportunity"?"active":""} onClick={()=>chooseMode("opportunity")}><IdCard size={20}/><span><strong>{uk?"У мене є можливість":"I have an opportunity"}</strong><small>{uk?"Знайти потреби":"Find needs"}</small></span></button>
-    </div>
-
-    {mode==="need"?<form className="manualMatchBox" onSubmit={searchOpportunities}>
-      <div className="manualMatchTitle"><Search size={20}/><div><strong>{uk?"Що шукаємо?":"What are we looking for?"}</strong><small>{uk?"Оберіть свою потребу або напишіть запит вручну.":"Choose your need or type a request manually."}</small></div></div>
-      {activeNeeds.length>0&&<label><span>{uk?"Моя активна потреба":"My active need"}</span><select value={selectedNeedId} onChange={event=>chooseNeed(event.target.value)}><option value="">{uk?"Написати вручну":"Type manually"}</option>{activeNeeds.map(item=><option value={item.id} key={item.id}>{needLabel(item,uk)}</option>)}</select></label>}
-      <label><span>{uk?"Пошук":"Search"}</span><input value={query} onChange={event=>{setQuery(event.target.value);setSelectedNeedId("")}} placeholder={uk?"Наприклад: потрібно 5 кг томатів":"For example: need 5 kg of tomatoes"}/></label>
-      <button className="matchSearchButton" disabled={searching||!query.trim()}><Search size={19}/>{searching?(uk?"Шукаю…":"Searching…"):(uk?"Знайти рішення":"Find a solution")}</button>
-    </form>:<div className="manualMatchBox">
-      <div className="manualMatchTitle"><PackageSearch size={20}/><div><strong>{uk?"Кому це потрібно?":"Who needs this?"}</strong><small>{uk?"Оберіть свою активну можливість і знайдіть актуальні потреби.":"Choose your active opportunity and find current needs."}</small></div></div>
-      {activeOpportunities.length?<><label><span>{uk?"Моя можливість":"My opportunity"}</span><select value={selectedOpportunityId} onChange={event=>setSelectedOpportunityId(event.target.value)}>{activeOpportunities.map(item=><option value={item.id} key={item.id}>{item.text}</option>)}</select></label><button className="matchSearchButton" type="button" disabled={searching||!selectedOpportunityId} onClick={searchNeeds}><Search size={19}/>{searching?(uk?"Шукаю…":"Searching…"):(uk?"Знайти потреби":"Find needs")}</button></>:<div className="matchEmptyInline">{uk?"Спочатку додайте хоча б одну активну можливість у Паспорт.":"First add at least one active opportunity to your Passport."}<Link to="/profile">{uk?"Додати можливість":"Add opportunity"}<ArrowRight size={15}/></Link></div>}
+    {mode==="need"?<div className="manualMatchBox matchContextBox">
+      {activeNeeds.length?<><div className="manualMatchTitle"><HeartHandshake size={20}/><div><strong>{uk?"Шукаємо рішення для":"Finding a solution for"}</strong><small>{needLabel(activeNeeds.find(item=>item.id===selectedNeedId)||activeNeeds[0],uk)}</small></div></div><button className="matchSearchButton" type="button" disabled={searching||!query.trim()} onClick={searchOpportunities}><Search size={19}/>{searching?(uk?"Шукаю…":"Searching…"):(uk?"Знайти рішення":"Find a solution")}</button></>:<div className="matchEmptyInline">{uk?"Спочатку додайте активну потребу в Паспорт потреб.":"First add an active need to your Needs Passport."}<Link to="/needs">{uk?"Додати потребу":"Add a need"}<ArrowRight size={15}/></Link></div>}
+    </div>:<div className="manualMatchBox matchContextBox">
+      {activeOpportunities.length?<><div className="manualMatchTitle"><PackageSearch size={20}/><div><strong>{uk?"Шукаємо потреби для":"Finding needs for"}</strong><small>{activeOpportunities.find(item=>item.id===selectedOpportunityId)?.text||activeOpportunities[0]?.text}</small></div></div><button className="matchSearchButton" type="button" disabled={searching||!selectedOpportunityId} onClick={searchNeeds}><Search size={19}/>{searching?(uk?"Шукаю…":"Searching…"):(uk?"Знайти потреби":"Find needs")}</button></>:<div className="matchEmptyInline">{uk?"Спочатку додайте хоча б одну активну можливість у Паспорт.":"First add at least one active opportunity to your Passport."}<Link to="/profile">{uk?"Додати можливість":"Add opportunity"}<ArrowRight size={15}/></Link></div>}
     </div>}
 
     <section className="matchResults">
-      <div className="matchResultsTitle"><div><Sparkles size={20}/><strong>{uk?"Можливі рішення":"Possible solutions"}</strong></div>{searched&&!searching&&<span>{results.length}</span>}</div>
-      {!searched&&!searching&&<div className="matchBlank">{uk?"Запустіть пошук — Atlas покаже можливі рішення.":"Run a search and Atlas will show possible solutions."}</div>}
+      <div className="matchResultsTitle"><div><Sparkles size={20}/><strong>{mode==="need"?(uk?"Можливі рішення":"Possible solutions"):(uk?"Знайдені потреби":"Found needs")}</strong></div>{searched&&!searching&&<span>{results.length}</span>}</div>
+      {!searched&&!searching&&<div className="matchBlank">{mode==="need"?(uk?"Натисніть «Знайти рішення».":"Tap “Find a solution”"):(uk?"Натисніть «Знайти потреби».":"Tap “Find needs”")}</div>}
       {searched&&!searching&&results.length===0&&<div className="matchBlank">{uk?"Зараз рішень не знайдено. Можна змінити запит і перевірити ще раз.":"No solutions found right now. Change the query and try again."}</div>}
       {mode==="need"&&results.map(item=>{
         const existing=item.opportunity_id?findActiveFlow(flows,item.opportunity_id,selectedNeedId||null):null;
