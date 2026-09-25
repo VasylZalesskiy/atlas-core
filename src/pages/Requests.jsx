@@ -17,6 +17,7 @@ export default function Requests({lang="uk"}){
   const [error,setError]=useState("");
   const [actionError,setActionError]=useState("");
   const [groups,setGroups]=useState({});
+  const [ownSlugs,setOwnSlugs]=useState([]);
   const [flows,setFlows]=useState([]);
   const [busyKey,setBusyKey]=useState("");
 
@@ -25,12 +26,12 @@ export default function Requests({lang="uk"}){
     setLoading(true);setError("");
     Promise.all([loadMyPassport(),loadSolutionFlows()]).then(async ([data,flowList])=>{
       const result=await findNeedsForOpportunities(data.opportunities||[]);
-      if(alive){setGroups(result||{});setFlows(flowList||[])}
+      if(alive){setGroups(result||{});setFlows(flowList||[]);setOwnSlugs((data.passports||[]).map(item=>item.slug))}
     }).catch(e=>{if(alive)setError(String(e?.message||e||"match-failed"))}).finally(()=>{if(alive)setLoading(false)});
     return()=>{alive=false};
   },[]);
 
-  const liveMatches=useMemo(()=>Object.values(groups).flatMap(group=>(group.matches||[]).map(match=>({...match,opportunity:group.opportunity}))),[groups]);
+  const liveMatches=useMemo(()=>Object.values(groups).flatMap(group=>(group.matches||[]).filter(match=>!ownSlugs.includes(match.passport_slug)).map(match=>({...match,opportunity:group.opportunity}))),[groups,ownSlugs]);
 
   async function contactMatch(match){
     const key=`${match.opportunity.id}-${match.need_id}`;

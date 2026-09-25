@@ -62,6 +62,7 @@ export default function MatchSearch({lang="uk"}){
   const [searching,setSearching]=useState(false);
   const [mode,setMode]=useState("need");
   const [passport,setPassport]=useState(null);
+  const [ownSlugs,setOwnSlugs]=useState([]);
   const [needs,setNeeds]=useState([]);
   const [opportunities,setOpportunities]=useState([]);
   const [query,setQuery]=useState("");
@@ -98,7 +99,7 @@ export default function MatchSearch({lang="uk"}){
     let alive=true;
     Promise.all([loadMyPassport(),loadSolutionFlows()]).then(([data,flowList])=>{
       if(!alive)return;
-      setPassport(data.passport||null);setNeeds(data.needs||[]);setOpportunities(data.opportunities||[]);setFlows(flowList||[]);
+      setPassport(data.passport||null);setOwnSlugs((data.passports||[]).map(item=>item.slug));setNeeds(data.needs||[]);setOpportunities(data.opportunities||[]);setFlows(flowList||[]);
       const firstNeed=(data.needs||[]).find(item=>item.status==="not_received");
       const firstOpportunity=(data.opportunities||[]).find(item=>item.is_active);
       if(firstNeed){setSelectedNeedId(firstNeed.id);setQuery(needQuery(firstNeed,uk))}
@@ -140,7 +141,7 @@ export default function MatchSearch({lang="uk"}){
     try{
       const result=await findNeedsForOpportunity(selectedOpportunityId);
       if(result.error)setError(result.error);
-      setResults(result.matches||[]);
+      setResults((result.matches||[]).filter(item=>!ownSlugs.includes(item.passport_slug)));
     }catch(cause){setError(String(cause?.message||cause||"match-search-failed"));setResults([])}finally{setSearching(false)}
   }
 

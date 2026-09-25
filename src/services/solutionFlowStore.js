@@ -6,7 +6,11 @@ async function invoke(action,payload={}){
   if(!supabase)throw new Error("supabase-unavailable");
   await ensureAtlasSession();
   const {data,error}=await supabase.functions.invoke("atlas-solution-flow",{body:{action,...payload}});
-  if(error)throw new Error(error.message||"solution-flow-failed");
+  if(error){
+    let detail="";
+    try{detail=(await error.context?.json())?.error||""}catch{}
+    throw new Error(detail||error.message||"solution-flow-failed");
+  }
   if(data?.error)throw new Error(data.error);
   return data||{};
 }
