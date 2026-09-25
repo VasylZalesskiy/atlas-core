@@ -39,7 +39,9 @@ export function decodeOpportunityText(value,kind="other"){
     catalogItemName:"",
     minimumQuantity:"",
     deliveryIncluded:false,
-    completedAt:""
+    completedAt:"",
+    fulfillmentCount:0,
+    lastFulfilledAt:""
   };
 
   const text=raw.slice(0,markerIndex).trim();
@@ -66,10 +68,12 @@ export function decodeOpportunityText(value,kind="other"){
       catalogItemName:String(metadata.catalogItemName||""),
       minimumQuantity:metadata.minimumQuantity==null?"":String(metadata.minimumQuantity),
       deliveryIncluded:Boolean(metadata.deliveryIncluded),
-      completedAt:typeof metadata.completedAt==="string"?metadata.completedAt:""
+      completedAt:typeof metadata.completedAt==="string"?metadata.completedAt:"",
+      fulfillmentCount:Number.isSafeInteger(metadata.fulfillmentCount)&&metadata.fulfillmentCount>0?metadata.fulfillmentCount:0,
+      lastFulfilledAt:typeof metadata.lastFulfilledAt==="string"?metadata.lastFulfilledAt:""
     };
   }catch{
-    return {text,group:legacyGroupByKind[kind]||"additional",duration:"month",place:"",radiusValue:"",radiusUnit:"км",online:false,paymentType:kind==="sell"?"paid":"free",priceValue:"",priceUnit:"шт.",currency:"UAH",saleQuantity:"",saleUnit:"кг",validUntil:"",catalogGroupKey:"",catalogItemKey:"",catalogItemName:"",minimumQuantity:"",deliveryIncluded:false,completedAt:""};
+    return {text,group:legacyGroupByKind[kind]||"additional",duration:"month",place:"",radiusValue:"",radiusUnit:"км",online:false,paymentType:kind==="sell"?"paid":"free",priceValue:"",priceUnit:"шт.",currency:"UAH",saleQuantity:"",saleUnit:"кг",validUntil:"",catalogGroupKey:"",catalogItemKey:"",catalogItemName:"",minimumQuantity:"",deliveryIncluded:false,completedAt:"",fulfillmentCount:0,lastFulfilledAt:""};
   }
 }
 
@@ -95,7 +99,9 @@ export function encodeOpportunityText(entry){
     catalogItemName:String(entry.catalogItemName||"").trim().slice(0,120),
     minimumQuantity:String(entry.minimumQuantity||"").trim().replace(",",".").slice(0,14),
     deliveryIncluded:Boolean(entry.deliveryIncluded),
-    completedAt:String(entry.completedAt||"").slice(0,32)
+    completedAt:String(entry.completedAt||"").slice(0,32),
+    fulfillmentCount:Math.max(0,Math.min(1000000,Number(entry.fulfillmentCount)||0)),
+    lastFulfilledAt:String(entry.lastFulfilledAt||"").slice(0,32)
   };
   if(metadata.paymentType!=="paid")metadata.priceValue="";
   if(group!=="sell"){

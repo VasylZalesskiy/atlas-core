@@ -167,6 +167,14 @@ export async function setMyOpportunityCompleted(item,completed){
   if(error)throw error;
   return decodeOpportunity(data);
 }
+export async function recordMyOpportunityFulfillment(item){
+  await ensureAtlasSession();
+  if(!item?.id||item.completedAt)throw fail("opportunity-required");
+  const text=encodeOpportunityText({...item,fulfillmentCount:(Number(item.fulfillmentCount)||0)+1,lastFulfilledAt:new Date().toISOString()});
+  const {data,error}=await supabase.from("atlas_opportunities").update({text}).eq("id",item.id).select("id,kind,text,is_active,visibility_scope,photo_url,photo_label,photo_task,created_at").single();
+  if(error)throw error;
+  return decodeOpportunity(data);
+}
 export async function deleteMyOpportunity(id){const user=await ensureAtlasSession();const {error}=await supabase.from("atlas_opportunities").delete().eq("id",id);if(error)throw error}
 
 export async function addMyNeed(passportId,{groupKey,itemKey,unit,quantity,neededFrom,neededUntil}){const user=await ensureAtlasSession();const amount=Number(quantity);if(!passportId)throw fail("passport-required");if(!groupKey||!itemKey)throw fail("catalog-item-required");if(!Number.isFinite(amount)||amount<=0)throw fail("quantity-invalid");if(!neededFrom||!neededUntil||neededUntil<neededFrom)throw fail("date-range-invalid");const {data,error}=await supabase.from("atlas_needs").insert({passport_id:passportId,owner_id:user.id,group_key:String(groupKey),item_key:String(itemKey),quantity:amount,unit:String(unit||"шт").trim().slice(0,12),needed_from:neededFrom,needed_until:neededUntil,status:"not_received"}).select("id,group_key,item_key,quantity,unit,needed_from,needed_until,status,received_at,created_at,updated_at").single();if(error)throw error;return data}
