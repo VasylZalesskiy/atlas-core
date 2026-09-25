@@ -10,14 +10,31 @@ const durations=[{value:"hour",label:"1 година"},{value:"day",label:"1 д�
 const paymentOptions=[{value:"free",label:"Безкоштовно"},{value:"paid",label:"За оплату"},{value:"exchange",label:"Обмін"},{value:"negotiable",label:"За домовленістю"}];
 const servicePriceUnits=["шт.","година","консультація","послуга","день","поїздка","комплект"];const saleUnits=["кг","шт.","т","л","комплект"];const currencySymbols={UAH:"грн",USD:"$",EUR:"€"};
 const emptyEntry=()=>({group:"have",text:"",duration:"month",place:"",radiusValue:"",radiusUnit:"км",online:false,paymentType:"free",priceValue:"",priceUnit:"шт.",currency:"UAH",saleQuantity:"",saleUnit:"кг",validUntil:"",catalogGroupKey:"",catalogItemKey:"",catalogItemName:"",minimumQuantity:"",deliveryIncluded:false,photoUrl:"",photoLabel:"",photoTask:"",visibilityScope:"global",groupIds:[]});
+const opportunityFieldConfig={
+  have:{title:"Що ви маєте?",placeholder:"Наприклад: маю велосипед, інструмент, приміщення або обладнання",showPayment:false,forcePayment:"free",priceUnits:[]},
+  sell:{title:"Що продаєте?",placeholder:"Наприклад: власне виробництво, стан, сорт або інші деталі",showPayment:false,forcePayment:"paid",priceUnits:saleUnits},
+  professional:{title:"Що ви вмієте / яку послугу надаєте?",placeholder:"Наприклад: бухгалтерські послуги, ремонт, консультація",showPayment:true,forcePayment:null,priceUnits:["година","консультація","послуга"]},
+  help:{title:"Чим можете допомогти?",placeholder:"Наприклад: допоможу перевезти речі або налаштувати комп’ютер",showPayment:false,forcePayment:"free",priceUnits:[]},
+  additional:{title:"Які додаткові знання або вміння маєте?",placeholder:"Наприклад: переклад, робота з документами, налаштування техніки",showPayment:true,forcePayment:null,priceUnits:["година","консультація","послуга"]},
+  hobby:{title:"Яке у вас хобі або практичне захоплення?",placeholder:"Наприклад: фотографія, садівництво, рукоділля",showPayment:true,forcePayment:null,priceUnits:["година","послуга"]},
+  free_use:{title:"Що дасте безкоштовно покористуватися?",placeholder:"Наприклад: драбина, дриль, причеп",showPayment:false,forcePayment:"free",priceUnits:[]},
+  rent:{title:"Що здаєте в оренду?",placeholder:"Наприклад: інструмент, авто, приміщення, техніка",showPayment:true,forcePayment:"paid",priceUnits:["година","день","послуга","поїздка"]}
+};
 function friendlyError(error){const text=String(error?.message||error||"");if(/anonymous|signups|disabled/i.test(text))return "Не вдалося створити сесію Atlas.";if(/login-taken/i.test(text))return "Такий логін уже зайнятий.";if(/invalid-login/i.test(text))return "Неправильний логін або пароль.";if(/password-invalid/i.test(text))return "Пароль має містити щонайменше 8 символів.";if(/login-invalid/i.test(text))return "Логін має містити від 3 до 60 символів.";if(/relation .* does not exist/i.test(text))return "Один із модулів Atlas ще не активований.";if(/permission denied|row-level security/i.test(text))return "Немає доступу до цієї сторінки. Увійдіть під своїм логіном і паролем.";return text||"Не вдалося виконати дію."}
 function cleanRequestMessage(value){return String(value||"").replace(/[\u200B-\u200D\u2060\u2062\u2063\uFEFF]*ATLAS_META:[^\r\n]*/gu,"").replace(/\n{3,}/g,"\n\n").trim()}
 function OpportunityFields({value,onChange,textareaRef,compact=false,onPhoto,catalogGroups=[],catalogItems=[],availableGroups=[]}){
-  const selling=value.group==="sell";const paid=selling||value.paymentType==="paid";const photo=value.photoUrl||value.photo_url;
+  const selling=value.group==="sell";const config=opportunityFieldConfig[value.group]||opportunityFieldConfig.have;const paid=selling||value.paymentType==="paid";const photo=value.photoUrl||value.photo_url;
+  const priceUnitsForGroup=selling?saleUnits:(config.priceUnits?.length?config.priceUnits:servicePriceUnits);
   const activeGroups=catalogGroups.filter(item=>item.is_active!==false);
   const itemsForGroup=catalogItems.filter(item=>item.is_active!==false&&item.group_key===value.catalogGroupKey);
   function setOpportunityGroup(group){
-    if(group!=="sell"){onChange({...value,group});return}
+    const nextConfig=opportunityFieldConfig[group]||opportunityFieldConfig.have;
+    if(group!=="sell"){
+      const nextPayment=nextConfig.forcePayment||value.paymentType||"free";
+      const nextPriceUnit=nextConfig.priceUnits?.[0]||"шт.";
+      onChange({...value,group,paymentType:nextPayment,priceValue:nextPayment==="paid"?value.priceValue:"",priceUnit:nextPriceUnit,catalogGroupKey:"",catalogItemKey:"",catalogItemName:"",saleQuantity:"",saleUnit:"кг",validUntil:""});
+      return;
+    }
     const firstGroup=activeGroups[0]||null;
     const groupKey=value.catalogGroupKey||firstGroup?.group_key||"";
     const firstItem=catalogItems.find(item=>item.is_active!==false&&item.group_key===groupKey)||null;
@@ -39,11 +56,11 @@ function OpportunityFields({value,onChange,textareaRef,compact=false,onPhoto,cat
   return <div className="opportunityFields">
 <label><span>Тип можливості</span><select value={value.group} onChange={e=>setOpportunityGroup(e.target.value)}>{opportunityGroups.map(g=><option key={g.value} value={g.value}>{g.label}</option>)}</select></label>
 {selling&&<><label><span>Категорія</span><select required value={value.catalogGroupKey||""} onChange={e=>setCatalogGroup(e.target.value)}><option value="" disabled>Оберіть категорію</option>{activeGroups.map(group=><option key={group.group_key} value={group.group_key}>{group.icon?`${group.icon} `:""}{group.name_uk}</option>)}</select></label><label><span>Що продаєте</span><select required value={value.catalogItemKey||""} onChange={e=>setCatalogItem(e.target.value)}><option value="" disabled>Оберіть позицію</option>{itemsForGroup.map(item=><option key={item.item_key} value={item.item_key}>{item.icon?`${item.icon} `:""}{item.name_uk}</option>)}</select><small>Atlas використовує той самий ідентифікатор, що й у Паспорті потреб.</small></label></>}
-<label><span>{selling?"Опис (необов’язково)":"Можливість"}</span><textarea ref={textareaRef} required={!selling} maxLength={1100} value={value.text} onChange={e=>onChange({...value,text:e.target.value})} placeholder={selling?"Наприклад: рожеві, власне виробництво":"Наприклад: маю велосипед, можу продати"} style={{minHeight:compact?72:82}}/></label>
+<label><span>{selling?"Опис (необов’язково)":config.title}</span><textarea ref={textareaRef} required={!selling} maxLength={1100} value={value.text} onChange={e=>onChange({...value,text:e.target.value})} placeholder={config.placeholder} style={{minHeight:compact?72:82}}/></label>
 {!compact&&<div className="opportunityPhotoField">{photo?<div className="opportunityPhotoPreview"><img src={photo} alt="Фото можливості"/><span>{value.photoLabel||value.photo_label||"Фото додано"}</span><button type="button" onClick={()=>onChange({...value,photoUrl:"",photoLabel:"",photoTask:""})}><X size={16}/></button></div>:<label className="opportunityPhotoButton"><Camera size={19}/><span>Додати фото</span><input type="file" accept="image/*" capture="environment" onChange={onPhoto}/></label>}<small>Сфотографуйте річ. Після активації AI Atlas зможе визначати її та знаходити схожі.</small></div>}
 {selling?<label><span>Діє до</span><input required type="date" value={value.validUntil||""} onChange={e=>onChange({...value,validUntil:e.target.value})}/></label>:<fieldset className="durationPicker"><legend>Актуальність</legend><div>{durations.map(i=><button type="button" className={value.duration===i.value?"active":""} key={i.value} onClick={()=>onChange({...value,duration:i.value})}>{i.label}</button>)}</div></fieldset>}
-{!selling&&<label><span>Умови надання</span><select value={value.paymentType} onChange={e=>onChange({...value,paymentType:e.target.value})}>{paymentOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select></label>}
-{paid&&<div className="opportunityPrice"><label><span>Ціна</span><input required inputMode="decimal" value={value.priceValue} onChange={e=>onChange({...value,priceValue:e.target.value.replace(/[^0-9.,]/g,"").slice(0,14)})}/></label><label><span>Ціна за</span><select value={value.priceUnit} onChange={e=>onChange({...value,priceUnit:e.target.value})}>{(selling?saleUnits:servicePriceUnits).map(u=><option key={u}>{u}</option>)}</select></label><label><span>Валюта</span><select value={value.currency} onChange={e=>onChange({...value,currency:e.target.value})}><option value="UAH">грн</option><option value="USD">USD</option><option value="EUR">EUR</option></select></label></div>}
+{!selling&&config.showPayment&&<label><span>Умови надання</span><select value={value.paymentType} onChange={e=>onChange({...value,paymentType:e.target.value})}>{paymentOptions.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select></label>}
+{paid&&<div className="opportunityPrice"><label><span>Ціна</span><input required inputMode="decimal" value={value.priceValue} onChange={e=>onChange({...value,priceValue:e.target.value.replace(/[^0-9.,]/g,"").slice(0,14)})}/></label><label><span>Ціна за</span><select value={value.priceUnit} onChange={e=>onChange({...value,priceUnit:e.target.value})}>{priceUnitsForGroup.map(u=><option key={u}>{u}</option>)}</select></label><label><span>Валюта</span><select value={value.currency} onChange={e=>onChange({...value,currency:e.target.value})}><option value="UAH">грн</option><option value="USD">USD</option><option value="EUR">EUR</option></select></label></div>}
 {selling&&<div className="opportunityPrice"><label><span>Кількість у продажу</span><input required inputMode="decimal" value={value.saleQuantity||""} onChange={e=>onChange({...value,saleQuantity:e.target.value.replace(/[^0-9.,]/g,"").slice(0,14)})}/></label><label><span>Одиниця</span><select value={value.saleUnit||"кг"} onChange={e=>onChange({...value,saleUnit:e.target.value})}>{saleUnits.map(u=><option key={u}>{u}</option>)}</select></label></div>}
 <div className="opportunityLocation"><label><span>Місце</span><input value={value.place} onChange={e=>onChange({...value,place:e.target.value})}/></label><label><span>Радіус</span><input inputMode="decimal" value={value.radiusValue} onChange={e=>onChange({...value,radiusValue:e.target.value.replace(/[^0-9.,]/g,"")})}/></label></div>
 <fieldset className="opportunityVisibility"><legend>Де показувати цю можливість?</legend>
@@ -158,11 +175,15 @@ export default function Profile({lang="uk"}){
   function scrollToAdd(){openMobileView("editor");if(window.innerWidth>760){requestAnimationFrame(()=>addRef.current?.scrollIntoView({behavior:"smooth",block:"start"}));setTimeout(()=>textareaRef.current?.focus(),320)}}
   function chooseOpportunityGroup(group){
     setEntry(current=>{
-      if(group!=="sell")return {...current,group};
+      const config=opportunityFieldConfig[group]||opportunityFieldConfig.have;
+      if(group!=="sell"){
+        const paymentType=config.forcePayment||current.paymentType||"free";
+        return {...emptyEntry(),group,text:current.text,paymentType,priceUnit:config.priceUnits?.[0]||"шт.",visibilityScope:current.visibilityScope||"global",groupIds:current.groupIds||[]};
+      }
       const catalogGroup=catalog.groups.find(item=>item.is_active!==false);
       const catalogItem=catalog.items.find(item=>item.is_active!==false&&item.group_key===catalogGroup?.group_key);
-      const unit=catalogItem?.unit==="шт"?"шт.":catalogItem?.unit||"кг";
-      return {...current,group,paymentType:"paid",catalogGroupKey:catalogGroup?.group_key||"",catalogItemKey:catalogItem?.item_key||"",catalogItemName:catalogItem?.name_uk||"",priceUnit:unit,saleUnit:unit};
+      const unit=catalogItem?.unit==="шт"?"шт.":catalogItem?.unit||"шт.";
+      return {...emptyEntry(),group,paymentType:"paid",catalogGroupKey:catalogGroup?.group_key||"",catalogItemKey:catalogItem?.item_key||"",catalogItemName:catalogItem?.name_uk||"",priceUnit:unit,saleUnit:unit,visibilityScope:current.visibilityScope||"global",groupIds:current.groupIds||[]};
     });
     setShowMoreGroups(false);
     scrollToAdd();
