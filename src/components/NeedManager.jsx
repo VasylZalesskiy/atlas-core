@@ -42,6 +42,7 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
   const [confirmDeleteId,setConfirmDeleteId]=useState("");
   const [notice,setNotice]=useState("");
   const [error,setError]=useState("");
+  const [showArchive,setShowArchive]=useState(false);
 
   const activeGroups=useMemo(()=>groups.filter(group=>group.is_active!==false),[groups]);
   const activeItems=useMemo(()=>{
@@ -53,6 +54,8 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
   const catalogLookup=useMemo(()=>new Map(catalogItems.map(item=>[item.group_key+":"+item.item_key,item])),[catalogItems]);
   const groupLookup=useMemo(()=>new Map(groups.map(group=>[group.group_key,group])),[groups]);
   const openCount=needs.filter(item=>item.status==="not_received").length;
+  const archivedCount=needs.length-openCount;
+  const visibleNeeds=needs.filter(item=>(item.status==="received")===showArchive);
 
   useEffect(()=>{
     let alive=true;
@@ -103,7 +106,7 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
     try{
       const updated=await updateMyNeedStatus(item.id,status);
       setNeeds(items=>items.map(value=>value.id===item.id?{...value,...updated}:value));
-      setNotice(status==="received"?(uk?"✓ Позначено як отримано.":"✓ Marked as received."):(uk?"Потребу знову активовано.":"The need is active again."));
+      setNotice(status==="received"?(uk?"✓ Потребу отримано й перенесено в архів.":"✓ Need received and archived."):(uk?"Потребу знову активовано.":"The need is active again."));
     }catch(cause){setError(friendlyNeedError(cause,uk))}finally{setBusyId("")}
   }
 
@@ -167,11 +170,12 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
 
     {(error||notice)&&<div className={"needMessage "+(error?"errorState":"successState")} role="status" aria-live="polite">{error||notice}</div>}
 
-    <div className="needsListHeading"><div><h3>{uk?"Мої потреби":"My needs"}</h3><p>{uk?"Статус показує, чи потреба ще актуальна.":"Status shows whether the need is still active."}</p></div><span>{openCount} {uk?"не отримано":"not received"}</span></div>
+    <div className="needsListHeading"><div><h3>{uk?"Мої потреби":"My needs"}</h3><p>{uk?"Отримані потреби зберігаються в архіві.":"Received needs are kept in the archive."}</p></div></div>
+    <div className="needsArchiveTabs" role="tablist" aria-label={uk?"Статус потреб":"Need status"}><button type="button" role="tab" aria-selected={!showArchive} className={!showArchive?"active":""} onClick={()=>setShowArchive(false)}>{uk?"Актуальні":"Active"} <b>{openCount}</b></button><button type="button" role="tab" aria-selected={showArchive} className={showArchive?"active":""} onClick={()=>setShowArchive(true)}>{uk?"Архів":"Archive"} <b>{archivedCount}</b></button></div>
 
     <div className="needsList">
-      {needs.length===0&&<div className="needsEmpty"><HeartHandshake size={24}/><strong>{uk?"Потреб ще немає":"No needs yet"}</strong><span>{uk?"Додайте першу потребу зі списку вище.":"Add your first need from the list above."}</span></div>}
-      {needs.map(item=>{
+      {visibleNeeds.length===0&&<div className="needsEmpty"><HeartHandshake size={24}/><strong>{showArchive?(uk?"Архів порожній":"Archive is empty"):(uk?"Актуальних потреб немає":"No active needs")}</strong><span>{showArchive?(uk?"Отримані потреби з’являться тут.":"Received needs will appear here."):(uk?"Додайте потребу зі списку вище.":"Add a need from the list above.")}</span></div>}
+      {visibleNeeds.map(item=>{
         const received=item.status==="received";
         const deleting=confirmDeleteId===item.id;
         const catalogItem=catalogLookup.get(item.group_key+":"+item.item_key);
@@ -182,10 +186,7 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
           <div className="needRecordProduct"><span aria-hidden="true">{catalogItem?.icon||"📦"}</span><div><small>{String(groupName).toLocaleUpperCase(uk?"uk-UA":"en-GB")}</small><h4>{itemName}</h4></div></div>
           <div className="needRecordMeta"><div><Scale size={16}/><span><small>{uk?"Кількість":"Quantity"}</small><strong>{Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} {item.unit}</strong></span></div><div><CalendarRange size={16}/><span><small>{uk?"Актуальність":"Validity"}</small><strong>{formatDateRange(item.needed_from,item.needed_until,uk)}</strong></span></div></div>
           <div className="needRecordActions">
-            <div className="needStatus" role="group" aria-label={uk?"Статус потреби":"Need status"}>
-              <button type="button" className={!received?"active":""} disabled={busyId===item.id} onClick={()=>changeStatus(item,"not_received")}><Clock3 size={15}/>{uk?"Не отримано":"Not received"}</button>
-              <button type="button" className={received?"active receivedActive":""} disabled={busyId===item.id} onClick={()=>changeStatus(item,"received")}><PackageCheck size={15}/>{uk?"Отримано":"Received"}</button>
-            </div>
+            <button type="button" className="needArchiveAction" disabled={busyId===item.id} onClick={()=>changeStatus(item,received?"not_received":"received")}>{received?<><Clock3 size={16}/>{uk?"Повернути":"Restore"}</>:<><PackageCheck size={16}/>{uk?"Отримано · в архів":"Received · archive"}</>}</button>
             {deleting?<div className="needDeleteConfirm"><span>{uk?"Точно видалити?":"Delete it?"}</span><button type="button" disabled={busyId===item.id} onClick={()=>removeNeed(item.id)}><Check size={16}/>{uk?"Так":"Yes"}</button><button type="button" onClick={()=>setConfirmDeleteId("")}><X size={16}/></button></div>:<button className="needDeleteButton" type="button" title={uk?"Видалити потребу":"Delete need"} onClick={()=>setConfirmDeleteId(item.id)}><Trash2 size={18}/></button>}
           </div>
         </article>;

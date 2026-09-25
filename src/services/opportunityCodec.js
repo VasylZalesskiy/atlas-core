@@ -38,7 +38,8 @@ export function decodeOpportunityText(value,kind="other"){
     catalogItemKey:"",
     catalogItemName:"",
     minimumQuantity:"",
-    deliveryIncluded:false
+    deliveryIncluded:false,
+    completedAt:""
   };
 
   const text=raw.slice(0,markerIndex).trim();
@@ -64,10 +65,11 @@ export function decodeOpportunityText(value,kind="other"){
       catalogItemKey:String(metadata.catalogItemKey||""),
       catalogItemName:String(metadata.catalogItemName||""),
       minimumQuantity:metadata.minimumQuantity==null?"":String(metadata.minimumQuantity),
-      deliveryIncluded:Boolean(metadata.deliveryIncluded)
+      deliveryIncluded:Boolean(metadata.deliveryIncluded),
+      completedAt:typeof metadata.completedAt==="string"?metadata.completedAt:""
     };
   }catch{
-    return {text,group:legacyGroupByKind[kind]||"additional",duration:"month",place:"",radiusValue:"",radiusUnit:"км",online:false,paymentType:kind==="sell"?"paid":"free",priceValue:"",priceUnit:"шт.",currency:"UAH",saleQuantity:"",saleUnit:"кг",validUntil:"",catalogGroupKey:"",catalogItemKey:"",catalogItemName:"",minimumQuantity:"",deliveryIncluded:false};
+    return {text,group:legacyGroupByKind[kind]||"additional",duration:"month",place:"",radiusValue:"",radiusUnit:"км",online:false,paymentType:kind==="sell"?"paid":"free",priceValue:"",priceUnit:"шт.",currency:"UAH",saleQuantity:"",saleUnit:"кг",validUntil:"",catalogGroupKey:"",catalogItemKey:"",catalogItemName:"",minimumQuantity:"",deliveryIncluded:false,completedAt:""};
   }
 }
 
@@ -92,7 +94,8 @@ export function encodeOpportunityText(entry){
     catalogItemKey:String(entry.catalogItemKey||"").trim().slice(0,80),
     catalogItemName:String(entry.catalogItemName||"").trim().slice(0,120),
     minimumQuantity:String(entry.minimumQuantity||"").trim().replace(",",".").slice(0,14),
-    deliveryIncluded:Boolean(entry.deliveryIncluded)
+    deliveryIncluded:Boolean(entry.deliveryIncluded),
+    completedAt:String(entry.completedAt||"").slice(0,32)
   };
   if(metadata.paymentType!=="paid")metadata.priceValue="";
   if(group!=="sell"){

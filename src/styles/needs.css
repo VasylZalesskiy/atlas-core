@@ -3,3 +3,9 @@
 @media(max-width:420px){.needGroupGrid{grid-template-columns:1fr}.needChoice:not(.selected){min-height:58px}.needItemGrid{grid-template-columns:1fr 1fr}.needRecordMeta{grid-template-columns:1fr}.needRecordActions{align-items:stretch;flex-direction:column}.needDeleteButton{width:100%}.needDeleteConfirm{justify-content:center}.needsHeadingIcon{width:43px;height:43px}.needsHeading h2{font-size:24px}}
 .needsHeadingTools{display:grid;justify-items:end;gap:7px}.needsAdminLink{display:inline-flex;align-items:center;gap:5px;color:#0b7740;font-size:10px;font-weight:900}.needCatalogLoading{grid-column:1/-1;min-height:72px;border:1px dashed #cbd8cf;border-radius:13px;background:#fafcfb;display:grid;place-items:center;color:#748078;font-size:12px}
 @media(max-width:760px){.needsHeadingTools{grid-column:1/-1;width:100%;display:flex;align-items:center;justify-content:space-between}.needsHeadingTools .needsPilotBadge{grid-column:auto}}
+.needsArchiveTabs{display:flex;gap:8px;margin:0 0 14px}
+.needsArchiveTabs button,.passportArchiveTabs button{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:8px 14px;border:1px solid #d9e7dc;border-radius:12px;background:#fff;color:#496252;font-weight:800;cursor:pointer}
+.needsArchiveTabs button.active,.passportArchiveTabs button.active{border-color:#0b874a;background:#e8f6ed;color:#087442}
+.needsArchiveTabs b,.passportArchiveTabs b{display:grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:50%;background:#e5efe8;font-size:11px}
+.needArchiveAction{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:7px 12px;border:1px solid #bddfc8;border-radius:10px;background:#ecf8f0;color:#087442;font-size:12px;font-weight:800;cursor:pointer}
+@media(max-width:420px){.needArchiveAction{width:100%}}

@@ -1,4 +1,8 @@
 .passportMobileMenu,.passportAccountMobileToggle,.passportMobileBack,.passportRenameScreen{display:none}
+.passportArchiveTabs{display:flex;gap:8px;margin:12px 0 18px}
+.passportArchiveTabs button{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:8px 14px;border:1px solid #d9e7dc;border-radius:12px;background:#fff;color:#496252;font-weight:800;cursor:pointer}
+.passportArchiveTabs button.active{border-color:#0b874a;background:#e8f6ed;color:#087442}
+.passportArchiveTabs b{display:grid;place-items:center;min-width:22px;height:22px;padding:0 5px;border-radius:50%;background:#e5efe8;font-size:11px}
 @media(max-width:760px){
   .passportAccountPanel.logged{padding:0;margin:0 auto 12px;gap:0;box-shadow:none}
   .passportAccountMobileToggle{display:flex;align-items:center;gap:9px;width:100%;min-height:46px;padding:10px 14px;border:0;background:#fff;color:#12673d;font-weight:800;text-align:left}
