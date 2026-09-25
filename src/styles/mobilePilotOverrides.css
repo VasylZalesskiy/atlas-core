@@ -6,6 +6,14 @@
   .mobilePilotSearchHead strong{font-size:21px}
   .mobilePilotSearch{padding:12px;border:2px solid #0b8c48;background:#fff;box-shadow:0 12px 30px rgba(11,140,72,.17),0 0 0 4px rgba(11,140,72,.05)}
   .mobilePilotSearch:focus-within{border-color:#067139;box-shadow:0 14px 34px rgba(11,140,72,.22),0 0 0 5px rgba(11,140,72,.09)}
+  .mobilePilotSearch .voiceTaskInput textarea,.mobilePilotSearch .voiceTaskInput input{min-height:112px;padding-right:59px!important}
+  .mobilePilotSearch .voiceButton{right:9px;top:9px;width:39px;height:39px;border-radius:11px}
+  .mobilePilotSearch .mobilePilotCamera{right:9px;bottom:9px;width:39px;height:39px;border-radius:11px}
+  .mobilePilotUtilityGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}
+  .mobilePilotUtilityGrid .mobileNotificationsCard,.mobilePilotUtilityGrid .mobileInstallCard{display:flex;align-items:center;gap:9px;min-width:0;min-height:66px;margin:0;padding:10px}
+  .mobilePilotUtilityGrid .mobileNotificationsCard>span:nth-child(2),.mobilePilotUtilityGrid .mobileInstallCard>span{min-width:0}
+  .mobilePilotUtilityGrid strong{font-size:12px;line-height:1.2}
+  .mobilePilotUtilityGrid small{font-size:10px}
   .mobileFeedbackCompact{margin-top:2px;display:grid;gap:8px}
   .mobileFeedbackTrigger{min-height:36px;width:max-content;max-width:100%;display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid #dce6df;border-radius:10px;background:#f8faf9;color:#5e6d64;font-size:11px;font-weight:850}
   .mobileFeedbackTrigger b{font-size:15px;line-height:1}

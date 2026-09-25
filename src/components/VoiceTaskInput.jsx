@@ -6,7 +6,7 @@ function joinParts(...parts){
   return parts.map(part=>String(part||"").trim()).filter(Boolean).join(" ").replace(/\s+/g," ").trim();
 }
 
-export default function VoiceTaskInput({value,onChange,lang="uk",placeholder,className="",autoFocus=false,multiline=true}){
+export default function VoiceTaskInput({value,onChange,lang="uk",placeholder,className="",autoFocus=false,multiline=true,onKeyDown}){
   const baseRef=useRef("");
   const committedRef=useRef("");
 
@@ -71,6 +71,7 @@ export default function VoiceTaskInput({value,onChange,lang="uk",placeholder,cla
       required
       value={value}
       onChange={manualChange}
+      onKeyDown={onKeyDown}
       placeholder={placeholder}
       aria-label={lang==="uk"?"Опишіть вашу задачу":"Describe your task"}
       style={controlsBelow?{paddingRight:16}: {paddingRight:value?104:58}}

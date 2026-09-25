@@ -731,6 +731,7 @@ header{height:76px;padding:0 5vw;display:flex;justify-content:space-between;alig
 .chatPage .chatEmpty strong{font-size:16px;color:#1a4b2e}
 .chatPage .messageComposer{background:#fff}
 .chatPage .messageInputShell{border-width:2px;border-color:#b9dcc6;background:#f6fbf8}
+.chatPage .securityStrip.compact span{display:block;font-size:11px;line-height:1.35}
 .closedRoomActions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;width:100%;margin-top:20px}
 .closedRoomActions .primary,.closedRoomActions .secondary{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:11px 17px;border-radius:12px;font-weight:850;text-decoration:none}
 .closedRoomActions .primary{min-width:0}

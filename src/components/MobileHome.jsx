@@ -63,6 +63,12 @@ export default function MobileHome({lang="uk"}){
     nav(solutionUrl(value,""),geoLocation?{state:{geoLocation}}:undefined);
   }
 
+  function onSearchKeyDown(event){
+    if(event.key!=="Enter"||event.shiftKey||event.nativeEvent?.isComposing)return;
+    event.preventDefault();
+    submit(event);
+  }
+
   function quick(value){setTask(value);window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
   function clearPhoto(){setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value=""}
   async function sendFeedback(event){
@@ -122,7 +128,7 @@ export default function MobileHome({lang="uk"}){
 
     <form className="mobilePilotSearch" onSubmit={submit}>
       <div className="mobilePilotInputWrap">
-        <VoiceTaskInput value={task} onChange={setTask} lang={lang} placeholder={uk?"Наприклад: потрібна дриль на вечір":"For example: I need a drill for the evening"}/>
+        <VoiceTaskInput value={task} onChange={setTask} onKeyDown={onSearchKeyDown} lang={lang} placeholder={uk?"Наприклад: потрібна дриль на вечір":"For example: I need a drill for the evening"}/>
         <button className="mobilePilotCamera" type="button" onClick={()=>fileRef.current?.click()} aria-label={uk?"Додати фото":"Add photo"}><Camera size={21}/></button>
         <input ref={fileRef} className="mobilePilotFile" type="file" accept="image/*" capture="environment" onChange={choosePhoto}/>
       </div>
@@ -150,10 +156,10 @@ export default function MobileHome({lang="uk"}){
       {feedbackStatus&&<small className={feedbackStatus.startsWith("✓")?"success":"error"}>{feedbackStatus}</small>}
     </section>
 
-    <Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
+    <div className="mobilePilotUtilityGrid"><Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
       <span className="mobileNotificationIcon"><Bell size={20}/>{unreadCount>0&&<i>{unreadCount>99?"99+":unreadCount}</i>}</span>
-      <span><strong>{unreadCount>0?(uk?`Нові сповіщення: ${unreadCount}`:`New notifications: ${unreadCount}`):(uk?"Сповіщення та запити":"Notifications & requests")}</strong><small>{uk?"Тут будуть збіги між потребами та можливостями":"Matches between needs and capabilities appear here"}</small></span><b>→</b>
+      <span><strong>{uk?"Сповіщення":"Notifications"}</strong><small>{unreadCount>0?(uk?`${unreadCount} нових`:`${unreadCount} new`):(uk?"Збіги та запити":"Matches & requests")}</small></span>
     </Link>
-    <Link className="mobileInstallCard" to="/share"><Smartphone size={20}/><span><strong>{uk?"Встановити Atlas на телефон":"Install Atlas on your phone"}</strong><small>{uk?"Інструкція для iPhone та Android":"Instructions for iPhone and Android"}</small></span><b>→</b></Link>
+    <Link className="mobileInstallCard" to="/share"><Smartphone size={20}/><span><strong>{uk?"На телефон":"On your phone"}</strong><small>{uk?"Встановити Atlas":"Install Atlas"}</small></span></Link></div>
   </section>;
 }

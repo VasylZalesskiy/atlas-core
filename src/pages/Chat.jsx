@@ -801,7 +801,7 @@ export default function Chat(){
       </div>
     </header>
 
-    <div className="securityStrip compact"><ShieldCheck size={21}/><div><strong>Наскрізно зашифровано</strong><span>Кімната і посилання автоматично закриються через 1 годину.</span></div></div>
+    <div className="securityStrip compact"><ShieldCheck size={21}/><div><strong>Захист розмови · наскрізне шифрування</strong><span>Без архіву повідомлень у Atlas · кімната діє до 1 години.</span></div></div>
 
     <label className="chatName"><span>Ваше ім’я</span><input maxLength={40} value={displayName} onChange={event=>setDisplayName(event.target.value)} placeholder="Наприклад: Василь"/></label>
 
