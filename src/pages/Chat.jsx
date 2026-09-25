@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from "react";
 import {Copy,Headphones,LockKeyhole,LogOut,Mic,MicOff,Phone,PhoneIncoming,PhoneOff,RefreshCw,Send,Share2,ShieldCheck,Timer,Volume2} from "lucide-react";
+import {Link} from "react-router-dom";
 import supabase from "../services/supabase";
 import {createChatRoom,decryptChatPacket,encryptChatPacket,formatChatHash,importChatKey,isChatRoomExpired,parseChatHash,randomHex} from "../services/chatCrypto";
 
@@ -161,6 +162,7 @@ export default function Chat(){
     const inviteHash=window.location.hash;
     const parsed=parseChatHash(inviteHash);
     if(inviteHash.startsWith("#chat-")&&(!parsed||isChatRoomExpired(parsed))){
+      history.replaceState(null,"",`${window.location.pathname}${window.location.search}`);
       setRoomExpired(true);
       setConnection("expired");
       return;
@@ -289,6 +291,10 @@ export default function Chat(){
     }
     if(packet.type==="room-expired"){
       closeAudio();
+      const previous=parseChatHash(window.location.hash)?.roomId;
+      if(previous)localStorage.removeItem(`atlas-chat-owner:${previous}`);
+      history.replaceState(null,"",`${window.location.pathname}${window.location.search}`);
+      roomKeyRef.current=null;setRoomSecret("");setKeyReady(false);
       setMessages([]);setPeerOnline(false);setParticipantCount(0);
       setConnection("expired");setRoomExpired(true);
       return;
@@ -457,6 +463,9 @@ export default function Chat(){
       if(channelRef.current&&supabase)supabase.removeChannel(channelRef.current);
       channelRef.current=null;
       roomKeyRef.current=null;
+      localStorage.removeItem(`atlas-chat-owner:${roomId}`);
+      history.replaceState(null,"",`${window.location.pathname}${window.location.search}`);
+      setRoomSecret("");
       setKeyReady(false);
       setMessages([]);
       setPeerOnline(false);
@@ -467,7 +476,7 @@ export default function Chat(){
     update();
     const timer=window.setInterval(update,1000);
     return()=>window.clearInterval(timer);
-  },[closeAudio,roomExpired,roomExpiresAt,sendPacket]);
+  },[closeAudio,roomExpired,roomExpiresAt,roomId,sendPacket]);
 
   useEffect(()=>()=>{
     closeAudio();
@@ -759,6 +768,8 @@ export default function Chat(){
     if(channelRef.current===channel)channelRef.current=null;
     closeAudio();
     roomKeyRef.current=null;
+    localStorage.removeItem(`atlas-chat-owner:${roomId}`);
+    setRoomSecret("");
     setKeyReady(false);setMessages([]);setPeerOnline(false);setParticipantCount(0);
     setConnection("closed");setRoomClosed(true);
     history.replaceState(null,"",`${window.location.pathname}${window.location.search}`);
@@ -773,8 +784,8 @@ export default function Chat(){
       <div className="closedRoomIcon"><LockKeyhole size={34}/></div>
       <span>ATLAS CHAT</span>
       <h1>{roomExpired?"Час кімнати завершився":"Кімнату закрито"}</h1>
-      <p>{roomExpired?"Приватне посилання працює не більше однієї години. Повідомлення та ключ кімнати видалені з цього пристрою.":"Ви вийшли з приватної кімнати. Повідомлення та ключ більше недоступні."}</p>
-      <button className="primary" type="button" onClick={createNewRoom}>Створити нову кімнату</button>
+      <p>{roomExpired?"Час приватної кімнати завершився.":"Ви вийшли з приватної кімнати."} Atlas не створює архів її повідомлень. Текст розмови й ключ прибрані з поточного екрана. Надіслане запрошення може залишитися у застосунку отримувача.</p>
+      <div className="closedRoomActions"><button className="primary" type="button" onClick={createNewRoom}>Створити нову кімнату</button><Link className="secondary" to="/">На головну</Link></div>
     </div>
   </section></main>;
 
