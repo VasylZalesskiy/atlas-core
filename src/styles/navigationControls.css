@@ -1,6 +1,6 @@
-.atlasHistoryNav{display:flex;align-items:center;justify-content:flex-end;gap:7px;max-width:1200px;margin:0 auto;padding:8px 20px 0}
-.atlasHistoryNav button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:38px;padding:7px 12px;border:1px solid #dce9e0;border-radius:11px;background:#fff;color:#126b42;font:inherit;font-size:13px;font-weight:750;cursor:pointer}
+.atlasHistoryNav{display:flex;align-items:center;gap:6px;max-width:1200px;margin:0 auto;padding:6px 20px 0}
+.atlasHistoryNav button{display:grid;place-items:center;width:32px;height:32px;padding:0;border:1px solid #dce9e0;border-radius:9px;background:#fff;color:#126b42;cursor:pointer}
 .atlasHistoryNav button:hover:not(:disabled){background:#ebf7ef;border-color:#b4d9c1}
 .atlasHistoryNav button:focus-visible{outline:2px solid #087944;outline-offset:2px}
 .atlasHistoryNav button:disabled{opacity:.4;cursor:default}
-@media(max-width:760px){.atlasHistoryNav{justify-content:center;gap:8px;padding:8px 12px 0}.atlasHistoryNav button{flex:1;max-width:130px;min-height:42px;font-size:13px}}
+@media(max-width:760px){.atlasHistoryNav{padding:5px 10px 0}.atlasHistoryNav button{width:30px;height:30px}}
