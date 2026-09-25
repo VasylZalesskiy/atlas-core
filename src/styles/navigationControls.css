@@ -1,6 +1,8 @@
-.atlasHistoryNav{display:flex;align-items:center;gap:6px;max-width:1200px;margin:0 auto;padding:6px 20px 0}
-.atlasHistoryNav button{display:grid;place-items:center;width:32px;height:32px;padding:0;border:1px solid #dce9e0;border-radius:9px;background:#fff;color:#126b42;cursor:pointer}
-.atlasHistoryNav button:hover:not(:disabled){background:#ebf7ef;border-color:#b4d9c1}
-.atlasHistoryNav button:focus-visible{outline:2px solid #087944;outline-offset:2px}
+.atlasHistoryNav{display:flex;align-items:center;justify-content:space-between;gap:8px;max-width:1200px;margin:0 auto;padding:7px 20px 0}
+.atlasHistoryGroup{display:flex;align-items:center;gap:7px;min-width:0}
+.atlasHistoryNav button,.atlasHistoryNav a{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 11px;border:1px solid #dce9e0;border-radius:11px;background:#fff;color:#126b42;font:inherit;font-size:13px;font-weight:800;text-decoration:none;white-space:nowrap;cursor:pointer}
+.atlasHistoryNav button:hover:not(:disabled),.atlasHistoryNav a:hover{background:#ebf7ef;border-color:#b4d9c1}
+.atlasHistoryNav button:focus-visible,.atlasHistoryNav a:focus-visible{outline:2px solid #087944;outline-offset:2px}
 .atlasHistoryNav button:disabled{opacity:.4;cursor:default}
-@media(max-width:760px){.atlasHistoryNav{padding:5px 10px 0}.atlasHistoryNav button{width:30px;height:30px}}
+.atlasHistoryNotice{font-size:12px;color:#126b42}
+@media(max-width:760px){.atlasHistoryNav{padding:6px 10px 0}.atlasHistoryGroup{gap:6px}.atlasHistoryNav button,.atlasHistoryNav a{width:42px;height:42px;min-height:42px;padding:0;border-radius:12px}.atlasHistoryNav button span,.atlasHistoryNav a span{display:none}.atlasHistoryNotice{position:absolute;right:10px;margin-top:78px;padding:6px 10px;border-radius:8px;background:#e8f6ed}}

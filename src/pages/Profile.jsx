@@ -144,8 +144,8 @@ export default function Profile({lang="uk"}){
     };
   },[passport?.id]);
 
-  async function accountLogin(login,password){await loginAtlasAccount(login,password);await reloadProfile(null,{showLoader:true});setNotice("Вхід виконано. Ваші сторінки завантажено.")}
-  async function accountRegister(login,password){await registerAtlasAccount(login,password);await reloadProfile(null,{showLoader:true});setNotice("Доступ створено. Тепер ці сторінки можна відкрити на іншому пристрої за логіном і паролем.")}
+  async function accountLogin(login,password){await loginAtlasAccount(login,password);await reloadProfile(null,{showLoader:true});window.dispatchEvent(new Event("atlas:account-changed"));setNotice("Вхід виконано. Ваші сторінки завантажено.")}
+  async function accountRegister(login,password){await registerAtlasAccount(login,password);await reloadProfile(null,{showLoader:true});window.dispatchEvent(new Event("atlas:account-changed"));setNotice("Доступ створено. Тепер ці сторінки можна відкрити на іншому пристрої за логіном і паролем.")}
   async function accountLogout(){setError("");setNotice("");await logoutAtlasAccount();window.location.replace("/")}
   async function selectPassport(id){if(!id)return;await reloadProfile(id,{showLoader:true});setEditingIdentity(false);openMobileView("menu");setNotice("")}
   function createNewPassport(accountId){
