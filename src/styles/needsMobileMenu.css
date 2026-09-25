@@ -1,0 +1,39 @@
+.needsMobileMenu,.needsMobileBack,.needsMobileCreateTitle{display:none}
+@media(max-width:760px){
+  .needsWorkspace{margin-top:0;padding-top:0;border:0}
+  .needsMobileMenu{display:grid;gap:0}
+  .needsMobileKicker{color:#087944;font-size:11px;font-weight:900;letter-spacing:.05em}
+  .needsMobileMenu h1{margin:9px 0 18px;font-size:clamp(22px,5.5vw,26px);line-height:1.2;color:#192b22}
+  .needsMobileIdentity{display:flex;align-items:center;gap:10px;min-height:61px;padding:9px 13px;border:1px solid #dce8e0;border-radius:16px;background:#fff}
+  .needsMobileIdentity>span:nth-child(2){display:grid;gap:2px;min-width:0;flex:1}
+  .needsMobileIdentity strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+  .needsMobileIdentity small,.needsMobileProduct small,.needsMobileRow small{font-size:11px;color:#6b7c72}
+  .needsMobileIdentity a{display:inline-flex;align-items:center;gap:5px;min-height:36px;padding:0 9px;border:1px solid #d5e8db;border-radius:10px;background:#f4faf6;color:#087944;font-size:11px;font-weight:800;text-decoration:none}
+  .needsMobileAvatar{display:grid;place-items:center;flex:none;width:35px;height:35px;border-radius:50%;background:#e0f3e7;color:#087944;font-size:13px;font-weight:900}
+  .needsMenuLabel{margin:27px 2px 13px}
+  .needsMobileProduct{display:grid;gap:16px;padding:17px;border:1px solid #dce8e0;border-radius:18px;background:#fff}
+  .needsMobileProduct>div{display:flex;align-items:center;gap:15px}
+  .needsMobileProduct>div>span:nth-child(2){display:grid;gap:4px}
+  .needsMobileProduct strong{font-size:20px;color:#192b22}
+  .needsMobileProductIcon{display:grid;place-items:center;width:54px;height:54px;border-radius:16px;background:#e9f5eb;font-size:29px}
+  .needsMobileProduct button{display:flex;justify-content:center;align-items:center;gap:8px;min-height:44px;border:0;border-radius:12px;background:#087d48;color:#fff;font-size:15px;font-weight:900}
+  .needsMobileRow{display:flex;align-items:center;gap:12px;min-height:72px;margin-bottom:10px;padding:10px 14px;border:1px solid #dce8e0;border-radius:17px;background:#fff;text-align:left;color:#192b22}
+  .needsMobileRow>span:nth-child(2){display:grid;gap:3px;flex:1}
+  .needsMobileRow strong{font-size:16px}
+  .needsMobileRow>b{display:grid;place-items:center;min-width:35px;height:35px;border-radius:50%;background:#e9f5ed;color:#087944;font-size:14px}
+  .needsMobileRow>svg{color:#087944}
+  .needsRowIcon{display:grid;place-items:center;flex:none;width:38px;height:38px;border-radius:11px;background:#e7f5eb;color:#087944}
+  .needsPilotNote{margin:10px 0 15px;padding:18px;border-radius:17px;background:#edf5ef;color:#6b7c72;font-size:12px}
+  .needsMobileBack{display:inline-flex;align-items:center;gap:7px;min-height:38px;margin:0 0 20px;padding:0 3px;border:0;background:transparent;color:#087944;font-size:13px;font-weight:800}
+  .needsMobileBack svg{width:23px;height:23px;padding:4px;border-radius:50%;background:#eaf5ed}
+  .needsMobileCreateTitle{display:grid;gap:4px;margin:0 0 14px}
+  .needsMobileCreateTitle h2{margin:0;font-size:24px;color:#192b22}
+  .needsMobileCreateTitle span{font-size:15px;font-weight:800;color:#087944}
+  .needsMobileView-menu .needsHeading,.needsMobileView-menu .needComposer,.needsMobileView-menu .needsListHeading,.needsMobileView-menu .needsArchiveTabs,.needsMobileView-menu .needsList,.needsMobileView-menu .needMessage,.needsMobileView-menu .needsMobileBack{display:none}
+  .needsMobileView-create .needsMobileMenu,.needsMobileView-create .needsHeading,.needsMobileView-create .needsListHeading,.needsMobileView-create .needsArchiveTabs,.needsMobileView-create .needsList{display:none}
+  .needsMobileView-create.needsSingleItem .needComposer>.needStep:first-child{display:none}
+  .needsMobileView-create .needComposer{margin-top:0}
+  .needsMobileView-create .needComposerFooter>div{display:none}
+  .needsMobileView-active .needsMobileMenu,.needsMobileView-archive .needsMobileMenu,.needsMobileView-active .needsHeading,.needsMobileView-archive .needsHeading,.needsMobileView-active .needsMobileCreateTitle,.needsMobileView-archive .needsMobileCreateTitle,.needsMobileView-active .needComposer,.needsMobileView-archive .needComposer{display:none}
+  .needsMobileView-active .needsListHeading,.needsMobileView-archive .needsListHeading{margin-top:0}
+}

@@ -1,8 +1,10 @@
 import {useEffect,useMemo,useState} from "react";
-import {CalendarRange,Check,Clock3,HeartHandshake,PackageCheck,Plus,Scale,Trash2,X} from "lucide-react";
+import {ArrowLeft,CalendarRange,Check,ChevronRight,Clock3,HeartHandshake,PackageCheck,Pencil,Plus,Scale,Trash2,X} from "lucide-react";
+import {Link} from "react-router-dom";
 import {addMyNeed,deleteMyNeed,updateMyNeedStatus} from "../services/passportStore";
 import {loadNeedCatalog} from "../services/catalogStore";
 import "../styles/needs.css";
+import "../styles/needsMobileMenu.css";
 
 const emptyNeeds=[];
 
@@ -30,7 +32,7 @@ function friendlyNeedError(error,uk){
   return text||(uk?"Не вдалося виконати дію.":"The action could not be completed.");
 }
 
-export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk"}){
+export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds,lang="uk"}){
   const uk=lang!=="en";
   const [needs,setNeeds]=useState(()=>initialNeeds);
   const [groups,setGroups]=useState([]);
@@ -43,6 +45,7 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
   const [notice,setNotice]=useState("");
   const [error,setError]=useState("");
   const [showArchive,setShowArchive]=useState(false);
+  const [mobileView,setMobileView]=useState("menu");
 
   const activeGroups=useMemo(()=>groups.filter(group=>group.is_active!==false),[groups]);
   const activeItems=useMemo(()=>{
@@ -56,6 +59,9 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
   const openCount=needs.filter(item=>item.status==="not_received").length;
   const archivedCount=needs.length-openCount;
   const visibleNeeds=needs.filter(item=>(item.status==="received")===showArchive);
+
+  function openView(view){setMobileView(view);setShowArchive(view==="archive");setError("");window.scrollTo({top:0,behavior:"auto"})}
+  function openCreate(item){setForm(value=>({...value,groupKey:item.group_key,itemKey:item.item_key,unit:item.unit||"кг"}));openView("create")}
 
   useEffect(()=>{
     let alive=true;
@@ -97,6 +103,7 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
       const itemName=uk?(selectedItem.name_uk||selectedItem.item_key):(selectedItem.name_en||selectedItem.name_uk||selectedItem.item_key);
       setForm(value=>({...value,itemKey:"",unit:"кг",quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7)}));
       setNotice(uk?"✓ Потребу «"+itemName+"» збережено в Atlas.":"✓ “"+itemName+"” was saved in Atlas.");
+      openView("active");
     }catch(cause){setError(friendlyNeedError(cause,uk))}finally{setAdding(false)}
   }
 
@@ -121,7 +128,19 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
     }catch(cause){setError(friendlyNeedError(cause,uk))}finally{setBusyId("")}
   }
 
-  return <section className="needsWorkspace" id="passport-needs">
+  return <section className={`needsWorkspace needsMobileView-${mobileView} ${activeItems.length===1?"needsSingleItem":""}`} id="passport-needs">
+    <div className="needsMobileMenu">
+      <span className="needsMobileKicker">{uk?"ПАСПОРТ ПОТРЕБ":"NEEDS PASSPORT"}</span><h1>{uk?"Що вам потрібно?":"What do you need?"}</h1>
+      <div className="needsMobileIdentity"><span className="needsMobileAvatar">{passport?.display_name?.trim().charAt(0).toUpperCase()||"А"}</span><span><strong>{passport?.display_name}{passport?.city?` · ${passport.city}`:""}</strong><small>{uk?"Моя сторінка Atlas":"My Atlas page"}</small></span><Link to="/profile" aria-label={uk?"Змінити назву сторінки":"Edit page name"}><Pencil size={15}/>{uk?"Змінити":"Edit"}</Link></div>
+      <span className="needsMobileKicker needsMenuLabel">{uk?"ДОДАТИ ПОТРЕБУ":"ADD A NEED"}</span>
+      {activeItems.map(item=><div className="needsMobileProduct" key={item.item_key}><div><span className="needsMobileProductIcon">{item.icon||"🥔"}</span><span><strong>{uk?item.name_uk:(item.name_en||item.name_uk)}</strong><small>{uk?"Оберіть кількість і термін":"Choose quantity and dates"}</small></span></div><button type="button" onClick={()=>openCreate(item)}><Plus size={18}/>{uk?"Додати потребу":"Add need"}</button></div>)}
+      {catalogLoading&&<div className="needCatalogLoading">{uk?"Завантажую список…":"Loading list…"}</div>}
+      <span className="needsMobileKicker needsMenuLabel">{uk?"ВАШІ ПОТРЕБИ":"YOUR NEEDS"}</span>
+      <button type="button" className="needsMobileRow" onClick={()=>openView("active")}><span className="needsRowIcon"><HeartHandshake size={20}/></span><span><strong>{uk?"Актуальні":"Active"}</strong><small>{uk?"Потреби, які ще потрібні":"Needs you still have"}</small></span><b>{openCount}</b><ChevronRight size={18}/></button>
+      <button type="button" className="needsMobileRow" onClick={()=>openView("archive")}><span className="needsRowIcon"><PackageCheck size={20}/></span><span><strong>{uk?"Архів":"Archive"}</strong><small>{uk?"Отримані та закриті":"Received and closed"}</small></span><b>{archivedCount}</b><ChevronRight size={18}/></button>
+      <div className="needsPilotNote">{uk?"Інші овочі додамо після пілоту":"More vegetables will follow the pilot"}</div>
+    </div>
+    <button type="button" className="needsMobileBack" onClick={()=>openView("menu")}><ArrowLeft size={18}/>{uk?"Потреби":"Needs"}</button>
     <div className="needsHeading">
       <div className="needsHeadingIcon"><HeartHandshake size={24}/></div>
       <div>
@@ -132,6 +151,7 @@ export default function NeedManager({passportId,initialNeeds=emptyNeeds,lang="uk
       <div className="needsHeadingTools"><div className="needsPilotBadge">{uk?"Структурована база потреб":"Structured needs database"}</div></div>
     </div>
 
+    <div className="needsMobileCreateTitle"><h2>{uk?"Додати потребу":"Add a need"}</h2><span>{uk?selectedItem?.name_uk:(selectedItem?.name_en||selectedItem?.name_uk)}</span></div>
     <form className="needComposer" onSubmit={submitNeed}>
       <div className="needStep">
         <div className="needStepTitle"><span>1</span><div><strong>{uk?"Оберіть потребу зі списку":"Choose a need from the list"}</strong><small>{uk?"Спочатку категорія, потім конкретна позиція":"First choose a category, then a specific item"}</small></div></div>
