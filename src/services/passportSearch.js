@@ -13,7 +13,10 @@ const synonymGroups=[
   ["причіп","прицеп","trailer"],
   ["ящики","ящик","тара","коробки","коробка","boxes","box"],
   ["картопля","картошка","potato","potatoes"],
-  ["вантажівка","грузовик","truck","lorry"]
+  ["вантажівка","грузовик","truck","lorry"],
+  ["ремонт","ремонтувати","зремонтувати","відремонтувати","ремонтую","repair","fix"],
+  ["компютер","комп'ютер","компʼютер","компютерний","комп'ютерний","компʼютерної","пк","pc","computer"],
+  ["ноутбук","ноут","лептоп","laptop","notebook"]
 ];
 
 function expandSynonyms(values){
@@ -62,6 +65,56 @@ function searchWords(plan){
 
 function fullTextQuery(plan){
   return searchWords(plan).map(word=>`"${word}"`).join(" OR ");
+}
+
+const semanticExpansionCache=new Map();
+
+function semanticQuery(plan){
+  return [...new Set([
+    normalize(plan?.goal||plan?.originalGoal||plan?.normalizedGoal||""),
+    normalize(plan?.passport_search?.capability_description||""),
+    ...(Array.isArray(plan?.passport_search?.terms)?plan.passport_search.terms.map(normalize):[])
+  ].filter(Boolean))].join(" ");
+}
+
+async function expandTermsWithQwen(plan){
+  const query=semanticQuery(plan);
+  if(!query)return [];
+  if(semanticExpansionCache.has(query))return semanticExpansionCache.get(query);
+
+  const request=(async()=>{
+    try{
+      const response=await fetch("/api/query-expand",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({query})
+      });
+      if(!response.ok)return [];
+      const data=await response.json().catch(()=>({}));
+      return [...new Set((Array.isArray(data?.terms)?data.terms:[])
+        .map(normalize)
+        .filter(Boolean))].slice(0,20);
+    }catch{
+      return [];
+    }
+  })();
+
+  semanticExpansionCache.set(query,request);
+  return request;
+}
+
+function planWithExpandedTerms(plan,expandedTerms){
+  return {
+    ...plan,
+    passport_search:{
+      ...(plan?.passport_search||{}),
+      terms:[
+        ...(Array.isArray(plan?.passport_search?.terms)?plan.passport_search.terms:[]),
+        ...(expandedTerms||[])
+      ],
+      capability_description:plan?.passport_search?.capability_description||plan?.goal||""
+    }
+  };
 }
 
 function scoreText(text,plan){
@@ -249,8 +302,18 @@ export async function searchPassportProfiles(plan,{limit=5}={}){
   if(!supabase)return {matches:[],historicalMatches:[],error:"supabase-unavailable"};
 
   try{
-    const matches=await searchNewPassports(plan,{limit});
-    const historicalMatches=matches.length?[]:await searchRecentPassportHistory(plan,{limit}).catch(()=>[]);
+    let searchPlan=plan;
+    let matches=await searchNewPassports(searchPlan,{limit});
+
+    if(!matches.length){
+      const expandedTerms=await expandTermsWithQwen(plan);
+      if(expandedTerms.length){
+        searchPlan=planWithExpandedTerms(plan,expandedTerms);
+        matches=await searchNewPassports(searchPlan,{limit});
+      }
+    }
+
+    const historicalMatches=matches.length?[]:await searchRecentPassportHistory(searchPlan,{limit}).catch(()=>[]);
     return {matches,historicalMatches,error:null};
   }catch(error){
     if(/atlas_opportunities|atlas_passports|search_fts|profession|skills|relation .* does not exist/i.test(String(error?.message||""))){
