@@ -4,3 +4,53 @@
 @media(max-width:760px){.messagesShell{width:calc(100% - 16px);padding-top:14px}.messagesHero{align-items:flex-start}.messagesHero p{font-size:13px}.messagesHero>button{padding:9px}.messagesHero>button{font-size:0}.messagesHero>button svg{width:19px;height:19px}.messagesWorkspace{grid-template-columns:1fr;min-height:0;border-radius:16px;overflow:visible}.conversationList{max-height:320px;border-right:0;border-bottom:1px solid #e2eae5;border-radius:16px 16px 0 0}.conversationThread{min-height:520px}.threadHeader{position:sticky;top:calc(48px + env(safe-area-inset-top));z-index:5}.threadDecision{display:grid}.threadDecision>div:last-child{display:grid;grid-template-columns:1fr 1fr}.threadMessages{max-height:52vh;padding:12px}.threadMessages article{max-width:88%}.threadProgressActions{display:grid;grid-template-columns:1fr}.threadProgressActions .cancel{margin-left:0}.threadComposer{grid-template-columns:minmax(0,1fr) 48px;position:sticky;bottom:70px;z-index:4}.threadComposer button{width:48px;padding:0}.threadComposer button span{display:none}}
 .threadBack{display:none}
 @media(max-width:760px){.conversationList{max-height:none;border-bottom:0}.conversationThread{display:none}.messagesWorkspace.threadOpen .conversationList{display:none}.messagesWorkspace.threadOpen .conversationThread{display:grid}.threadHeader{display:grid;grid-template-columns:auto minmax(0,1fr) auto}.threadBack{display:grid;place-items:center;width:36px;height:36px;border:1px solid #d8e3dc;border-radius:10px;background:#fff;color:#315140}}
+
+/* Unified app-shell override */
+.messagesPage{
+  width:min(390px,100%);
+  min-height:calc(100dvh - 46px);
+  margin:0 auto;
+  padding:0 12px 78px!important;
+  background:#fff;
+  border-left:1px solid #e2e9e5;
+  border-right:1px solid #e2e9e5;
+}
+.messagesShell{
+  width:100%!important;
+  margin:0!important;
+  padding:16px 0 0!important;
+}
+.messagesHero{margin-bottom:10px!important;gap:10px!important}
+.messagesHero h1{font-size:21px!important;margin:3px 0 4px!important}
+.messagesHero p{font-size:9px!important;line-height:1.4!important}
+.messagesHero>button{padding:7px 9px!important;border-radius:8px!important;font-size:8px!important}
+.messagesFilters{gap:5px!important;padding-bottom:8px!important}
+.messagesFilters button{padding:6px 8px!important;font-size:8px!important}
+.messagesFilters button span{min-width:18px!important;height:18px!important;font-size:8px!important}
+.messagesWorkspace{
+  display:block!important;
+  min-height:0!important;
+  border-radius:12px!important;
+  box-shadow:none!important;
+}
+.conversationList{border-right:0!important;max-height:none!important}
+.conversationCard{
+  grid-template-columns:36px minmax(0,1fr)!important;
+  gap:8px!important;
+  padding:10px!important
+}
+.conversationAvatar{width:36px!important;height:36px!important;border-radius:10px!important;font-size:13px!important}
+.conversationCardCopy strong{font-size:10px!important}
+.conversationCardCopy time{font-size:7px!important}
+.conversationCardCopy>b{font-size:9px!important}
+.conversationCardCopy>small{font-size:8px!important}
+.conversationStatus{padding:3px 6px!important;font-size:7px!important}
+.conversationUnread{right:8px!important;bottom:9px!important;min-width:18px!important;height:18px!important;font-size:8px!important}
+.conversationThread{display:block!important}
+.threadHeader{gap:8px!important;padding:10px!important}
+.threadHeader strong{font-size:11px!important}
+.threadHeader span{font-size:8px!important}
+.threadHide{width:30px!important;height:30px!important;border-radius:8px!important}
+.threadMessages{min-height:330px!important;max-height:54vh!important;padding:10px!important;gap:7px!important}
+.threadMessages article{max-width:84%!important;border-radius:11px!important;padding:8px 9px!important;font-size:9px!important}
+@media(max-width:430px){.messagesPage{width:100%;border-left:0;border-right:0}}
