@@ -20,12 +20,12 @@
 }
 
 .cleanHomeTopbar{
-  min-height:54px;
-  padding:8px 12px;
-  display:flex;
+  min-height:58px;
+  padding:7px 10px;
+  display:grid;
+  grid-template-columns:minmax(92px,1fr) auto auto;
   align-items:center;
-  justify-content:space-between;
-  gap:10px;
+  gap:7px;
   background:#fff;
   border-bottom:1px solid #eef2ef;
 }
@@ -326,59 +326,66 @@
 }
 
 
-.cleanSubbar{
-  min-height:38px;
-  padding:6px 12px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  border-bottom:1px solid #edf2ef;
-  background:#fff;
-}
-.cleanSubbar>strong{
+.cleanHeaderBrandBlock{
   min-width:0;
+  display:grid;
+  gap:2px;
+  align-content:center;
+}
+.cleanHeaderPageTitle{
+  padding-left:38px;
   color:var(--clean-green);
-  font-size:10px;
-  font-weight:950;
-  letter-spacing:.01em;
+  font-size:8px;
+  font-weight:900;
+  line-height:1;
+  white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
-  white-space:nowrap;
 }
-.cleanSubbar nav{
+.cleanHeaderHistory{
   display:flex;
   align-items:center;
-  gap:5px;
+  gap:4px;
   flex:0 0 auto;
 }
-.cleanSubbar button{
+.cleanHeaderHistory button{
   min-height:28px;
-  padding:5px 8px;
+  padding:5px 7px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  gap:4px;
+  gap:3px;
   border:1px solid #dfe7e2;
   border-radius:8px;
   background:#fff;
   color:#4e6257;
   font:inherit;
-  font-size:8px;
+  font-size:7px;
   font-weight:900;
   cursor:pointer;
 }
-.cleanSubbar button:hover{
+.cleanHeaderHistory button:hover{
   background:#f3f8f5;
   color:var(--clean-green);
 }
-@media(max-width:760px){
-  .cleanSubbar{
-    min-height:40px;
-    padding:6px 10px;
+@media(max-width:430px){
+  .cleanHomeTopbar{
+    grid-template-columns:minmax(88px,1fr) auto auto;
+    gap:4px;
+    padding-inline:8px;
   }
-  .cleanSubbar button{
-    min-height:30px;
-    padding:6px 8px;
+  .cleanHomeBrand{gap:6px;font-size:12px}
+  .cleanHomeLogo{width:28px;height:28px;font-size:13px}
+  .cleanHeaderPageTitle{padding-left:34px;font-size:7px}
+  .cleanHeaderHistory{gap:3px}
+  .cleanHeaderHistory button{
+    min-width:28px;
+    min-height:28px;
+    padding:4px 5px;
   }
+  .cleanHeaderHistory button span{display:none}
+  .cleanHomeTopActions{gap:4px}
+  .cleanHomeLanguage{gap:1px}
+  .cleanHomeTopbar .atlasPresenceButton{padding:0 6px!important}
+  .cleanHomeBell{width:30px;height:30px}
 }
