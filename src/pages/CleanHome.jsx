@@ -49,9 +49,13 @@ export default function CleanHome({lang="uk",setLang,inboxUnread=0}){
   const nav=useNavigate();
 
   useEffect(()=>{
+    document.body.classList.add("clean-home-route");
     const onNotifications=event=>setNoticeUnread(Number(event?.detail?.unread)||0);
     window.addEventListener("atlas:notifications",onNotifications);
-    return()=>window.removeEventListener("atlas:notifications",onNotifications);
+    return()=>{
+      window.removeEventListener("atlas:notifications",onNotifications);
+      document.body.classList.remove("clean-home-route");
+    };
   },[]);
 
   function submit(event){
