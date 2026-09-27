@@ -825,7 +825,7 @@ export default function Chat({lang="uk",setLang=()=>{},inboxUnread=0}){
 
   if(roomExpired||roomClosed)return <main className="cleanHomeShell cleanChatShell">
     {cleanHeader}
-    <CleanHistoryNav lang={lang}/>
+    <CleanHistoryNav lang={lang} titleUk="Кімната" titleEn="Room"/>
     <section className="cleanChatBody">
       <div className="closedRoomCard">
         <div className="closedRoomIcon"><LockKeyhole size={34}/></div>
@@ -840,7 +840,7 @@ export default function Chat({lang="uk",setLang=()=>{},inboxUnread=0}){
 
   return <main className="cleanHomeShell cleanChatShell">
     {cleanHeader}
-    <CleanHistoryNav lang={lang}/>
+    <CleanHistoryNav lang={lang} titleUk="Кімната" titleEn="Room"/>
     <section className="cleanChatBody chatPage">
       <header className="messengerTop">
         <div className="messengerIdentity">
