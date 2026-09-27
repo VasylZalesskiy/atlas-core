@@ -17,7 +17,6 @@ const types=[
 export default function CleanAddOpportunity({lang="uk",setLang,inboxUnread=0}){
   const uk=lang!=="en";
   const navigate=useNavigate();
-  const [account,setAccount]=useState(null);
   const [passport,setPassport]=useState(null);
   const [loading,setLoading]=useState(true);
   const [text,setText]=useState("");
@@ -36,7 +35,6 @@ export default function CleanAddOpportunity({lang="uk",setLang,inboxUnread=0}){
     window.addEventListener("atlas:notifications",onNotifications);
     loadMyPassport()
       .then(data=>{
-        setAccount(data.accounts?.[0]||null);
         setPassport(data.passport||null);
         setPlace(data.passport?.city||"");
       })
@@ -50,12 +48,8 @@ export default function CleanAddOpportunity({lang="uk",setLang,inboxUnread=0}){
 
   async function submit(event){
     event.preventDefault();
-    if(!account){
-      setError(uk?"Спочатку увійдіть у свій акаунт Atlas.":"Sign in to your Atlas account first.");
-      return;
-    }
     if(!passport?.id){
-      setError(uk?"Спочатку створіть свою сторінку в акаунті.":"Create your page in the account first.");
+      setError(uk?"Спочатку створіть свою сторінку.":"Create your page first.");
       return;
     }
     if(!text.trim())return;
@@ -117,19 +111,13 @@ export default function CleanAddOpportunity({lang="uk",setLang,inboxUnread=0}){
 
       {loading&&<div className="cleanAddState">{uk?"Відкриваю паспорт…":"Opening passport…"}</div>}
 
-      {!loading&&!account&&<div className="cleanAddNeedPassport">
-        <strong>{uk?"Спочатку увійдіть у Мій акаунт":"Sign in to My account first"}</strong>
-        <span>{uk?"Акаунт створюється один раз і зберігає доступ до вашої сторінки та можливостей.":"The account is created once and keeps access to your page and capabilities."}</span>
-        <Link to="/profile">{uk?"Перейти до Мого акаунта":"Open My account"}</Link>
-      </div>}
-
-      {!loading&&account&&!passport&&<div className="cleanAddNeedPassport">
-        <strong>{uk?"Створіть Мою сторінку":"Create My page"}</strong>
-        <span>{uk?"В акаунті ще немає вашої сторінки. Додайте ім’я та контакт один раз.":"Your account does not have a page yet. Add your name and contact once."}</span>
+      {!loading&&!passport&&<div className="cleanAddNeedPassport">
+        <strong>{uk?"Спочатку створіть Мою сторінку":"Create My page first"}</strong>
+        <span>{uk?"Ім’я та контакт вводяться один раз. Після цього можна додавати скільки завгодно можливостей.":"Enter your name and contact once, then add as many capabilities as you want."}</span>
         <Link to="/profile">{uk?"Створити Мою сторінку":"Create My page"}</Link>
       </div>}
 
-      {!loading&&account&&passport&&<form className="cleanAddForm" onSubmit={submit}>
+      {!loading&&passport&&<form className="cleanAddForm" onSubmit={submit}>
         <label className="cleanAddMainField">
           <span>{uk?"Що ви маєте або можете?":"What do you have or can do?"}</span>
           <textarea
@@ -195,7 +183,7 @@ export default function CleanAddOpportunity({lang="uk",setLang,inboxUnread=0}){
 
     <nav className="cleanHomeBottom" aria-label={uk?"Головна навігація":"Main navigation"}>
       <Link to="/"><HomeIcon size={19}/><span>{uk?"Головна":"Home"}</span></Link>
-      <Link className="active" to="/profile"><Sparkles size={19}/><span>{uk?"Мій акаунт":"My account"}</span></Link>
+      <Link className="active" to="/profile"><Sparkles size={19}/><span>{uk?"Моя сторінка":"My page"}</span></Link>
       <Link to="/messages"><MessagesSquare size={19}/><span>{uk?"Повідомлення":"Messages"}</span></Link>
       <Link to="/chat"><MessageCircleMore size={19}/><span>{uk?"Кімнати":"Rooms"}</span></Link>
     </nav>
