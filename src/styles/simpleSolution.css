@@ -52,3 +52,10 @@
 .simpleClarifier{padding:11px!important;border-radius:11px!important;margin-bottom:10px!important}
 .simpleClarifier>strong{font-size:12px!important}
 @media(max-width:430px){.simpleSolutionPage{width:100%;border-left:0;border-right:0}}
+
+@media(min-width:431px){
+  .simpleSolutionPage{
+    min-height:0!important;
+    padding-bottom:14px!important;
+  }
+}
