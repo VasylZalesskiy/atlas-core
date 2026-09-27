@@ -35,9 +35,11 @@ export default function MatchNotificationBridge({lang="uk"}){
     const timer=setInterval(()=>{if(alive)refresh()},15000);
     const onVisible=()=>{if(document.visibilityState==="visible")refresh()};
     const onSound=event=>setSound(Boolean(event?.detail?.enabled));
+    const onOpenPanel=()=>setShowPanel(true);
     document.addEventListener("visibilitychange",onVisible);
     window.addEventListener("atlas:sound",onSound);
-    return()=>{alive=false;clearInterval(timer);document.removeEventListener("visibilitychange",onVisible);window.removeEventListener("atlas:sound",onSound)};
+    window.addEventListener("atlas:open-notifications",onOpenPanel);
+    return()=>{alive=false;clearInterval(timer);document.removeEventListener("visibilitychange",onVisible);window.removeEventListener("atlas:sound",onSound);window.removeEventListener("atlas:open-notifications",onOpenPanel)};
   },[]);
 
   const unread=items.filter(item=>item.status==="unread");
