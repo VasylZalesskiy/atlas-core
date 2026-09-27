@@ -1,0 +1,92 @@
+.cleanResultsShell{overflow:visible}
+.cleanResultsBody{padding:18px 14px 16px;background:#fff}
+.cleanResultsHeading{margin-bottom:14px}
+.cleanResultsHeading>span{display:block;margin-bottom:4px;color:var(--clean-green);font-size:8px;font-weight:950;letter-spacing:.16em}
+.cleanResultsHeading h1{margin:0;color:var(--clean-text);font-size:24px;line-height:1.05;letter-spacing:-.03em}
+.cleanResultsHeading p{margin:6px 0 0;color:var(--clean-muted);font-size:10px;line-height:1.4}
+
+.cleanResultsQuery{
+  display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;
+  padding:10px;
+  border:1px solid #d8e6dc;border-radius:12px;
+  background:#f2faf5;color:var(--clean-green);
+}
+.cleanResultsQuery>div{min-width:0}
+.cleanResultsQuery strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#21382b;font-size:12px}
+.cleanResultsQuery small{display:flex;align-items:center;gap:3px;margin-top:2px;color:#6c7a71;font-size:8px}
+.cleanResultsQuery button{border:0;background:transparent;color:var(--clean-green);font-size:9px;font-weight:900;cursor:pointer}
+
+.cleanResultsFilters{display:grid;grid-template-columns:1fr 132px;gap:7px;margin:9px 0 12px}
+.cleanResultsFilters label{
+  min-height:36px;padding:0 8px;
+  display:flex;align-items:center;gap:5px;
+  border:1px solid var(--clean-border);border-radius:10px;
+  background:#fff;color:#738078;
+}
+.cleanResultsFilters input,.cleanResultsFilters select{
+  width:100%;min-width:0;height:34px;
+  border:0;outline:0;background:transparent;color:#344239;
+  font:inherit;font-size:9px;
+}
+
+.cleanResultsState,.cleanResultsError{
+  margin:8px 0;padding:12px;border-radius:11px;font-size:9px;text-align:center
+}
+.cleanResultsState{background:#f6f8f7;color:#66746c;font-weight:800}
+.cleanResultsError{background:#fff3f3;border:1px solid #efd4d4;color:#943535;overflow-wrap:anywhere}
+
+.cleanResultsEmpty{
+  margin:10px 0 0;padding:18px 14px;
+  display:grid;justify-items:center;gap:6px;
+  border:1px dashed #cfdcd4;border-radius:13px;
+  background:#fbfcfb;text-align:center;
+}
+.cleanResultsEmptyIcon{
+  width:42px;height:42px;display:grid;place-items:center;border-radius:12px;
+  background:#edf7f1;color:var(--clean-green)
+}
+.cleanResultsEmpty strong{margin-top:2px;font-size:12px;color:#273a2f}
+.cleanResultsEmpty small{font-size:9px;color:#718078}
+.cleanResultsEmpty button,.cleanResultsWeb{
+  min-height:38px;padding:8px 12px;
+  border:1px solid #cfe0d5;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  background:#fff;color:#1f5134;font:inherit;font-size:9px;font-weight:900;cursor:pointer
+}
+.cleanResultsEmpty button{margin-top:5px}
+
+.cleanResultsList{display:grid;gap:8px}
+.cleanResultCard{
+  padding:11px;
+  border:1px solid #dfe8e2;border-radius:13px;
+  background:#fff;
+}
+.cleanResultTop{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}
+.cleanResultTop>div{min-width:0}
+.cleanResultTop strong{display:block;color:#1f3528;font-size:12px;line-height:1.25}
+.cleanResultTop span{display:block;margin-top:2px;color:#718078;font-size:8px}
+.cleanResultTop small{display:flex;align-items:center;gap:3px;flex:0 0 auto;color:#607068;font-size:8px}
+.cleanResultCard p{margin:7px 0;color:#536159;font-size:9px;line-height:1.4}
+.cleanResultMeta{margin:0 0 8px;color:var(--clean-green);font-size:8px;font-weight:900}
+.cleanResultCard>button{
+  min-height:34px;padding:7px 10px;
+  border:0;border-radius:9px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:#edf7f1;color:#0b7440;font:inherit;font-size:9px;font-weight:900;cursor:pointer
+}
+.cleanResultCard>button:disabled{opacity:.48}
+.cleanResultsWeb{width:100%;margin-top:10px}
+
+@media(max-width:760px){
+  .cleanResultsShell{
+    width:100%;margin:0;border:0;border-radius:0;box-shadow:none;
+    min-height:100dvh;
+    padding-bottom:calc(60px + env(safe-area-inset-bottom));
+    overflow:visible
+  }
+  .cleanResultsBody{padding:16px 12px}
+  .cleanResultsFilters{grid-template-columns:1fr 120px}
+}
+@media(max-width:370px){
+  .cleanResultsFilters{grid-template-columns:1fr}
+}
