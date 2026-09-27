@@ -229,7 +229,7 @@ export default function CleanMyPage({lang="uk",setLang,inboxUnread=0}){
 
     <nav className="cleanHomeBottom" aria-label={uk?"Головна навігація":"Main navigation"}>
       <Link to="/"><HomeIcon size={19}/><span>{uk?"Головна":"Home"}</span></Link>
-      <Link className="active" to="/profile"><UserRound size={19}/><span>{uk?"Моя сторінка":"My page"}</span></Link>
+      <Link className="active" aria-current="page" to="/profile"><UserRound size={19}/><span>{uk?"Моя сторінка":"My page"}</span></Link>
       <Link to="/messages"><MessagesSquare size={19}/><span>{uk?"Повідомлення":"Messages"}</span>{inboxUnread>0&&<b>{inboxUnread>9?"9+":inboxUnread}</b>}</Link>
       <Link to="/chat"><MessageCircleMore size={19}/><span>{uk?"Кімнати":"Rooms"}</span></Link>
     </nav>
