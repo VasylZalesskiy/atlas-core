@@ -276,3 +276,11 @@
 @media(max-width:430px){
   .homeRef{width:100%;border-left:0;border-right:0}
 }
+
+/* Desktop preview: keep the approved mobile composition compact */
+@media(min-width:431px){
+  .homeRef{
+    min-height:0!important;
+    padding-bottom:14px!important;
+  }
+}
