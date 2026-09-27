@@ -1,6 +1,6 @@
 import {useRef,useState} from "react";
 import {
-  Camera,HandHeart,Laptop,Leaf,LoaderCircle,MapPin,Search,Sparkles,Wrench,X
+  Camera,Leaf,LoaderCircle,MapPin,Search,ShoppingBasket,Sparkles,X
 } from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "../components/VoiceTaskInput";
