@@ -2,6 +2,7 @@ import {useCallback,useEffect,useRef,useState} from "react";
 import {Bell,Copy,Headphones,Home as HomeIcon,LockKeyhole,LogOut,MessageCircleMore,MessagesSquare,Mic,MicOff,Phone,PhoneIncoming,PhoneOff,RefreshCw,Send,Share2,ShieldCheck,Sparkles,Timer,Volume2} from "lucide-react";
 import {Link} from "react-router-dom";
 import OnlinePresence from "../components/OnlinePresence";
+import CleanHistoryNav from "../components/CleanHistoryNav";
 import supabase from "../services/supabase";
 import {createChatRoom,decryptChatPacket,encryptChatPacket,formatChatHash,importChatKey,isChatRoomExpired,parseChatHash,randomHex} from "../services/chatCrypto";
 import "../styles/cleanHome.css";
@@ -824,6 +825,7 @@ export default function Chat({lang="uk",setLang=()=>{},inboxUnread=0}){
 
   if(roomExpired||roomClosed)return <main className="cleanHomeShell cleanChatShell">
     {cleanHeader}
+    <CleanHistoryNav lang={lang}/>
     <section className="cleanChatBody">
       <div className="closedRoomCard">
         <div className="closedRoomIcon"><LockKeyhole size={34}/></div>
@@ -838,6 +840,7 @@ export default function Chat({lang="uk",setLang=()=>{},inboxUnread=0}){
 
   return <main className="cleanHomeShell cleanChatShell">
     {cleanHeader}
+    <CleanHistoryNav lang={lang}/>
     <section className="cleanChatBody chatPage">
       <header className="messengerTop">
         <div className="messengerIdentity">
