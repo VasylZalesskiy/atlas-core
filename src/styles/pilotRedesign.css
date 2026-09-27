@@ -1,0 +1,143 @@
+:root{
+  --pilot-green:#11884b;
+  --pilot-green-dark:#0c6f3c;
+  --pilot-soft:#eef8f2;
+  --pilot-border:#dbe8df;
+  --pilot-text:#15231b;
+  --pilot-muted:#68766e;
+  --pilot-bg:#f8fbf9;
+}
+.pilotPage{width:min(760px,100%);margin:0 auto;padding:28px 18px 110px;color:var(--pilot-text)}
+.pilotHome{width:min(680px,100%)}
+.pilotHero{text-align:center;padding:18px 0 24px}
+.pilotKicker{margin:0 0 8px;font-size:12px;font-weight:950;letter-spacing:.16em;color:var(--pilot-green)}
+.pilotHero h1{margin:0;font-size:clamp(34px,6vw,54px);line-height:1.04;letter-spacing:-.045em}
+.pilotHero h1 span{color:var(--pilot-green)}
+.pilotHero>p:last-child{margin:14px auto 0;color:var(--pilot-muted);font-size:17px}
+.pilotSearchCard{display:grid;gap:12px;padding:18px;border:1px solid #cae2d3;border-radius:22px;background:#fff;box-shadow:0 16px 42px rgba(24,91,51,.11)}
+.pilotSearchCard>label:first-child{font-weight:900;font-size:15px}
+.pilotTaskInput{position:relative}
+.pilotTaskInput .voiceTaskInput{border:1px solid #ccddd2;border-radius:16px;background:#fff}
+.pilotTaskInput .voiceTaskInput textarea,.pilotTaskInput .voiceTaskInput input{min-height:112px!important;font-size:17px!important;line-height:1.35!important;border:0!important;padding:15px 58px 15px 15px!important}
+.pilotPhotoHint{position:absolute;right:12px;bottom:12px;width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:#f0f6f2;color:#49725a;pointer-events:none}
+.pilotLocation{display:flex;align-items:center;gap:8px;border:1px solid var(--pilot-border);border-radius:13px;padding:0 12px;background:#fbfdfc;color:#587064}
+.pilotLocation input{width:100%;height:44px;border:0;outline:0;background:transparent;font:inherit}
+.pilotPrimary{min-height:48px;border:0;border-radius:13px;padding:12px 17px;background:var(--pilot-green);color:#fff;font:inherit;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;cursor:pointer}
+.pilotPrimary:hover{background:var(--pilot-green-dark)}
+.pilotPrimary:disabled{opacity:.48;cursor:not-allowed}
+.pilotCapabilityCard{margin-top:18px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:13px;padding:18px;border:1px solid #cfe5d7;border-radius:20px;background:linear-gradient(135deg,#f4fbf6,#eaf7ef);text-decoration:none;color:#164b2c}
+.pilotCapabilityIcon{width:52px;height:52px;border-radius:16px;background:#fff;display:grid;place-items:center;color:var(--pilot-green);box-shadow:0 8px 18px rgba(18,102,54,.09)}
+.pilotCapabilityCard strong{display:block;font-size:20px}
+.pilotCapabilityCard small{display:block;margin-top:4px;color:#5f7468;font-size:13px}
+.pilotCapabilityCard>b{font-size:25px;color:var(--pilot-green)}
+.pilotExamples{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:11px}
+.pilotExamples span{padding:9px 7px;border:1px solid #e2e9e4;border-radius:12px;background:#fff;text-align:center;font-size:11px;font-weight:800;color:#56655d}
+
+.pilotPageHead{margin-bottom:18px}
+.pilotPageHead>div{display:flex;align-items:center;gap:9px;color:var(--pilot-green)}
+.pilotPageHead h1{margin:0;font-size:30px;letter-spacing:-.025em;color:var(--pilot-text)}
+.pilotPageHead>p{margin:7px 0 0;color:var(--pilot-muted);line-height:1.45}
+.pilotQueryBar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:13px 15px;border-radius:15px;background:#eff8f3;border:1px solid #d2e7d9;margin-bottom:12px}
+.pilotQueryBar strong{font-size:16px}
+.pilotQueryBar small{display:inline-flex;align-items:center;gap:4px;color:#617068}
+.pilotFilterBar{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:14px}
+.pilotFilterBar label{display:flex;align-items:center;gap:7px;border:1px solid #dbe4de;border-radius:12px;padding:0 10px;background:#fff;color:#5f6f66}
+.pilotFilterBar input,.pilotFilterBar select{min-height:42px;border:0;outline:0;background:transparent;font:inherit;color:#2d3a33}
+.pilotFilterBar input{width:100%}
+.pilotState,.pilotEmpty,.pilotError{padding:18px;border-radius:15px;margin:10px 0}
+.pilotState{background:#f3f7f4;color:#526359;text-align:center;font-weight:800}
+.pilotEmpty{display:grid;gap:5px;background:#f8faf9;border:1px dashed #ccd9d1;text-align:center;color:#536159}
+.pilotEmpty strong{color:#24332b}
+.pilotError{background:#fff3f3;border:1px solid #efd2d2;color:#9a3434;font-size:13px;overflow-wrap:anywhere}
+.pilotResultList{display:grid;gap:10px}
+.pilotResultCard{padding:15px;border:1px solid #dfe7e2;border-radius:17px;background:#fff;box-shadow:0 5px 16px rgba(31,71,47,.05)}
+.pilotResultTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.pilotResultTop>div{display:grid;gap:3px}
+.pilotResultTop strong{font-size:17px}
+.pilotResultTop span{font-size:12px;color:#65736b}
+.pilotResultTop small{display:inline-flex;align-items:center;gap:4px;color:#5d6d63;white-space:nowrap}
+.pilotResultCard p{margin:9px 0;color:#506058;line-height:1.42;font-size:14px}
+.pilotResultMeta{margin:5px 0 10px;font-size:12px;font-weight:850;color:#0c7540}
+.pilotResultCard button,.pilotResultCard a{min-height:39px;border:0;border-radius:11px;padding:8px 12px;background:#edf7f1;color:#0b7440;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;cursor:pointer}
+.pilotWebButton{width:100%;margin-top:16px;min-height:48px;border:1px solid #cbd8d0;border-radius:13px;background:#fff;color:#294439;font:inherit;font-weight:900;display:flex;align-items:center;justify-content:center;gap:8px}
+.pilotBrowserFallback{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.pilotBrowserFallback a{min-height:45px;border:1px solid #d8e1db;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;color:#1f5134;font-weight:900;background:#fff}
+
+.pilotProfileSummary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:15px;border:1px solid #dce6e0;border-radius:17px;background:#fff}
+.pilotAvatar{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#dff2e6;color:#0b7540;font-size:21px;font-weight:950}
+.pilotProfileSummary>div:nth-child(2){display:grid;gap:4px}
+.pilotProfileSummary strong{font-size:19px}
+.pilotProfileSummary span{display:flex;align-items:center;gap:4px;color:#627168;font-size:12px}
+.pilotProfileSummary small{color:#6b776f}
+.pilotProfileSummary button{border:1px solid #dbe5df;border-radius:11px;background:#fff;padding:8px 10px;display:flex;align-items:center;gap:5px;font-weight:850;color:#375444}
+.pilotProfileForm,.pilotOpportunityForm{display:grid;gap:12px;padding:17px;border:1px solid #dce7e0;border-radius:18px;background:#fff}
+.pilotProfileForm h2{margin:0 0 2px;font-size:20px}
+.pilotProfileForm label,.pilotOptional label{display:grid;gap:5px}
+.pilotProfileForm label>span,.pilotOptional label>span,.pilotBigField>span{font-size:12px;font-weight:850;color:#53645a}
+.pilotProfileForm input,.pilotProfileForm textarea,.pilotOpportunityForm input,.pilotOpportunityForm textarea,.pilotOpportunityForm select{width:100%;border:1px solid #d5e0d9;border-radius:11px;padding:11px 12px;font:inherit;background:#fff}
+.pilotProfileForm textarea{min-height:74px}
+.pilotProfileForm details{border:1px solid #e2e9e4;border-radius:12px;padding:10px}
+.pilotProfileForm summary{cursor:pointer;font-weight:850;color:#4f6358}
+.pilotProfileForm details[open]{display:grid;gap:10px}
+.pilotFormActions{display:flex;gap:8px}
+.pilotFormActions>button:not(.pilotPrimary){border:1px solid #d9e2dc;border-radius:12px;background:#fff;padding:10px 14px;font-weight:850}
+
+.pilotCapabilitiesSection{margin-top:18px}
+.pilotSectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.pilotSectionTitle>div{display:flex;align-items:center;gap:8px}
+.pilotSectionTitle h2{margin:0;font-size:22px}
+.pilotSectionTitle>div span{min-width:26px;height:26px;border-radius:999px;display:grid;place-items:center;background:#e7f5ec;color:#0b7440;font-size:12px;font-weight:950}
+.pilotAddButton{display:inline-flex;align-items:center;gap:6px;padding:10px 12px;border-radius:12px;background:var(--pilot-green);color:#fff;text-decoration:none;font-weight:900;font-size:13px}
+.pilotCapabilityList{display:grid;gap:8px}
+.pilotCapabilityList article{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:14px;border:1px solid #dfe7e2;border-radius:14px;background:#fff}
+.pilotCapabilityList article.inactive{opacity:.55}
+.pilotCapabilityList article>div:first-child{display:grid;gap:4px}
+.pilotCapabilityList article strong{font-size:15px}
+.pilotCapabilityList article span{font-size:11px;color:#68776e}
+.pilotItemActions{display:flex;gap:5px}
+.pilotItemActions button{width:36px;height:36px;border:1px solid #dfe6e1;border-radius:10px;background:#fff;color:#53665b;display:grid;place-items:center}
+
+.pilotBackLink{display:inline-flex;align-items:center;gap:6px;margin-bottom:10px;text-decoration:none;color:#4c6256;font-weight:850;font-size:13px}
+.pilotBigField{display:grid;gap:7px}
+.pilotBigField textarea{min-height:150px;font-size:17px;line-height:1.4;resize:vertical}
+.pilotTypeChips{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.pilotTypeChips button{min-height:42px;border:1px solid #dce5df;border-radius:12px;background:#f8faf9;color:#46594e;font-weight:850}
+.pilotTypeChips button.active{border-color:#92c9a7;background:#eaf7ef;color:#08723d;box-shadow:0 0 0 2px rgba(17,136,75,.08)}
+.pilotLineField{display:flex;align-items:center;gap:7px;color:#5c6e64}
+.pilotLineField input{flex:1}
+.pilotOptional{border:1px solid #e1e8e3;border-radius:12px;padding:11px}
+.pilotOptional summary{display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:850;color:#4f6257}
+.pilotOptional[open]{display:grid;gap:10px}
+.pilotPriceRow{display:grid;grid-template-columns:1fr auto auto;gap:7px}
+
+.pilotRoomActions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+.pilotTempRoom{min-height:58px;border:1px solid #dbe5df;border-radius:14px;background:#fff;color:#395247;display:flex;align-items:center;justify-content:center;gap:9px;padding:9px 12px;text-align:left}
+.pilotTempRoom span{display:grid;gap:2px}
+.pilotTempRoom strong{font-size:13px}
+.pilotTempRoom small{font-size:10px;color:#6c7971}
+.pilotRoomsList h2{font-size:20px;margin:0 0 10px}
+.pilotRoomsList article{display:grid;grid-template-columns:1fr auto auto;gap:7px;align-items:center;border:1px solid #dfe7e2;border-radius:14px;background:#fff;padding:7px;margin-bottom:8px}
+.pilotRoomsList article>button:not(.pilotRoomOpen){width:38px;height:38px;border:1px solid #dfe6e1;border-radius:10px;background:#fff;color:#50645a;display:grid;place-items:center}
+.pilotRoomOpen{border:0;background:transparent;display:flex;align-items:center;gap:10px;text-align:left;color:#21362b}
+.pilotRoomOpen span{display:grid;gap:2px}
+.pilotRoomOpen small{font-size:10px;color:#718078}
+
+@media(max-width:760px){
+  .pilotPage{padding:18px 12px 92px}
+  .pilotHero{padding:8px 2px 17px}
+  .pilotHero h1{font-size:32px}
+  .pilotHero>p:last-child{font-size:13px}
+  .pilotSearchCard{padding:13px;border-radius:18px}
+  .pilotExamples{grid-template-columns:repeat(2,1fr)}
+  .pilotFilterBar{grid-template-columns:1fr}
+  .pilotResultTop{flex-direction:column;gap:5px}
+  .pilotPageHead h1{font-size:25px}
+  .pilotSectionTitle{align-items:flex-start}
+  .pilotAddButton span{display:none}
+  .pilotTypeChips{grid-template-columns:repeat(2,1fr)}
+  .pilotRoomActions{grid-template-columns:1fr}
+  .pilotPriceRow{grid-template-columns:1fr 1fr}
+  .pilotPriceRow input{grid-column:1/-1}
+  .pilotBottomNav{display:grid!important}
+  body{padding-bottom:0}
+}
