@@ -1,0 +1,126 @@
+:root{
+  --atlas-shell-width:520px;
+  --atlas-shell-mobile:100%;
+}
+
+/* One desktop scale for the whole Atlas application */
+@media(min-width:761px){
+  .cleanHomeShell,
+  .atlasTopbarV3,
+  .bottomNav,
+  .simpleSolutionPage,
+  .messagesPage,
+  main.page.appPage{
+    width:min(var(--atlas-shell-width),calc(100vw - 40px))!important;
+    max-width:var(--atlas-shell-width)!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    box-sizing:border-box!important;
+  }
+
+  .cleanHomeShell{
+    min-width:0!important;
+  }
+
+  .simpleSolutionPage{
+    min-height:0!important;
+    padding:16px 14px 24px!important;
+    background:#fff!important;
+    border-left:1px solid #dfe8e3;
+    border-right:1px solid #dfe8e3;
+  }
+  .simpleSolutionShell{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+  }
+
+  .messagesPage{
+    padding:0 12px 24px!important;
+    min-height:0!important;
+    background:#fff!important;
+    border-left:1px solid #dfe8e3;
+    border-right:1px solid #dfe8e3;
+  }
+  .messagesShell{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:16px 0 0!important;
+  }
+  .messagesWorkspace{
+    grid-template-columns:1fr!important;
+    min-height:0!important;
+  }
+  .conversationList{
+    border-right:0!important;
+    max-height:320px;
+  }
+  .conversationThread{
+    border-top:1px solid #e2eae5;
+  }
+
+  main.page.appPage{
+    padding-left:12px!important;
+    padding-right:12px!important;
+    background:#fff;
+    border-left:1px solid #dfe8e3;
+    border-right:1px solid #dfe8e3;
+  }
+  main.page.appPage .profileShell,
+  main.page.appPage .chatPage{
+    width:100%!important;
+    max-width:none!important;
+    margin-left:0!important;
+    margin-right:0!important;
+  }
+
+  .atlasTopbarV3{
+    min-width:0!important;
+  }
+
+  .bottomNav{
+    left:50%!important;
+    right:auto!important;
+    transform:translateX(-50%)!important;
+  }
+
+  .solutionNavigation{
+    width:min(var(--atlas-shell-width),calc(100vw - 40px))!important;
+    max-width:var(--atlas-shell-width)!important;
+    left:50%!important;
+    right:auto!important;
+    transform:translateX(-50%)!important;
+    margin:0!important;
+  }
+  .solutionNavigationInner{
+    width:100%!important;
+    max-width:none!important;
+  }
+}
+
+@media(max-width:760px){
+  .cleanHomeShell,
+  .atlasTopbarV3,
+  .bottomNav,
+  .simpleSolutionPage,
+  .messagesPage,
+  main.page.appPage,
+  .solutionNavigation{
+    width:100%!important;
+    max-width:100%!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    border-left:0!important;
+    border-right:0!important;
+    box-sizing:border-box!important;
+  }
+
+  .simpleSolutionShell,
+  .messagesShell,
+  main.page.appPage .profileShell,
+  main.page.appPage .chatPage{
+    width:100%!important;
+    max-width:100%!important;
+  }
+}
