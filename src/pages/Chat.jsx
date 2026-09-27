@@ -1,8 +1,11 @@
 import {useCallback,useEffect,useRef,useState} from "react";
-import {Copy,Headphones,LockKeyhole,LogOut,Mic,MicOff,Phone,PhoneIncoming,PhoneOff,RefreshCw,Send,Share2,ShieldCheck,Timer,Volume2} from "lucide-react";
+import {Bell,Copy,Headphones,Home as HomeIcon,LockKeyhole,LogOut,MessageCircleMore,MessagesSquare,Mic,MicOff,Phone,PhoneIncoming,PhoneOff,RefreshCw,Send,Share2,ShieldCheck,Sparkles,Timer,Volume2} from "lucide-react";
 import {Link} from "react-router-dom";
+import OnlinePresence from "../components/OnlinePresence";
 import supabase from "../services/supabase";
 import {createChatRoom,decryptChatPacket,encryptChatPacket,formatChatHash,importChatKey,isChatRoomExpired,parseChatHash,randomHex} from "../services/chatCrypto";
+import "../styles/cleanHome.css";
+import "../styles/cleanChat.css";
 
 const rtcConfig={
   iceServers:[
@@ -30,7 +33,7 @@ function waitForIce(peer){
   });
 }
 
-export default function Chat(){
+export default function Chat({lang="uk",setLang=()=>{},inboxUnread=0}){
   const [roomId,setRoomId]=useState("");
   const [roomSecret,setRoomSecret]=useState("");
   const [roomExpiresAt,setRoomExpiresAt]=useState(0);
@@ -56,6 +59,7 @@ export default function Chat(){
   const [audioOutputName,setAudioOutputName]=useState("Автоматично");
   const [audioNeedsResume,setAudioNeedsResume]=useState(false);
   const [reconnectKey,setReconnectKey]=useState(0);
+  const [noticeUnread,setNoticeUnread]=useState(0);
 
   const deviceIdRef=useRef("");
   const nameRef=useRef("Учасник");
@@ -96,6 +100,16 @@ export default function Chat(){
   },[]);
 
   useEffect(()=>{connectionRef.current=connection},[connection]);
+
+  useEffect(()=>{
+    document.body.classList.add("clean-home-route");
+    const onNotifications=event=>setNoticeUnread(Number(event?.detail?.unread)||0);
+    window.addEventListener("atlas:notifications",onNotifications);
+    return()=>{
+      window.removeEventListener("atlas:notifications",onNotifications);
+      document.body.classList.remove("clean-home-route");
+    };
+  },[]);
 
   const clearCallTimers=useCallback(()=>{
     window.clearInterval(inviteRetryRef.current);
@@ -779,83 +793,119 @@ export default function Chat(){
     ?peerOnline?`У кімнаті: ${peerName}`:(isOwner?"Кімната готова · очікуємо товариша":"Кімната готова · товариш не в мережі")
     :connection==="expired"?"Час кімнати завершився":connection==="closed"?"Ви вийшли з кімнати":connection==="failed"?"З’єднання перервано":connection==="connecting"?"З’єднуємо…":"Готуємо кімнату…";
 
-  if(roomExpired||roomClosed)return <main className="page appPage"><section className="profileShell chatPage">
-    <div className="closedRoomCard">
-      <div className="closedRoomIcon"><LockKeyhole size={34}/></div>
-      <span>ATLAS CHAT</span>
-      <h1>{roomExpired?"Час кімнати завершився":"Кімнату закрито"}</h1>
-      <p>{roomExpired?"Час приватної кімнати завершився.":"Ви вийшли з приватної кімнати."} Atlas не створює архів її повідомлень. Текст розмови й ключ прибрані з поточного екрана. Надіслане запрошення може залишитися у застосунку отримувача.</p>
-      <div className="closedRoomActions"><button className="primary" type="button" onClick={createNewRoom}>Створити нову кімнату</button><Link className="secondary" to="/">На головну</Link></div>
-    </div>
-  </section></main>;
+  const unread=Math.max(inboxUnread,noticeUnread);
+  const uk=lang!=="en";
 
-  return <main className="page appPage"><section className="profileShell chatPage">
-    <header className="messengerTop">
-      <div className="messengerIdentity">
-        <div className={`messengerAvatar ${peerOnline?"online":""}`}>{peerName.slice(0,1).toUpperCase()}</div>
-        <div><strong>{peerOnline?peerName:"Приватна кімната"}</strong><span>{connectionText}</span><small>{roomId||"Створюємо…"} · {participantCount}/2</small></div>
+  const cleanHeader=<header className="cleanHomeTopbar">
+    <Link className="cleanHomeBrand" to="/" aria-label={uk?"Головна":"Home"}>
+      <span className="cleanHomeLogo">A</span>
+      <span>ATLAS</span>
+    </Link>
+    <div className="cleanHomeTopActions">
+      <div className="cleanHomeLanguage" aria-label={uk?"Мова":"Language"}>
+        <button type="button" className={lang==="uk"?"active":""} onClick={()=>setLang("uk")}>UA</button>
+        <span>/</span>
+        <button type="button" className={lang==="en"?"active":""} onClick={()=>setLang("en")}>EN</button>
       </div>
-      <div className="messengerRoomActions">
-        <div className="roomTimer" title="Час до закриття кімнати"><Timer size={16}/><strong>{roomTimeLeft(remainingMs)}</strong></div>
-        <button type="button" className="leaveRoomButton" onClick={leaveRoom} title="Вийти із кімнати"><LogOut size={19}/><span>Вийти</span></button>
-      </div>
-    </header>
-
-    <div className="securityStrip compact"><ShieldCheck size={21}/><div><strong>Захист розмови · наскрізне шифрування</strong><span>Без архіву повідомлень у Atlas · кімната діє до 1 години.</span></div></div>
-
-    <label className="chatName"><span>Ваше ім’я</span><input maxLength={40} value={displayName} onChange={event=>setDisplayName(event.target.value)} placeholder="Наприклад: Василь"/></label>
-
-    <div className="chatInviteGuide"><strong>Запросіть товариша до розмови</strong><span>Натисніть кнопку та виберіть людину в меню телефона. Вона відкриє запрошення і потрапить у цю кімнату.</span></div>
-    <div className="chatInviteActions">
-      <button className="primary chatInviteCopyButton" type="button" onClick={shareInvite} disabled={!roomId||!roomSecret}>
-        <Share2 size={18}/>Надіслати запрошення
-      </button>
-      <button className="secondary" type="button" onClick={copyInvite} disabled={!roomId||!roomSecret}><Copy size={17}/>{copied?"Скопійовано ✓":"Копіювати посилання"}</button>
-      {connection==="failed"&&<button className="secondary" type="button" onClick={()=>setReconnectKey(value=>value+1)}><RefreshCw size={17}/>Повторити</button>}
+      <OnlinePresence lang={lang} compact/>
+      <Link className="cleanHomeBell" to="/messages" aria-label={uk?"Повідомлення":"Messages"}>
+        <Bell size={17}/>
+        {unread>0&&<b>{unread>9?"9+":unread}</b>}
+      </Link>
     </div>
-    {copied&&<div className="chatInviteCopiedHint" role="status">Посилання скопійовано. Відкрийте будь-яке повідомлення й вставте його для товариша.</div>}
+  </header>;
 
-    <section className={`callPanel callPanel-${callState}`}>
-      {callState==="incoming"?<><div><strong>Вхідний дзвінок від {peerName}</strong><span>{incomingCall?.description?"Можна відповідати.":"Готуємо захищене аудіоз’єднання…"}</span></div><div>{!callSoundReady&&<button className="secondary" type="button" onClick={activateCallSound}><Volume2 size={17}/>Увімкнути звук</button>}</div></>
-      :callState==="connected"?<><div><strong>Голосовий дзвінок триває</strong><span>Аудіовихід: {audioOutputName}</span></div><div>{audioNeedsResume&&<button className="secondary audioResumeButton" type="button" onClick={restoreConversationSound}><Volume2 size={17}/>Відновити звук</button>}<button className="secondary" type="button" onClick={chooseAudioOutput}><Headphones size={17}/>Змінити динамік</button><button className="secondary" type="button" onClick={toggleMute}>{muted?<><Mic size={17}/>Увімкнути</>:<><MicOff size={17}/>Вимкнути</>}</button><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Завершити</button></div></>
-      :callState==="calling"||callState==="ringing"||callState==="connecting"?<><div><strong>{callState==="ringing"?`${peerName} бачить виклик…`:callState==="calling"?`Надсилаємо виклик ${peerName}…`:"З’єднуємо голос…"}</strong><span>{callState==="ringing"?"Очікуємо відповіді.":"Зачекайте кілька секунд."}</span></div><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Скасувати</button></>
-      :<><div><strong>Поговорити голосом</strong><span>{peerOnline?`${peerName} у кімнаті — можна телефонувати`:`Запросіть товариша, щоб зателефонувати`}</span></div><div>{!callSoundReady&&<button className="secondary soundReadyButton" type="button" onClick={activateCallSound}><Volume2 size={17}/>Сигнал виклику</button>}<button className="callStartButton" type="button" disabled={!peerOnline||connection!=="ready"} onClick={startCall}><Phone size={19}/>Зателефонувати</button></div></>}
-      <audio ref={remoteAudioRef} autoPlay playsInline/>
+  const cleanNav=<nav className="cleanHomeBottom" aria-label={uk?"Головна навігація":"Main navigation"}>
+    <Link to="/"><HomeIcon size={19}/><span>{uk?"Головна":"Home"}</span></Link>
+    <Link to="/profile"><Sparkles size={19}/><span>{uk?"Можливості":"Capabilities"}</span></Link>
+    <Link to="/messages"><MessagesSquare size={19}/><span>{uk?"Повідомлення":"Messages"}</span>{inboxUnread>0&&<b>{inboxUnread>9?"9+":inboxUnread}</b>}</Link>
+    <Link className="active" to="/chat"><MessageCircleMore size={19}/><span>{uk?"Кімнати":"Rooms"}</span></Link>
+  </nav>;
+
+  if(roomExpired||roomClosed)return <main className="cleanHomeShell cleanChatShell">
+    {cleanHeader}
+    <section className="cleanChatBody">
+      <div className="closedRoomCard">
+        <div className="closedRoomIcon"><LockKeyhole size={34}/></div>
+        <span>ATLAS CHAT</span>
+        <h1>{roomExpired?"Час кімнати завершився":"Кімнату закрито"}</h1>
+        <p>{roomExpired?"Час приватної кімнати завершився.":"Ви вийшли з приватної кімнати."} Atlas не створює архів її повідомлень. Текст розмови й ключ прибрані з поточного екрана.</p>
+        <div className="closedRoomActions"><button className="primary" type="button" onClick={createNewRoom}>Створити нову кімнату</button><Link className="secondary" to="/">На головну</Link></div>
+      </div>
     </section>
+    {cleanNav}
+  </main>;
 
-    {callState==="incoming"&&<div className="incomingCallOverlay" role="dialog" aria-modal="true" aria-label={`Вхідний дзвінок від ${peerName}`}>
-      <div className="incomingCallCard">
-        <div className="incomingCallPulse"><PhoneIncoming size={38}/></div>
-        <span>Вхідний голосовий дзвінок</span>
-        <h2>{peerName}</h2>
-        <p>Кімната <strong>{roomId}</strong></p>
-        {!callSoundReady&&<button className="soundUnlock" type="button" onClick={activateCallSound}><Volume2 size={18}/>Увімкнути сигнал виклику</button>}
-        <div className="incomingCallActions">
-          <button className="dangerButton" type="button" onClick={declineCall}><PhoneOff size={19}/>Відхилити</button>
-          <button className="primary" type="button" disabled={!incomingCall?.description} onClick={acceptCall}><Phone size={19}/>{incomingCall?.description?"Прийняти":"Готуємо…"}</button>
+  return <main className="cleanHomeShell cleanChatShell">
+    {cleanHeader}
+    <section className="cleanChatBody chatPage">
+      <header className="messengerTop">
+        <div className="messengerIdentity">
+          <div className={`messengerAvatar ${peerOnline?"online":""}`}>{peerName.slice(0,1).toUpperCase()}</div>
+          <div><strong>{peerOnline?peerName:"Приватна кімната"}</strong><span>{connectionText}</span><small>{roomId||"Створюємо…"} · {participantCount}/2</small></div>
         </div>
-        <small>Мікрофон увімкнеться тільки після вашої згоди.</small>
-      </div>
-    </div>}
+        <div className="messengerRoomActions">
+          <div className="roomTimer" title="Час до закриття кімнати"><Timer size={16}/><strong>{roomTimeLeft(remainingMs)}</strong></div>
+          <button type="button" className="leaveRoomButton" onClick={leaveRoom} title="Вийти із кімнати"><LogOut size={18}/><span>Вийти</span></button>
+        </div>
+      </header>
 
-    {error&&<div className="chatError">{error}</div>}
+      <div className="securityStrip compact"><ShieldCheck size={19}/><div><strong>Наскрізне шифрування</strong><span>Без архіву повідомлень у Atlas · кімната діє до 1 години.</span></div></div>
 
-    <section className="chatWindow">
-      <div className="messages" aria-live="polite">
-        {messages.length===0&&<div className="chatEmpty"><LockKeyhole size={30}/><strong>{connection==="ready"?"Можна писати":"Готуємо захищений канал"}</strong><span>Повідомлення доставляються наживо, коли обидва учасники онлайн.</span></div>}
-        {messages.map(message=><div className={`chatMessage ${message.author==="me"?"mine":message.author==="system"?"system":""}`} key={message.id}>{message.author==="friend"&&<b>{message.name}</b>}<p>{message.text}</p><span>{message.time}{message.author==="me"&&` · ${message.status==="delivered"?"доставлено":message.status==="failed"?"помилка":message.status==="waiting"?"товариш офлайн":"надіслано"}`}</span></div>)}
-        <div ref={messagesEndRef}/>
+      <label className="chatName"><span>Ваше ім’я</span><input maxLength={40} value={displayName} onChange={event=>setDisplayName(event.target.value)} placeholder="Наприклад: Василь"/></label>
+
+      <div className="chatInviteGuide"><strong>Запросіть товариша</strong><span>Надішліть посилання — людина одразу відкриє цю кімнату.</span></div>
+      <div className="chatInviteActions">
+        <button className="primary chatInviteCopyButton" type="button" onClick={shareInvite} disabled={!roomId||!roomSecret}><Share2 size={17}/>Надіслати запрошення</button>
+        <button className="secondary" type="button" onClick={copyInvite} disabled={!roomId||!roomSecret}><Copy size={16}/>{copied?"Скопійовано ✓":"Копіювати"}</button>
+        {connection==="failed"&&<button className="secondary" type="button" onClick={()=>setReconnectKey(value=>value+1)}><RefreshCw size={16}/>Повторити</button>}
       </div>
-      <div className="messageComposer">
-        <div className="emojiRow"><span>Швидка реакція</span>{["🙂","👍","❤️","😂","🙏"].map(emoji=><button type="button" aria-label={`Додати ${emoji}`} key={emoji} onClick={()=>setMessageText(value=>value+emoji)}>{emoji}</button>)}</div>
-        <form className="messageForm" onSubmit={sendMessage}>
-          <label className="messageInputShell"><span>Повідомлення</span><textarea ref={composerRef} rows={1} maxLength={2000} disabled={connection!=="ready"||!keyReady} value={messageText} onKeyDown={onComposerKeyDown} onChange={event=>setMessageText(event.target.value)} placeholder={connection==="ready"?"Напишіть повідомлення…":"Готуємо захищений канал…"}/></label>
-          <button className="messageSend" aria-label="Надіслати повідомлення" disabled={!messageText.trim()||connection!=="ready"||!keyReady}><Send size={20}/><span>Надіслати</span></button>
-        </form>
-        <small className="messageComposerHint">Enter — надіслати · Shift + Enter — новий рядок</small>
-      </div>
+      {copied&&<div className="chatInviteCopiedHint" role="status">Посилання скопійовано.</div>}
+
+      <section className={`callPanel callPanel-${callState}`}>
+        {callState==="incoming"?<><div><strong>Вхідний дзвінок від {peerName}</strong><span>{incomingCall?.description?"Можна відповідати.":"Готуємо захищене аудіоз’єднання…"}</span></div><div>{!callSoundReady&&<button className="secondary" type="button" onClick={activateCallSound}><Volume2 size={17}/>Увімкнути звук</button>}</div></>
+        :callState==="connected"?<><div><strong>Голосовий дзвінок триває</strong><span>Аудіовихід: {audioOutputName}</span></div><div>{audioNeedsResume&&<button className="secondary audioResumeButton" type="button" onClick={restoreConversationSound}><Volume2 size={17}/>Відновити звук</button>}<button className="secondary" type="button" onClick={chooseAudioOutput}><Headphones size={17}/>Динамік</button><button className="secondary" type="button" onClick={toggleMute}>{muted?<><Mic size={17}/>Увімкнути</>:<><MicOff size={17}/>Вимкнути</>}</button><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Завершити</button></div></>
+        :callState==="calling"||callState==="ringing"||callState==="connecting"?<><div><strong>{callState==="ringing"?`${peerName} бачить виклик…`:callState==="calling"?`Надсилаємо виклик ${peerName}…`:"З’єднуємо голос…"}</strong><span>{callState==="ringing"?"Очікуємо відповіді.":"Зачекайте кілька секунд."}</span></div><button className="dangerButton" type="button" onClick={endCall}><PhoneOff size={17}/>Скасувати</button></>
+        :<><div><strong>Поговорити голосом</strong><span>{peerOnline?`${peerName} у кімнаті — можна телефонувати`:"Запросіть товариша, щоб зателефонувати"}</span></div><div>{!callSoundReady&&<button className="secondary soundReadyButton" type="button" onClick={activateCallSound}><Volume2 size={16}/>Сигнал</button>}<button className="callStartButton" type="button" disabled={!peerOnline||connection!=="ready"} onClick={startCall}><Phone size={18}/>Зателефонувати</button></div></>}
+        <audio ref={remoteAudioRef} autoPlay playsInline/>
+      </section>
+
+      {callState==="incoming"&&<div className="incomingCallOverlay" role="dialog" aria-modal="true" aria-label={`Вхідний дзвінок від ${peerName}`}>
+        <div className="incomingCallCard">
+          <div className="incomingCallPulse"><PhoneIncoming size={38}/></div>
+          <span>Вхідний голосовий дзвінок</span>
+          <h2>{peerName}</h2>
+          <p>Кімната <strong>{roomId}</strong></p>
+          {!callSoundReady&&<button className="soundUnlock" type="button" onClick={activateCallSound}><Volume2 size={18}/>Увімкнути сигнал виклику</button>}
+          <div className="incomingCallActions">
+            <button className="dangerButton" type="button" onClick={declineCall}><PhoneOff size={19}/>Відхилити</button>
+            <button className="primary" type="button" disabled={!incomingCall?.description} onClick={acceptCall}><Phone size={19}/>{incomingCall?.description?"Прийняти":"Готуємо…"}</button>
+          </div>
+          <small>Мікрофон увімкнеться тільки після вашої згоди.</small>
+        </div>
+      </div>}
+
+      {error&&<div className="chatError">{error}</div>}
+
+      <section className="chatWindow">
+        <div className="messages" aria-live="polite">
+          {messages.length===0&&<div className="chatEmpty"><LockKeyhole size={28}/><strong>{connection==="ready"?"Можна писати":"Готуємо захищений канал"}</strong><span>Повідомлення доставляються наживо, коли обидва учасники онлайн.</span></div>}
+          {messages.map(message=><div className={`chatMessage ${message.author==="me"?"mine":message.author==="system"?"system":""}`} key={message.id}>{message.author==="friend"&&<b>{message.name}</b>}<p>{message.text}</p><span>{message.time}{message.author==="me"&&` · ${message.status==="delivered"?"доставлено":message.status==="failed"?"помилка":message.status==="waiting"?"товариш офлайн":"надіслано"}`}</span></div>)}
+          <div ref={messagesEndRef}/>
+        </div>
+        <div className="messageComposer">
+          <div className="emojiRow"><span>Реакція</span>{["🙂","👍","❤️","😂","🙏"].map(emoji=><button type="button" aria-label={`Додати ${emoji}`} key={emoji} onClick={()=>setMessageText(value=>value+emoji)}>{emoji}</button>)}</div>
+          <form className="messageForm" onSubmit={sendMessage}>
+            <label className="messageInputShell"><span>Повідомлення</span><textarea ref={composerRef} rows={1} maxLength={2000} disabled={connection!=="ready"||!keyReady} value={messageText} onKeyDown={onComposerKeyDown} onChange={event=>setMessageText(event.target.value)} placeholder={connection==="ready"?"Напишіть повідомлення…":"Готуємо захищений канал…"}/></label>
+            <button className="messageSend" aria-label="Надіслати повідомлення" disabled={!messageText.trim()||connection!=="ready"||!keyReady}><Send size={20}/><span>Надіслати</span></button>
+          </form>
+          <small className="messageComposerHint">Enter — надіслати · Shift + Enter — новий рядок</small>
+        </div>
+      </section>
+
+      <button className="newRoomButton" type="button" onClick={createNewRoom}>Створити іншу кімнату</button>
     </section>
+    {cleanNav}
+  </main>;
 
-    <button className="newRoomButton" type="button" onClick={createNewRoom}>Створити іншу кімнату</button>
-  </section></main>;
 }
