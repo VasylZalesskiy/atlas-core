@@ -1,6 +1,7 @@
 import {useCallback,useEffect,useMemo,useState} from "react";
-import {ArrowLeft,CheckCircle2,Clock3,Inbox,MessageCircle,PackageCheck,Phone,RefreshCw,Send,X} from "lucide-react";
+import {ArrowLeft,Bell,CheckCircle2,Clock3,Home as HomeIcon,Inbox,MessageCircle,MessageCircleMore,MessagesSquare,PackageCheck,Phone,RefreshCw,Send,Sparkles,X} from "lucide-react";
 import {Link,useSearchParams} from "react-router-dom";
+import OnlinePresence from "../components/OnlinePresence";
 import {
   cancelSolutionFlow,
   completeSolutionFlow,
@@ -12,6 +13,8 @@ import {
   sendSolutionMessage
 } from "../services/solutionFlowStore";
 import "../styles/messages.css";
+import "../styles/cleanHome.css";
+import "../styles/cleanMessages.css";
 
 const openStatuses=new Set(["pending","accepted","provided"]);
 
@@ -51,7 +54,7 @@ function formatStamp(value,uk){
   return new Intl.DateTimeFormat(uk?"uk-UA":"en-GB",sameDay?{hour:"2-digit",minute:"2-digit"}:{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}).format(date);
 }
 
-export default function Messages({lang="uk"}){
+export default function Messages({lang="uk",setLang=()=>{},inboxUnread=0}){
   const uk=lang!=="en";
   const [searchParams,setSearchParams]=useSearchParams();
   const selectedFromUrl=searchParams.get("thread")||"";
@@ -66,6 +69,17 @@ export default function Messages({lang="uk"}){
   const [busy,setBusy]=useState("");
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
+  const [noticeUnread,setNoticeUnread]=useState(0);
+
+  useEffect(()=>{
+    document.body.classList.add("clean-home-route");
+    const onNotifications=event=>setNoticeUnread(Number(event?.detail?.unread)||0);
+    window.addEventListener("atlas:notifications",onNotifications);
+    return()=>{
+      window.removeEventListener("atlas:notifications",onNotifications);
+      document.body.classList.remove("clean-home-route");
+    };
+  },[]);
 
   const refreshFlows=useCallback(async({quiet=false}={})=>{
     if(!quiet)setLoading(true);
@@ -154,8 +168,30 @@ export default function Messages({lang="uk"}){
   const canReply=thread&&openStatuses.has(thread.status);
   const needsResponse=thread?.status==="pending"&&!thread?.is_initiator;
 
-  return <main className="page appPage messagesPage"><section className="messagesShell">
-    <div className="messagesHero">
+  const shellUnread=Math.max(inboxUnread,noticeUnread);
+
+  return <main className="cleanHomeShell cleanMessagesShell">
+    <header className="cleanHomeTopbar">
+      <Link className="cleanHomeBrand" to="/" aria-label={uk?"Головна":"Home"}>
+        <span className="cleanHomeLogo">A</span>
+        <span>ATLAS</span>
+      </Link>
+      <div className="cleanHomeTopActions">
+        <div className="cleanHomeLanguage" aria-label={uk?"Мова":"Language"}>
+          <button type="button" className={lang==="uk"?"active":""} onClick={()=>setLang("uk")}>UA</button>
+          <span>/</span>
+          <button type="button" className={lang==="en"?"active":""} onClick={()=>setLang("en")}>EN</button>
+        </div>
+        <OnlinePresence lang={lang} compact/>
+        <Link className="cleanHomeBell" to="/messages" aria-label={uk?"Повідомлення":"Messages"}>
+          <Bell size={17}/>
+          {shellUnread>0&&<b>{shellUnread>9?"9+":shellUnread}</b>}
+        </Link>
+      </div>
+    </header>
+
+    <section className="cleanMessagesBody">
+      <div className="messagesHero">
       <div><span className="kicker">ATLAS · {uk?"ПОВІДОМЛЕННЯ":"MESSAGES"}</span><h1>{uk?"Мої розмови":"My conversations"}</h1><p>{uk?"Усі звернення щодо потреб і можливостей зібрані в одному місці.":"All conversations about needs and opportunities are organized in one place."}</p></div>
       <button type="button" onClick={()=>refreshFlows()} disabled={loading}><RefreshCw className={loading?"spin":""} size={18}/>{uk?"Оновити":"Refresh"}</button>
     </div>
@@ -206,5 +242,13 @@ export default function Messages({lang="uk"}){
         </>}
       </section>
     </div>
-  </section></main>;
+    </section>
+
+    <nav className="cleanHomeBottom" aria-label={uk?"Головна навігація":"Main navigation"}>
+      <Link to="/"><HomeIcon size={19}/><span>{uk?"Головна":"Home"}</span></Link>
+      <Link to="/profile"><Sparkles size={19}/><span>{uk?"Можливості":"Capabilities"}</span></Link>
+      <Link className="active" to="/messages"><MessagesSquare size={19}/><span>{uk?"Повідомлення":"Messages"}</span>{inboxUnread>0&&<b>{inboxUnread>9?"9+":inboxUnread}</b>}</Link>
+      <Link to="/chat"><MessageCircleMore size={19}/><span>{uk?"Кімнати":"Rooms"}</span></Link>
+    </nav>
+  </main>;
 }
