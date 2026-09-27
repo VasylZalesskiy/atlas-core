@@ -798,10 +798,14 @@ export default function Chat({lang="uk",setLang=()=>{},inboxUnread=0}){
   const uk=lang!=="en";
 
   const cleanHeader=<header className="cleanHomeTopbar">
-    <Link className="cleanHomeBrand" to="/" aria-label={uk?"Головна":"Home"}>
-      <span className="cleanHomeLogo">A</span>
-      <span>ATLAS</span>
-    </Link>
+    <div className="cleanHeaderBrandBlock">
+      <Link className="cleanHomeBrand" to="/" aria-label={uk?"Головна":"Home"}>
+        <span className="cleanHomeLogo">A</span>
+        <span>ATLAS</span>
+      </Link>
+      <span className="cleanHeaderPageTitle">{uk?"Кімната":"Room"}</span>
+    </div>
+    <CleanHistoryNav lang={lang}/>
     <div className="cleanHomeTopActions">
       <div className="cleanHomeLanguage" aria-label={uk?"Мова":"Language"}>
         <button type="button" className={lang==="uk"?"active":""} onClick={()=>setLang("uk")}>UA</button>
@@ -825,7 +829,6 @@ export default function Chat({lang="uk",setLang=()=>{},inboxUnread=0}){
 
   if(roomExpired||roomClosed)return <main className="cleanHomeShell cleanChatShell">
     {cleanHeader}
-    <CleanHistoryNav lang={lang} titleUk="Кімната" titleEn="Room"/>
     <section className="cleanChatBody">
       <div className="closedRoomCard">
         <div className="closedRoomIcon"><LockKeyhole size={34}/></div>
@@ -840,7 +843,6 @@ export default function Chat({lang="uk",setLang=()=>{},inboxUnread=0}){
 
   return <main className="cleanHomeShell cleanChatShell">
     {cleanHeader}
-    <CleanHistoryNav lang={lang} titleUk="Кімната" titleEn="Room"/>
     <section className="cleanChatBody chatPage">
       <header className="messengerTop">
         <div className="messengerIdentity">
