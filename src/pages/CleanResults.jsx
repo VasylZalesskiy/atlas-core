@@ -107,10 +107,10 @@ export default function CleanResults({lang="uk",setLang,inboxUnread=0}){
           <button type="button" className={lang==="en"?"active":""} onClick={()=>setLang("en")}>EN</button>
         </div>
         <OnlinePresence lang={lang} compact/>
-        <Link className="cleanHomeBell" to="/messages" aria-label={uk?"Повідомлення":"Messages"}>
+        <button className="cleanHomeBell" type="button" onClick={()=>window.dispatchEvent(new CustomEvent("atlas:open-notifications"))} aria-label={uk?"Сповіщення Atlas":"Atlas notifications"}>
           <Bell size={17}/>
           {unread>0&&<b>{unread>9?"9+":unread}</b>}
-        </Link>
+        </button>
       </div>
     </header>
 
