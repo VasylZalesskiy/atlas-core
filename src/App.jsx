@@ -55,7 +55,7 @@ export default function App(){
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
   const solutionRoute=location.pathname==="/solution";
   const chatRoute=location.pathname==="/chat";
-  const cleanRoute=["/","/results","/profile","/me","/messages"].includes(location.pathname);
+  const cleanRoute=["/","/results","/profile","/me","/messages","/chat"].includes(location.pathname);
 
   useEffect(()=>{
     let cancelled=false;
@@ -111,7 +111,7 @@ export default function App(){
         {!cleanRoute&&<NavigationControls lang={lang}/>} 
         {backgroundReady&&<Suspense fallback={null}><MatchNotificationBridge lang={lang}/></Suspense>}
         {solutionRoute&&<SolutionNavigation lang={lang}/>}
-        {chatRoute&&<Suspense fallback={null}><VoicePrivacyControl/></Suspense>}
+        {!cleanRoute&&chatRoute&&<Suspense fallback={null}><VoicePrivacyControl/></Suspense>}
         <Routes>
           <Route path="/" element={<CleanHome lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
           <Route path="/results" element={<CleanResults lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
@@ -125,7 +125,7 @@ export default function App(){
           <Route path="/me" element={<CleanMyPage lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
           <Route path="/groups" element={<Groups lang={lang}/>}/>
           <Route path="/groups/:groupId" element={<GroupPage lang={lang}/>}/>
-          <Route path="/chat" element={<Chat/>}/>
+          <Route path="/chat" element={<Chat lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
           <Route path="/market" element={<Market/>}/>
           <Route path="/tomatoes" element={<TomatoPilot lang={lang}/>}/>
           <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
