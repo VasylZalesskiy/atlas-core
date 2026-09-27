@@ -74,13 +74,16 @@ export default function PilotHome({lang="uk"}){
   }
 
   return <main className="pilotPage pilotHome">
-    <section className="pilotHero">
-      <p className="pilotKicker">ATLAS</p>
-      <h1>{uk?<><span>Твої можливості</span> — це частинка чиєїсь задачі</>:<>Your capabilities are part of someone else's task</>}</h1>
-      <p>{uk?"Знайди рішення. Запропонуй допомогу. Будь поруч.":"Find a solution. Offer help. Be nearby."}</p>
+    <section className="pilotHero pilotHeroVisual">
+      <div className="pilotHeroCopy">
+        <p className="pilotKicker">ATLAS</p>
+        <h1>{uk?<><span>Твої можливості</span> — це частинка чиєїсь задачі</>:<>Your capabilities are part of someone else's task</>}</h1>
+        <p>{uk?"Знайди рішення. Запропонуй допомогу. Будь поруч.":"Find a solution. Offer help. Be nearby."}</p>
+      </div>
+      <div className="pilotProduce" aria-hidden="true"><span>🍅</span><span>🥕</span><span>🥔</span><span>🌽</span><span>🥬</span></div>
     </section>
 
-    <form className="pilotSearchCard" onSubmit={submit}>
+    <form className="pilotSearchCard pilotSearchCardOverlap" onSubmit={submit}>
       <label>{uk?"Опишіть задачу":"Describe the task"}</label>
       <div className="pilotTaskInput">
         <VoiceTaskInput value={task} onChange={setTask} lang={lang} placeholder={uk?"Наприклад: потрібен генератор на сьогодні":"For example: I need a generator today"}/>
@@ -99,10 +102,10 @@ export default function PilotHome({lang="uk"}){
     </Link>
 
     <div className="pilotExamples" aria-label={uk?"Приклади можливостей":"Capability examples"}>
-      <span>🥔 {uk?"Продукти":"Food"}</span>
-      <span>🛠️ {uk?"Інструменти":"Tools"}</span>
-      <span>💻 {uk?"Послуги":"Services"}</span>
-      <span>🤝 {uk?"Допомога":"Help"}</span>
+      <span><b>🍅</b><small>{uk?"Продукти":"Food"}</small></span>
+      <span><b>🛠️</b><small>{uk?"Інструменти":"Tools"}</small></span>
+      <span><b>💻</b><small>{uk?"Послуги":"Services"}</small></span>
+      <span><b>🤝</b><small>{uk?"Допомога":"Help"}</small></span>
     </div>
   </main>;
 }
