@@ -14,6 +14,7 @@ import {loadSolutionFlows} from "./services/solutionFlowStore";
 const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBridge"));
 const VoicePrivacyControl=lazy(()=>import("./components/VoicePrivacyControl"));
 const CleanHome=lazy(()=>import("./pages/CleanHome"));
+const CleanResults=lazy(()=>import("./pages/CleanResults"));
 const Profile=lazy(()=>import("./pages/Profile"));
 const PublicPassport=lazy(()=>import("./pages/PublicPassport"));
 const Chat=lazy(()=>import("./pages/Chat"));
@@ -52,7 +53,7 @@ export default function App(){
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
   const solutionRoute=location.pathname==="/solution";
   const chatRoute=location.pathname==="/chat";
-  const homeRoute=location.pathname==="/";
+  const cleanRoute=location.pathname==="/"||location.pathname==="/results";
 
   useEffect(()=>{
     let cancelled=false;
@@ -104,13 +105,14 @@ export default function App(){
   return <>
     <Suspense fallback={<RouteLoader/>}>
       {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
-        {!homeRoute&&<Header lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}
-        {!homeRoute&&<NavigationControls lang={lang}/>} 
+        {!cleanRoute&&<Header lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}
+        {!cleanRoute&&<NavigationControls lang={lang}/>} 
         {backgroundReady&&<Suspense fallback={null}><MatchNotificationBridge lang={lang}/></Suspense>}
         {solutionRoute&&<SolutionNavigation lang={lang}/>}
         {chatRoute&&<Suspense fallback={null}><VoicePrivacyControl/></Suspense>}
         <Routes>
           <Route path="/" element={<CleanHome lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
+          <Route path="/results" element={<CleanResults lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
           <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
           <Route path="/needs" element={<Needs lang={lang}/>}/>
           <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
@@ -126,8 +128,8 @@ export default function App(){
           <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
           <Route path="*" element={<Navigate to="/" replace/>}/>
         </Routes>
-        {!homeRoute&&<BottomNav lang={lang} inboxUnread={inboxUnread}/>}
-        {!homeRoute&&<footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>}
+        {!cleanRoute&&<BottomNav lang={lang} inboxUnread={inboxUnread}/>}
+        {!cleanRoute&&<footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>}
       </PilotGate>}
     </Suspense>
     <Analytics/>
