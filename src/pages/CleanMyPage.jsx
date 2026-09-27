@@ -106,10 +106,14 @@ export default function CleanMyPage({lang="uk",setLang,inboxUnread=0}){
 
   return <main className="cleanHomeShell cleanMyShell">
     <header className="cleanHomeTopbar">
-      <Link className="cleanHomeBrand" to="/" aria-label={uk?"Головна":"Home"}>
-        <span className="cleanHomeLogo">A</span>
-        <span>ATLAS</span>
-      </Link>
+      <div className="cleanHeaderBrandBlock">
+        <Link className="cleanHomeBrand" to="/" aria-label={uk?"Головна":"Home"}>
+          <span className="cleanHomeLogo">A</span>
+          <span>ATLAS</span>
+        </Link>
+        <span className="cleanHeaderPageTitle">{uk?"Можливості":"Capabilities"}</span>
+      </div>
+      <CleanHistoryNav lang={lang}/>
       <div className="cleanHomeTopActions">
         <div className="cleanHomeLanguage" aria-label={uk?"Мова":"Language"}>
           <button type="button" className={lang==="uk"?"active":""} onClick={()=>setLang("uk")}>UA</button>
@@ -123,7 +127,6 @@ export default function CleanMyPage({lang="uk",setLang,inboxUnread=0}){
         </button>
       </div>
     </header>
-    <CleanHistoryNav lang={lang} titleUk="Можливості" titleEn="Capabilities"/>
 
     <section className="cleanMyBody">
       <div className="cleanMyHeading">
