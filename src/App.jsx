@@ -13,8 +13,7 @@ import {loadSolutionFlows} from "./services/solutionFlowStore";
 
 const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBridge"));
 const VoicePrivacyControl=lazy(()=>import("./components/VoicePrivacyControl"));
-const Home=lazy(()=>import("./pages/Home"));
-const MobileHome=lazy(()=>import("./components/MobileHome"));
+const CleanHome=lazy(()=>import("./pages/CleanHome"));
 const Profile=lazy(()=>import("./pages/Profile"));
 const PublicPassport=lazy(()=>import("./pages/PublicPassport"));
 const Chat=lazy(()=>import("./pages/Chat"));
@@ -39,19 +38,6 @@ function RouteLoader(){
   return <main style={{minHeight:"55vh",display:"grid",placeItems:"center",color:"#0b7540",fontWeight:800}}>ATLAS</main>;
 }
 
-function ResponsiveHome({t,lang}){
-  const [mobile,setMobile]=useState(()=>window.matchMedia?.("(max-width: 760px)")?.matches??false);
-  useEffect(()=>{
-    const media=window.matchMedia?.("(max-width: 760px)");
-    if(!media)return;
-    const sync=event=>setMobile(event.matches);
-    setMobile(media.matches);
-    media.addEventListener?.("change",sync);
-    return()=>media.removeEventListener?.("change",sync);
-  },[]);
-  return mobile?<MobileHome lang={lang}/>:<Home t={t} lang={lang}/>;
-}
-
 export default function App(){
   const [backgroundReady,setBackgroundReady]=useState(false);
   const [inboxUnread,setInboxUnread]=useState(0);
@@ -66,6 +52,7 @@ export default function App(){
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
   const solutionRoute=location.pathname==="/solution";
   const chatRoute=location.pathname==="/chat";
+  const homeRoute=location.pathname==="/";
 
   useEffect(()=>{
     let cancelled=false;
@@ -117,13 +104,13 @@ export default function App(){
   return <>
     <Suspense fallback={<RouteLoader/>}>
       {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
-        <Header lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>
-        <NavigationControls lang={lang}/>
+        {!homeRoute&&<Header lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}
+        {!homeRoute&&<NavigationControls lang={lang}/>} 
         {backgroundReady&&<Suspense fallback={null}><MatchNotificationBridge lang={lang}/></Suspense>}
         {solutionRoute&&<SolutionNavigation lang={lang}/>}
         {chatRoute&&<Suspense fallback={null}><VoicePrivacyControl/></Suspense>}
         <Routes>
-          <Route path="/" element={<ResponsiveHome t={t} lang={lang}/>}/>
+          <Route path="/" element={<CleanHome lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
           <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
           <Route path="/needs" element={<Needs lang={lang}/>}/>
           <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
@@ -139,8 +126,8 @@ export default function App(){
           <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
           <Route path="*" element={<Navigate to="/" replace/>}/>
         </Routes>
-        <BottomNav lang={lang} inboxUnread={inboxUnread}/>
-        <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
+        {!homeRoute&&<BottomNav lang={lang} inboxUnread={inboxUnread}/>}
+        {!homeRoute&&<footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>}
       </PilotGate>}
     </Suspense>
     <Analytics/>
