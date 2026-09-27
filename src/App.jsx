@@ -4,7 +4,6 @@ import {Analytics} from "@vercel/analytics/react";
 import {SpeedInsights} from "@vercel/speed-insights/react";
 import Header from "./components/Header";
 import BottomNav from "./components/BottomNav";
-import NavigationControls from "./components/NavigationControls";
 import SolutionNavigation from "./components/SolutionNavigation";
 import Solution from "./pages/Solution";
 import PilotGate from "./components/PilotGate";
@@ -13,16 +12,15 @@ import {loadSolutionFlows} from "./services/solutionFlowStore";
 
 const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBridge"));
 const VoicePrivacyControl=lazy(()=>import("./components/VoicePrivacyControl"));
-const Home=lazy(()=>import("./pages/Home"));
-const MobileHome=lazy(()=>import("./components/MobileHome"));
-const Profile=lazy(()=>import("./pages/Profile"));
+const PilotHome=lazy(()=>import("./pages/PilotHome"));
+const AtlasResults=lazy(()=>import("./pages/AtlasResults"));
+const WebResults=lazy(()=>import("./pages/WebResults"));
+const MyPage=lazy(()=>import("./pages/MyPage"));
+const AddOpportunity=lazy(()=>import("./pages/AddOpportunity"));
+const Rooms=lazy(()=>import("./pages/Rooms"));
 const PublicPassport=lazy(()=>import("./pages/PublicPassport"));
 const Chat=lazy(()=>import("./pages/Chat"));
 const Messages=lazy(()=>import("./pages/Messages"));
-const Market=lazy(()=>import("./pages/Market"));
-const Requests=lazy(()=>import("./pages/Requests"));
-const Needs=lazy(()=>import("./pages/Needs"));
-const MatchSearch=lazy(()=>import("./pages/MatchSearch"));
 const ShareApp=lazy(()=>import("./pages/ShareApp"));
 const CatalogAdmin=lazy(()=>import("./pages/CatalogAdmin"));
 const TomatoPilot=lazy(()=>import("./pages/TomatoPilot"));
@@ -37,19 +35,6 @@ const normalizeLanguage=value=>{
 
 function RouteLoader(){
   return <main style={{minHeight:"55vh",display:"grid",placeItems:"center",color:"#0b7540",fontWeight:800}}>ATLAS</main>;
-}
-
-function ResponsiveHome({t,lang}){
-  const [mobile,setMobile]=useState(()=>window.matchMedia?.("(max-width: 760px)")?.matches??false);
-  useEffect(()=>{
-    const media=window.matchMedia?.("(max-width: 760px)");
-    if(!media)return;
-    const sync=event=>setMobile(event.matches);
-    setMobile(media.matches);
-    media.addEventListener?.("change",sync);
-    return()=>media.removeEventListener?.("change",sync);
-  },[]);
-  return mobile?<MobileHome lang={lang}/>:<Home t={t} lang={lang}/>;
 }
 
 export default function App(){
@@ -95,18 +80,17 @@ export default function App(){
       if(Number.isFinite(value))setInboxUnread(value);
       else refresh();
     };
-    const onVisible=()=>refresh();
     refresh();
     const timer=window.setInterval(refresh,15000);
     window.addEventListener("atlas:inbox-changed",onInbox);
-    document.addEventListener("visibilitychange",onVisible);
-    return()=>{alive=false;window.clearInterval(timer);window.removeEventListener("atlas:inbox-changed",onInbox);document.removeEventListener("visibilitychange",onVisible)};
+    document.addEventListener("visibilitychange",refresh);
+    return()=>{alive=false;window.clearInterval(timer);window.removeEventListener("atlas:inbox-changed",onInbox);document.removeEventListener("visibilitychange",refresh)};
   },[backgroundReady,catalogAdminRoute]);
 
   useEffect(()=>{
     const sync=lng=>setLangState(normalizeLanguage(lng));
     i18n.on("languageChanged",sync);
-    return ()=>i18n.off("languageChanged",sync);
+    return()=>i18n.off("languageChanged",sync);
   },[]);
 
   useEffect(()=>{
@@ -118,29 +102,29 @@ export default function App(){
     <Suspense fallback={<RouteLoader/>}>
       {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
         <Header lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>
-        <NavigationControls lang={lang}/>
         {backgroundReady&&<Suspense fallback={null}><MatchNotificationBridge lang={lang}/></Suspense>}
         {solutionRoute&&<SolutionNavigation lang={lang}/>}
         {chatRoute&&<Suspense fallback={null}><VoicePrivacyControl/></Suspense>}
         <Routes>
-          <Route path="/" element={<ResponsiveHome t={t} lang={lang}/>}/>
-          <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
-          <Route path="/needs" element={<Needs lang={lang}/>}/>
-          <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
-          <Route path="/share" element={<ShareApp lang={lang}/>}/>
-          <Route path="/requests" element={<Requests lang={lang}/>}/>
+          <Route path="/" element={<PilotHome lang={lang}/>}/>
+          <Route path="/results" element={<AtlasResults lang={lang}/>}/>
+          <Route path="/web-results" element={<WebResults lang={lang}/>}/>
+          <Route path="/me" element={<MyPage lang={lang}/>}/>
+          <Route path="/opportunities/new" element={<AddOpportunity lang={lang}/>}/>
+          <Route path="/profile" element={<Navigate to="/me" replace/>}/>
           <Route path="/messages" element={<Messages lang={lang}/>}/>
-          <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
+          <Route path="/rooms" element={<Rooms lang={lang}/>}/>
+          <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
+          <Route path="/share" element={<ShareApp lang={lang}/>}/>
+          <Route path="/chat" element={<Chat/>}/>
+          <Route path="/tomatoes" element={<TomatoPilot lang={lang}/>}/>
           <Route path="/groups" element={<Groups lang={lang}/>}/>
           <Route path="/groups/:groupId" element={<GroupPage lang={lang}/>}/>
-          <Route path="/chat" element={<Chat/>}/>
-          <Route path="/market" element={<Market/>}/>
-          <Route path="/tomatoes" element={<TomatoPilot lang={lang}/>}/>
           <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
           <Route path="*" element={<Navigate to="/" replace/>}/>
         </Routes>
         <BottomNav lang={lang} inboxUnread={inboxUnread}/>
-        <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
+        <footer>Atlas · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
       </PilotGate>}
     </Suspense>
     <Analytics/>
