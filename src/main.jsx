@@ -42,7 +42,8 @@ async function checkAtlasBuild(){
   if(now-lastBuildCheck<15000)return;
   lastBuildCheck=now;
   try{
-    const response=await fetch("/?_atlas_build="+now,{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
+    const base=import.meta.env.BASE_URL||"/";
+    const response=await fetch(base+"?_atlas_build="+now,{cache:"no-store",headers:{"Cache-Control":"no-cache"}});
     const html=await response.text();
     const match=html.match(/<script[^>]+src="([^"]+\/assets\/[^"]+\.js)"/i)||html.match(/<script[^>]+src="(\/assets\/[^"]+\.js)"/i);
     const latest=match?.[1]||"";
@@ -67,7 +68,7 @@ window.addEventListener("appinstalled",()=>{
 if("serviceWorker" in navigator){
   window.addEventListener("load",async()=>{
     try{
-      const registration=await navigator.serviceWorker.register("/sw.js",{updateViaCache:"none"});
+      const registration=await navigator.serviceWorker.register((import.meta.env.BASE_URL||"/")+"sw.js",{updateViaCache:"none"});
       await registration.update();
       if(registration.waiting)registration.waiting.postMessage({type:"SKIP_WAITING"});
       registration.addEventListener("updatefound",()=>{
@@ -87,4 +88,4 @@ if("serviceWorker" in navigator){
   });
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<React.StrictMode><BrowserRouter><App/></BrowserRouter></React.StrictMode>);
+ReactDOM.createRoot(document.getElementById("root")).render(<React.StrictMode><BrowserRouter basename={(import.meta.env.BASE_URL||"/")==="/"?undefined:(import.meta.env.BASE_URL||"/").replace(/\/$/,"")}><App/></BrowserRouter></React.StrictMode>);
