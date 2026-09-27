@@ -264,3 +264,51 @@
 }
 
 .clean-home-route .atlasNotifyToolbar{display:none!important}
+
+/* Responsive desktop sizing: fit the Atlas card to the available viewport automatically */
+@media(min-width:761px){
+  .cleanHomeShell{
+    width:min(
+      var(--clean-home-width),
+      calc(100vw - 32px),
+      calc((100vh - 36px) * .62)
+    );
+    min-width:340px;
+    margin:18px auto;
+  }
+
+  .cleanHomeHero{
+    padding:
+      clamp(20px,3.1vh,28px)
+      clamp(16px,2vw,22px)
+      clamp(48px,7vh,64px);
+  }
+
+  .cleanHomeHero h1{
+    font-size:clamp(22px,3.5vh,27px);
+  }
+
+  .cleanHomeSearch{
+    width:calc(100% - clamp(20px,3.4vw,28px));
+    padding:clamp(10px,1.8vh,14px);
+  }
+
+  .cleanHomeCapability{
+    width:calc(100% - clamp(20px,3.4vw,28px));
+  }
+}
+
+@media(min-width:761px) and (max-height:680px){
+  .cleanHomeShell{
+    width:min(390px,calc(100vw - 28px),calc((100vh - 24px) * .62));
+    margin:12px auto;
+  }
+  .cleanHomeTopbar{min-height:48px;padding:6px 10px}
+  .cleanHomeHero{padding-top:18px;padding-bottom:50px}
+  .cleanHomeHero h1{font-size:22px}
+  .cleanHomeHero p{margin-top:7px}
+  .cleanHomeSearch{margin-top:-32px;gap:7px;padding:10px}
+  .cleanHomeTask .voiceTaskInput textarea{min-height:68px!important}
+  .cleanHomeCapability{min-height:54px;margin-top:8px;margin-bottom:10px}
+  .cleanHomeBottom{min-height:54px}
+}
