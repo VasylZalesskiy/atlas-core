@@ -1,0 +1,264 @@
+:root{
+  --clean-home-width:430px;
+  --clean-green:#0b7f45;
+  --clean-green-dark:#075f34;
+  --clean-text:#183126;
+  --clean-muted:#6b786f;
+  --clean-border:#dde7e1;
+  --clean-soft:#f4f8f5;
+}
+
+.cleanHomeShell{
+  width:min(var(--clean-home-width),100%);
+  margin:20px auto 40px;
+  overflow:hidden;
+  border:1px solid #dfe8e3;
+  border-radius:22px;
+  background:#fff;
+  color:var(--clean-text);
+  box-shadow:0 20px 60px rgba(30,66,45,.10);
+}
+
+.cleanHomeTopbar{
+  min-height:54px;
+  padding:8px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  background:#fff;
+  border-bottom:1px solid #eef2ef;
+}
+.cleanHomeBrand{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  color:#173626;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:950;
+  letter-spacing:.06em;
+}
+.cleanHomeLogo{
+  width:30px;height:30px;
+  display:grid;place-items:center;
+  border-radius:9px;
+  background:var(--clean-green);
+  color:#fff;
+  font-size:14px;
+}
+.cleanHomeTopActions{display:flex;align-items:center;gap:7px}
+.cleanHomeLanguage{display:flex;align-items:center;gap:3px;font-size:9px;color:#a0aaa4}
+.cleanHomeLanguage button{
+  border:0;background:transparent;padding:4px 2px;
+  color:#849188;font-size:9px;font-weight:900;cursor:pointer
+}
+.cleanHomeLanguage button.active{color:#173626}
+.cleanHomeBell{
+  position:relative;
+  width:32px;height:32px;
+  display:grid;place-items:center;
+  border-radius:9px;
+  color:#365246;text-decoration:none;
+  background:#f7faf8;
+  border:1px solid #e3eae6;
+}
+.cleanHomeBell b{
+  position:absolute;right:-3px;top:-4px;
+  min-width:15px;height:15px;padding:0 3px;
+  display:grid;place-items:center;
+  border-radius:999px;background:#d23838;color:#fff;
+  font-size:8px;border:2px solid #fff;
+}
+
+.cleanHomeTopbar .atlasPresenceBar{
+  min-height:32px!important;height:32px!important;
+  border:0!important;border-radius:9px!important;
+  background:#f7faf8!important;box-shadow:none!important;
+}
+.cleanHomeTopbar .atlasPresenceButton{
+  height:32px!important;padding:0 8px!important;gap:4px!important;
+  font-size:9px!important
+}
+.cleanHomeTopbar .atlasPresenceButton span:last-child{font-size:8px}
+.cleanHomeTopbar .atlasPresenceDivider,
+.cleanHomeTopbar .atlasPresenceSound{display:none!important}
+.cleanHomeTopbar .atlasPresencePopup{left:auto!important;right:0!important;top:38px!important}
+
+.cleanHomeHero{
+  position:relative;
+  padding:28px 22px 64px;
+  background:
+    radial-gradient(circle at 84% 14%,rgba(255,255,255,.75) 0 10%,transparent 11%),
+    linear-gradient(135deg,#fff5c4 0%,#f5f3c8 42%,#dcefc9 100%);
+}
+.cleanHomeHero:after{
+  content:"";
+  position:absolute;
+  right:20px;bottom:22px;
+  width:72px;height:72px;border-radius:24px;
+  background:
+    radial-gradient(circle at 35% 35%,#fff 0 10%,transparent 11%),
+    linear-gradient(145deg,rgba(11,127,69,.16),rgba(255,255,255,.45));
+  transform:rotate(11deg);
+  opacity:.75;
+}
+.cleanHomeEyebrow{
+  display:block;margin-bottom:7px;
+  color:var(--clean-green);
+  font-size:9px;font-weight:950;letter-spacing:.18em
+}
+.cleanHomeHero h1{
+  position:relative;z-index:1;
+  margin:0;max-width:325px;
+  color:#1d3528;
+  font-size:27px;line-height:1.04;
+  letter-spacing:-.035em;
+}
+.cleanHomeHero h1 strong{color:var(--clean-green)}
+.cleanHomeHero p{
+  position:relative;z-index:1;
+  margin:10px 0 0;
+  color:#5c7063;
+  font-size:11px;font-weight:650;
+}
+
+.cleanHomeSearch{
+  position:relative;z-index:3;
+  width:calc(100% - 28px);
+  margin:-38px auto 0;
+  display:grid;gap:9px;
+  padding:14px;
+  border:1px solid #d8e5dc;
+  border-radius:17px;
+  background:#fff;
+  box-shadow:0 10px 28px rgba(38,84,52,.12);
+}
+.cleanHomeSearchTitle{font-size:12px;font-weight:900;color:#243c2e}
+.cleanHomeTask{position:relative}
+.cleanHomeTask .voiceTaskInput{
+  overflow:hidden;
+  border:1px solid #dbe5df!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.cleanHomeTask .voiceTaskInput textarea{
+  min-height:82px!important;
+  padding:12px 88px 12px 12px!important;
+  border:0!important;
+  font-size:14px!important;
+  line-height:1.35!important;
+  resize:none!important;
+}
+.cleanHomeTask .voiceTaskInput>button.voiceButton{right:8px!important;top:auto!important;bottom:8px!important;width:36px!important;height:36px!important;border-radius:10px!important}
+.cleanHomeTask .voiceTaskInput>button[aria-label*="Очист"],
+.cleanHomeTask .voiceTaskInput>button[aria-label*="Clear"]{right:48px!important;top:auto!important;bottom:5px!important;width:34px!important;height:34px!important}
+.cleanHomeCamera{
+  position:absolute;right:48px;bottom:8px;
+  width:36px;height:36px;
+  display:grid;place-items:center;
+  border:0;border-radius:10px;
+  background:#f0f7f3;color:var(--clean-green);
+  cursor:pointer;
+}
+.cleanHomeTask:has(.voiceTaskInput textarea:not(:placeholder-shown)) .cleanHomeCamera{display:none}
+.cleanHomeFile{display:none}
+.cleanHomePhoto{
+  display:grid;grid-template-columns:48px 1fr auto;
+  gap:8px;align-items:center;
+  padding:6px;
+  border:1px solid #e1e8e3;
+  border-radius:11px;
+  background:#f8fbf9;
+  color:#5d6c63;font-size:10px;
+}
+.cleanHomePhoto img{width:48px;height:48px;object-fit:cover;border-radius:8px}
+.cleanHomePhoto span{display:flex;align-items:center;gap:6px}
+.cleanHomePhoto button{width:28px;height:28px;display:grid;place-items:center;border:0;border-radius:8px;background:#fff;color:#69776f}
+.cleanHomeSpin{animation:cleanSpin 1s linear infinite}
+@keyframes cleanSpin{to{transform:rotate(360deg)}}
+
+.cleanHomeLocation{
+  min-height:39px;padding:0 10px;
+  display:flex;align-items:center;gap:7px;
+  border:1px solid var(--clean-border);
+  border-radius:10px;
+  background:#fbfdfc;color:#6b8175;
+}
+.cleanHomeLocation input{
+  width:100%;height:37px;border:0;outline:0;background:transparent;
+  color:#324239;font:inherit;font-size:11px;
+}
+.cleanHomeFind{
+  min-height:43px;
+  border:0;border-radius:11px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--clean-green);color:#fff;
+  font:inherit;font-size:12px;font-weight:950;
+  cursor:pointer;
+}
+.cleanHomeFind:hover{background:var(--clean-green-dark)}
+.cleanHomeFind:disabled{opacity:.48;cursor:not-allowed}
+
+.cleanHomeCapability{
+  width:calc(100% - 28px);
+  margin:10px auto 14px;
+  min-height:62px;
+  padding:10px 12px;
+  display:grid;grid-template-columns:auto 1fr auto;
+  align-items:center;gap:10px;
+  border:1px solid #d8e6dc;
+  border-radius:14px;
+  background:#f2faf5;
+  color:#183b27;
+  text-decoration:none;
+}
+.cleanHomeCapabilityIcon{
+  width:40px;height:40px;display:grid;place-items:center;
+  border-radius:11px;background:#fff;color:var(--clean-green);
+  box-shadow:0 4px 12px rgba(24,86,45,.07);
+}
+.cleanHomeCapabilityCopy strong{display:block;font-size:14px}
+.cleanHomeCapabilityCopy small{display:block;margin-top:2px;font-size:9px;color:#68776e}
+.cleanHomeArrow{font-size:20px;color:var(--clean-green)}
+
+.cleanHomeBottom{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  min-height:60px;
+  border-top:1px solid #e4ebe6;
+  background:#fff;
+}
+.cleanHomeBottom a{
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  min-width:0;
+  color:#768078;text-decoration:none;
+  font-size:8px;font-weight:850;
+}
+.cleanHomeBottom a.active{color:var(--clean-green);background:#f2faf5}
+.cleanHomeBottom a b{
+  position:absolute;top:7px;left:56%;
+  min-width:14px;height:14px;padding:0 3px;display:grid;place-items:center;
+  border-radius:99px;background:#d23838;color:#fff;font-size:7px
+}
+
+@media(max-width:760px){
+  .cleanHomeShell{
+    width:100%;margin:0;
+    border:0;border-radius:0;box-shadow:none;
+    min-height:100dvh;
+    padding-bottom:calc(60px + env(safe-area-inset-bottom));
+  }
+  .cleanHomeTopbar{padding-top:calc(8px + env(safe-area-inset-top))}
+  .cleanHomeHero{padding-top:24px}
+  .cleanHomeBottom{
+    position:fixed;left:0;right:0;bottom:0;z-index:50;
+    padding-bottom:env(safe-area-inset-bottom);
+    box-shadow:0 -8px 24px rgba(30,66,45,.08);
+  }
+}
+
+@media(min-width:761px){
+  body{background:#eef4f0}
+}
