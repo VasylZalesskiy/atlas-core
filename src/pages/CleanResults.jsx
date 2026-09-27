@@ -2,6 +2,7 @@ import {useEffect,useMemo,useState} from "react";
 import {Bell,Globe2,Home as HomeIcon,MapPin,MessageCircle,MessageCircleMore,MessagesSquare,Search,SlidersHorizontal,Sparkles} from "lucide-react";
 import {Link,useNavigate,useSearchParams} from "react-router-dom";
 import OnlinePresence from "../components/OnlinePresence";
+import CleanHistoryNav from "../components/CleanHistoryNav";
 import {searchPassportProfiles} from "../services/passportSearch";
 import {loadMyPassport} from "../services/passportStore";
 import {startOpportunityRequest} from "../services/solutionFlowStore";
@@ -113,6 +114,7 @@ export default function CleanResults({lang="uk",setLang,inboxUnread=0}){
         </button>
       </div>
     </header>
+    <CleanHistoryNav lang={lang}/>
 
     <section className="cleanResultsBody">
       <div className="cleanResultsHeading">
