@@ -190,7 +190,7 @@ export default function Messages({lang="uk",setLang=()=>{},inboxUnread=0}){
         </button>
       </div>
     </header>
-    <CleanHistoryNav lang={lang}/>
+    <CleanHistoryNav lang={lang} titleUk="Повідомлення" titleEn="Messages"/>
 
     <section className="cleanMessagesBody">
       <div className="messagesHero">
