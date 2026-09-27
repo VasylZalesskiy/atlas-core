@@ -55,7 +55,7 @@ export default function App(){
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
   const solutionRoute=location.pathname==="/solution";
   const chatRoute=location.pathname==="/chat";
-  const cleanRoute=["/","/results","/profile","/me"].includes(location.pathname);
+  const cleanRoute=["/","/results","/profile","/me","/messages"].includes(location.pathname);
 
   useEffect(()=>{
     let cancelled=false;
@@ -120,7 +120,7 @@ export default function App(){
           <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
           <Route path="/share" element={<ShareApp lang={lang}/>}/>
           <Route path="/requests" element={<Requests lang={lang}/>}/>
-          <Route path="/messages" element={<Messages lang={lang}/>}/>
+          <Route path="/messages" element={<Messages lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
           <Route path="/profile" element={<CleanMyPage lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
           <Route path="/me" element={<CleanMyPage lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
           <Route path="/groups" element={<Groups lang={lang}/>}/>
