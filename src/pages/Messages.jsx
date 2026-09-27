@@ -2,6 +2,7 @@ import {useCallback,useEffect,useMemo,useState} from "react";
 import {ArrowLeft,Bell,CheckCircle2,Clock3,Home as HomeIcon,Inbox,MessageCircle,MessageCircleMore,MessagesSquare,PackageCheck,Phone,RefreshCw,Send,Sparkles,X} from "lucide-react";
 import {Link,useSearchParams} from "react-router-dom";
 import OnlinePresence from "../components/OnlinePresence";
+import CleanHistoryNav from "../components/CleanHistoryNav";
 import {
   cancelSolutionFlow,
   completeSolutionFlow,
@@ -189,6 +190,7 @@ export default function Messages({lang="uk",setLang=()=>{},inboxUnread=0}){
         </button>
       </div>
     </header>
+    <CleanHistoryNav lang={lang}/>
 
     <section className="cleanMessagesBody">
       <div className="messagesHero">
