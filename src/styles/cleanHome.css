@@ -324,3 +324,40 @@
     width:calc(100vw - 20px)!important;
   }
 }
+
+.cleanHistoryNav{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:8px 12px 0;
+  background:#fff;
+}
+.cleanHistoryNav button{
+  min-height:31px;
+  padding:6px 9px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:5px;
+  border:1px solid #dfe7e2;
+  border-radius:9px;
+  background:#fff;
+  color:#496057;
+  font:inherit;
+  font-size:8px;
+  font-weight:900;
+  cursor:pointer;
+}
+.cleanHistoryNav button:hover{
+  background:#f3f8f5;
+  color:var(--clean-green);
+}
+@media(max-width:760px){
+  .cleanHistoryNav{
+    padding:7px 10px 0;
+  }
+  .cleanHistoryNav button{
+    min-height:34px;
+    padding:7px 10px;
+  }
+}
