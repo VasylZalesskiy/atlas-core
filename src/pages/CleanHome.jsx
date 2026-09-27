@@ -172,8 +172,8 @@ export default function CleanHome({lang="uk",setLang,inboxUnread=0}){
     <Link className="cleanHomeCapability" to="/profile">
       <span className="cleanHomeCapabilityIcon"><Sparkles size={21}/></span>
       <span className="cleanHomeCapabilityCopy">
-        <strong>{uk?"Мій акаунт":"My account"}</strong>
-        <small>{uk?"Моя сторінка і мої можливості":"My page and my capabilities"}</small>
+        <strong>{uk?"Моя сторінка":"My page"}</strong>
+        <small>{uk?"Мої дані та мої можливості":"My details and capabilities"}</small>
       </span>
       <span className="cleanHomeArrow">→</span>
     </Link>
