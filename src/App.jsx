@@ -18,6 +18,9 @@ const WebResults=lazy(()=>import("./pages/WebResults"));
 const MyPage=lazy(()=>import("./pages/MyPage"));
 const AddOpportunity=lazy(()=>import("./pages/AddOpportunity"));
 const Rooms=lazy(()=>import("./pages/Rooms"));
+const Requests=lazy(()=>import("./pages/Requests"));
+const MatchSearch=lazy(()=>import("./pages/MatchSearch"));
+const Needs=lazy(()=>import("./pages/Needs"));
 const PublicPassport=lazy(()=>import("./pages/PublicPassport"));
 const Chat=lazy(()=>import("./pages/Chat"));
 const Messages=lazy(()=>import("./pages/Messages"));
@@ -114,6 +117,9 @@ export default function App(){
           <Route path="/profile" element={<Navigate to="/me" replace/>}/>
           <Route path="/messages" element={<Messages lang={lang}/>}/>
           <Route path="/rooms" element={<Rooms lang={lang}/>}/>
+          <Route path="/requests" element={<Requests lang={lang}/>}/>
+          <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
+          <Route path="/needs" element={<Needs lang={lang}/>}/>
           <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
           <Route path="/share" element={<ShareApp lang={lang}/>}/>
           <Route path="/chat" element={<Chat/>}/>
