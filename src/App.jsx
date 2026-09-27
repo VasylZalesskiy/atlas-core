@@ -10,6 +10,7 @@ import Solution from "./pages/Solution";
 import PilotGate from "./components/PilotGate";
 import i18n from "./i18n";
 import {loadSolutionFlows} from "./services/solutionFlowStore";
+import "./styles/atlasScale.css";
 
 const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBridge"));
 const VoicePrivacyControl=lazy(()=>import("./components/VoicePrivacyControl"));
