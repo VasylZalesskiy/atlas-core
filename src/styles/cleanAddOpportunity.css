@@ -1,0 +1,38 @@
+.cleanAddShell{overflow:visible}
+.cleanAddBody{padding:18px 14px 16px;background:#fff}
+.cleanAddHeading{margin-bottom:14px}
+.cleanAddHeading>span{display:block;margin-bottom:4px;color:var(--clean-green);font-size:8px;font-weight:950;letter-spacing:.16em}
+.cleanAddHeading h1{margin:0;color:var(--clean-text);font-size:24px;line-height:1.05;letter-spacing:-.03em}
+.cleanAddHeading p{margin:6px 0 0;color:var(--clean-muted);font-size:10px;line-height:1.4}
+.cleanAddState{padding:12px;border-radius:11px;background:#f6f8f7;color:#66746c;text-align:center;font-size:9px;font-weight:800}
+.cleanAddNeedPassport{display:grid;gap:7px;padding:14px;border:1px solid #dfe8e2;border-radius:12px;background:#fafcfb}
+.cleanAddNeedPassport strong{font-size:11px}
+.cleanAddNeedPassport span{font-size:8px;color:#6c7971;line-height:1.4}
+.cleanAddNeedPassport a{width:max-content;padding:7px 9px;border-radius:8px;background:var(--clean-green);color:#fff;text-decoration:none;font-size:8px;font-weight:900}
+.cleanAddForm{display:grid;gap:10px}
+.cleanAddMainField{display:grid;gap:5px}
+.cleanAddMainField>span,.cleanAddOptional label>span{font-size:8px;font-weight:900;color:#55675d}
+.cleanAddMainField textarea{min-height:120px;padding:12px;border:1px solid #d9e4dd;border-radius:12px;background:#fff;color:#283b31;font:inherit;font-size:12px;line-height:1.4;resize:vertical;outline:0}
+.cleanAddMainField textarea:focus{border-color:#8fc4a2;box-shadow:0 0 0 3px #eef8f2}
+.cleanAddTypes{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.cleanAddTypes button{min-height:34px;padding:6px;border:1px solid #dce6df;border-radius:9px;background:#fff;color:#52645a;font:inherit;font-size:8px;font-weight:900;cursor:pointer}
+.cleanAddTypes button.active{border-color:#86bd9a;background:#eaf7ee;color:var(--clean-green)}
+.cleanAddOptional{padding:10px;border:1px solid #e0e8e3;border-radius:11px;background:#fbfdfc}
+.cleanAddOptional summary{cursor:pointer;color:#53655b;font-size:8px;font-weight:900}
+.cleanAddOptional[open]{display:grid;gap:9px}
+.cleanAddOptional[open] summary{margin-bottom:2px}
+.cleanAddOptional label{display:grid;gap:4px}
+.cleanAddOptional input,.cleanAddOptional select{width:100%;min-height:36px;padding:8px 9px;border:1px solid #dbe5df;border-radius:9px;background:#fff;color:#344239;font:inherit;font-size:9px;outline:0}
+.cleanAddInputIcon{display:flex;align-items:center;gap:6px;padding-left:8px;border:1px solid #dbe5df;border-radius:9px;background:#fff;color:#718078}
+.cleanAddInputIcon input{border:0;padding-left:0}
+.cleanAddPriceRow{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.cleanAddError{padding:9px;border:1px solid #efd4d4;border-radius:9px;background:#fff3f3;color:#943535;font-size:8px;overflow-wrap:anywhere}
+.cleanAddSave{min-height:40px;border:0;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--clean-green);color:#fff;font:inherit;font-size:9px;font-weight:950;cursor:pointer}
+.cleanAddSave:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:760px){
+  .cleanAddShell{width:100%;margin:0;border:0;border-radius:0;box-shadow:none;min-height:100dvh;padding-bottom:calc(60px + env(safe-area-inset-bottom));overflow:visible}
+  .cleanAddBody{padding:16px 12px}
+}
+@media(max-width:370px){
+  .cleanAddTypes{grid-template-columns:1fr 1fr}
+}
