@@ -1,9 +1,13 @@
 import {useRef,useState} from "react";
-import {Camera,LoaderCircle,MapPin,Search,Sparkles,X} from "lucide-react";
+import {
+  Camera,HandHeart,Laptop,Leaf,LoaderCircle,MapPin,Search,
+  ShoppingBasket,Sparkles,Wrench,X
+} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "../components/VoiceTaskInput";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import "../styles/pilotRedesign.css";
+import "../styles/homeReference.css";
 
 const medicalPattern=/болить|біль|травм|кровотеч|температур|задишк|непритом|лікар|медич|pain|hurt|injur|bleed|doctor|medical/i;
 
@@ -63,8 +67,8 @@ export default function PilotHome({lang="uk"}){
       const nextTask=data?.task||(data?.name?(uk?`Знайти рішення: ${data.name}`:`Find a solution: ${data.name}`):"");
       if(nextTask)setTask(nextTask);
       setVisionNote(data?.note||data?.name||"");
-    }catch(error){
-      setVisionNote(uk?"Не вдалося розпізнати фото. Можна описати задачу текстом.":"Could not recognize the photo. You can describe the task in text.");
+    }catch{
+      setVisionNote(uk?"Не вдалося розпізнати фото. Опишіть задачу текстом.":"Could not recognize the photo. Describe the task in text.");
     }finally{setVisionBusy(false)}
   }
 
@@ -73,39 +77,49 @@ export default function PilotHome({lang="uk"}){
     if(fileRef.current)fileRef.current.value="";
   }
 
-  return <main className="pilotPage pilotHome">
-    <section className="pilotHero pilotHeroVisual">
-      <div className="pilotHeroCopy">
-        <p className="pilotKicker">ATLAS</p>
-        <h1>{uk?<><span>Твої можливості</span> — це частинка чиєїсь задачі</>:<>Your capabilities are part of someone else's task</>}</h1>
+  const tiles=[
+    {icon:ShoppingBasket,label:uk?"Продукти":"Food"},
+    {icon:Wrench,label:uk?"Інструменти":"Tools"},
+    {icon:Laptop,label:uk?"Послуги":"Services"},
+    {icon:HandHeart,label:uk?"Допомога":"Help"}
+  ];
+
+  return <main className="homeRef">
+    <section className="homeRefHero">
+      <div className="homeRefHeroText">
+        <span className="homeRefEyebrow">ATLAS</span>
+        <h1>{uk?<><strong>Твої можливості</strong> — це частинка чиєїсь задачі</>:<><strong>Your capabilities</strong> are part of someone else's task</>}</h1>
         <p>{uk?"Знайди рішення. Запропонуй допомогу. Будь поруч.":"Find a solution. Offer help. Be nearby."}</p>
       </div>
-      <div className="pilotProduce" aria-hidden="true"><span>🍅</span><span>🥕</span><span>🥔</span><span>🌽</span><span>🥬</span></div>
+      <div className="homeRefArt" aria-hidden="true">
+        <span className="homeRefArtCircle large"><Leaf size={28}/></span>
+        <span className="homeRefArtCircle mid"><ShoppingBasket size={23}/></span>
+        <span className="homeRefArtCircle small"><Sparkles size={18}/></span>
+      </div>
     </section>
 
-    <form className="pilotSearchCard pilotSearchCardOverlap" onSubmit={submit}>
+    <form className="homeRefSearch" onSubmit={submit}>
       <label>{uk?"Опишіть задачу":"Describe the task"}</label>
-      <div className="pilotTaskInput">
+      <div className="homeRefTask">
         <VoiceTaskInput value={task} onChange={setTask} lang={lang} placeholder={uk?"Наприклад: потрібен генератор на сьогодні":"For example: I need a generator today"}/>
-        <button className="pilotCameraButton" type="button" onClick={()=>fileRef.current?.click()} aria-label={uk?"Пошук за фото":"Search by photo"}><Camera size={19}/></button>
+        <button className="homeRefCamera" type="button" onClick={()=>fileRef.current?.click()} aria-label={uk?"Пошук за фото":"Search by photo"}><Camera size={17}/></button>
         <input ref={fileRef} className="pilotFileInput" type="file" accept="image/*" capture="environment" onChange={choosePhoto}/>
       </div>
-      {photo&&<div className="pilotPhotoPreview"><img src={photo} alt=""/><span>{visionBusy?<><LoaderCircle className="spin" size={17}/>{uk?"Розпізнаю фото…":"Recognizing photo…"}</>:visionNote|| (uk?"Фото додано":"Photo added")}</span><button type="button" onClick={clearPhoto}><X size={17}/></button></div>}
-      <label className="pilotLocation"><MapPin size={17}/><input value={where} onChange={e=>setWhere(e.target.value)} placeholder={uk?"Місто, район або область — необов’язково":"City, district or region — optional"}/></label>
-      <button className="pilotPrimary" type="submit" disabled={!task.trim()||visionBusy}><Search size={20}/>{uk?"Знайти рішення":"Find a solution"}</button>
+
+      {photo&&<div className="homeRefPhoto"><img src={photo} alt=""/><span>{visionBusy?<><LoaderCircle className="spin" size={15}/>{uk?"Розпізнаю фото…":"Recognizing photo…"}</>:visionNote|| (uk?"Фото додано":"Photo added")}</span><button type="button" onClick={clearPhoto}><X size={16}/></button></div>}
+
+      <label className="homeRefLocation"><MapPin size={15}/><input value={where} onChange={e=>setWhere(e.target.value)} placeholder={uk?"Місто, район або область — необов’язково":"City, district or region — optional"}/></label>
+      <button className="homeRefFind" type="submit" disabled={!task.trim()||visionBusy}><Search size={17}/>{uk?"Знайти рішення":"Find a solution"}</button>
     </form>
 
-    <Link className="pilotCapabilityCard" to="/me">
-      <span className="pilotCapabilityIcon"><Sparkles size={26}/></span>
+    <Link className="homeRefCapabilities" to="/me">
+      <span className="homeRefCapIcon"><Sparkles size={20}/></span>
       <span><strong>{uk?"Твої можливості":"Your capabilities"}</strong><small>{uk?"Що я маю, вмію, можу":"What I have, know and can do"}</small></span>
       <b>→</b>
     </Link>
 
-    <div className="pilotExamples" aria-label={uk?"Приклади можливостей":"Capability examples"}>
-      <span><b>🍅</b><small>{uk?"Продукти":"Food"}</small></span>
-      <span><b>🛠️</b><small>{uk?"Інструменти":"Tools"}</small></span>
-      <span><b>💻</b><small>{uk?"Послуги":"Services"}</small></span>
-      <span><b>🤝</b><small>{uk?"Допомога":"Help"}</small></span>
+    <div className="homeRefTiles">
+      {tiles.map(({icon:Icon,label})=><div className="homeRefTile" key={label}><span><Icon size={22}/></span><small>{label}</small></div>)}
     </div>
   </main>;
 }
