@@ -16,6 +16,7 @@ const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBri
 const VoicePrivacyControl=lazy(()=>import("./components/VoicePrivacyControl"));
 const CleanHome=lazy(()=>import("./pages/CleanHome"));
 const CleanResults=lazy(()=>import("./pages/CleanResults"));
+const CleanMyPage=lazy(()=>import("./pages/CleanMyPage"));
 const Profile=lazy(()=>import("./pages/Profile"));
 const PublicPassport=lazy(()=>import("./pages/PublicPassport"));
 const Chat=lazy(()=>import("./pages/Chat"));
@@ -54,7 +55,7 @@ export default function App(){
   const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
   const solutionRoute=location.pathname==="/solution";
   const chatRoute=location.pathname==="/chat";
-  const cleanRoute=location.pathname==="/"||location.pathname==="/results";
+  const cleanRoute=["/","/results","/profile","/me"].includes(location.pathname);
 
   useEffect(()=>{
     let cancelled=false;
@@ -120,7 +121,8 @@ export default function App(){
           <Route path="/share" element={<ShareApp lang={lang}/>}/>
           <Route path="/requests" element={<Requests lang={lang}/>}/>
           <Route path="/messages" element={<Messages lang={lang}/>}/>
-          <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
+          <Route path="/profile" element={<CleanMyPage lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
+          <Route path="/me" element={<CleanMyPage lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>}/>
           <Route path="/groups" element={<Groups lang={lang}/>}/>
           <Route path="/groups/:groupId" element={<GroupPage lang={lang}/>}/>
           <Route path="/chat" element={<Chat/>}/>
