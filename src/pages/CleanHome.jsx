@@ -63,7 +63,14 @@ export default function CleanHome({lang="uk",setLang,inboxUnread=0}){
     const value=task.trim();
     if(!value)return;
     saveSearchHistory({task:value,where});
-    nav(solutionUrl(value,where));
+    const medical=/болить|біль|травм|кровотеч|температур|задишк|непритом|лікар|медич|pain|hurt|injur|bleed|doctor|medical/i.test(value);
+    if(medical){
+      nav(solutionUrl(value,where));
+      return;
+    }
+    const params=new URLSearchParams({q:value});
+    if(where.trim())params.set("where",where.trim());
+    nav(`/results?${params.toString()}`);
   }
 
   async function choosePhoto(event){
