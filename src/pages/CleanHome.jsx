@@ -2,6 +2,7 @@ import {useEffect,useRef,useState} from "react";
 import {Bell,Camera,Home as HomeIcon,LoaderCircle,MapPin,MessageCircleMore,MessagesSquare,Search,Sparkles,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import OnlinePresence from "../components/OnlinePresence";
+import CleanHistoryNav from "../components/CleanHistoryNav";
 import VoiceTaskInput from "../components/VoiceTaskInput";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import "../styles/cleanHome.css";
@@ -125,6 +126,7 @@ export default function CleanHome({lang="uk",setLang,inboxUnread=0}){
         </button>
       </div>
     </header>
+    <CleanHistoryNav lang={lang}/>
 
     <section className="cleanHomeHero">
       <span className="cleanHomeEyebrow">ATLAS</span>
