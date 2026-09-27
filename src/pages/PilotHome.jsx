@@ -1,16 +1,39 @@
-import {useState} from "react";
+import {useRef,useState} from "react";
+import {Camera,LoaderCircle,MapPin,Search,Sparkles,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
-import {Camera,MapPin,Search,Sparkles} from "lucide-react";
 import VoiceTaskInput from "../components/VoiceTaskInput";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import "../styles/pilotRedesign.css";
 
 const medicalPattern=/болить|біль|травм|кровотеч|температур|задишк|непритом|лікар|медич|pain|hurt|injur|bleed|doctor|medical/i;
 
+function readImage(file){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
+function compressImage(file){return new Promise(async(resolve,reject)=>{
+  try{
+    const source=await readImage(file);
+    const img=new Image();
+    img.onload=()=>{
+      const maxSide=1280;
+      const scale=Math.min(1,maxSide/Math.max(img.width,img.height));
+      const width=Math.max(1,Math.round(img.width*scale));
+      const height=Math.max(1,Math.round(img.height*scale));
+      const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;
+      canvas.getContext("2d").drawImage(img,0,0,width,height);
+      resolve(canvas.toDataURL("image/jpeg",0.78));
+    };
+    img.onerror=()=>reject(new Error("image-decode-failed"));
+    img.src=source;
+  }catch(error){reject(error)}
+})}
+
 export default function PilotHome({lang="uk"}){
   const uk=lang!=="en";
   const [task,setTask]=useState("");
   const [where,setWhere]=useState("");
+  const [photo,setPhoto]=useState(null);
+  const [visionBusy,setVisionBusy]=useState(false);
+  const [visionNote,setVisionNote]=useState("");
+  const fileRef=useRef(null);
   const nav=useNavigate();
 
   function submit(event){
@@ -27,6 +50,29 @@ export default function PilotHome({lang="uk"}){
     nav(`/results?${params.toString()}`);
   }
 
+  async function choosePhoto(event){
+    const file=event.target.files?.[0];
+    if(!file)return;
+    setVisionBusy(true);setVisionNote("");
+    try{
+      setPhoto(await readImage(file));
+      const image=await compressImage(file);
+      const response=await fetch("/api/vision",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image,lang})});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data?.error||"vision-failed");
+      const nextTask=data?.task||(data?.name?(uk?`Знайти рішення: ${data.name}`:`Find a solution: ${data.name}`):"");
+      if(nextTask)setTask(nextTask);
+      setVisionNote(data?.note||data?.name||"");
+    }catch(error){
+      setVisionNote(uk?"Не вдалося розпізнати фото. Можна описати задачу текстом.":"Could not recognize the photo. You can describe the task in text.");
+    }finally{setVisionBusy(false)}
+  }
+
+  function clearPhoto(){
+    setPhoto(null);setVisionNote("");
+    if(fileRef.current)fileRef.current.value="";
+  }
+
   return <main className="pilotPage pilotHome">
     <section className="pilotHero">
       <p className="pilotKicker">ATLAS</p>
@@ -38,10 +84,12 @@ export default function PilotHome({lang="uk"}){
       <label>{uk?"Опишіть задачу":"Describe the task"}</label>
       <div className="pilotTaskInput">
         <VoiceTaskInput value={task} onChange={setTask} lang={lang} placeholder={uk?"Наприклад: потрібен генератор на сьогодні":"For example: I need a generator today"}/>
-        <span className="pilotPhotoHint" title={uk?"Пошук за фото залишаємо у наступному кроці":"Photo search remains available in the next step"}><Camera size={18}/></span>
+        <button className="pilotCameraButton" type="button" onClick={()=>fileRef.current?.click()} aria-label={uk?"Пошук за фото":"Search by photo"}><Camera size={19}/></button>
+        <input ref={fileRef} className="pilotFileInput" type="file" accept="image/*" capture="environment" onChange={choosePhoto}/>
       </div>
+      {photo&&<div className="pilotPhotoPreview"><img src={photo} alt=""/><span>{visionBusy?<><LoaderCircle className="spin" size={17}/>{uk?"Розпізнаю фото…":"Recognizing photo…"}</>:visionNote|| (uk?"Фото додано":"Photo added")}</span><button type="button" onClick={clearPhoto}><X size={17}/></button></div>}
       <label className="pilotLocation"><MapPin size={17}/><input value={where} onChange={e=>setWhere(e.target.value)} placeholder={uk?"Місто, район або область — необов’язково":"City, district or region — optional"}/></label>
-      <button className="pilotPrimary" type="submit" disabled={!task.trim()}><Search size={20}/>{uk?"Знайти рішення":"Find a solution"}</button>
+      <button className="pilotPrimary" type="submit" disabled={!task.trim()||visionBusy}><Search size={20}/>{uk?"Знайти рішення":"Find a solution"}</button>
     </form>
 
     <Link className="pilotCapabilityCard" to="/me">
