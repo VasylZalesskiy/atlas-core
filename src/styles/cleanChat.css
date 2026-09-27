@@ -1,0 +1,85 @@
+.cleanChatShell{overflow:visible}
+.cleanChatBody{padding:14px;background:#fff}
+.cleanChatBody.chatPage{width:100%!important;max-width:none!important}
+
+.cleanChatBody .messengerTop{
+  position:relative!important;top:auto!important;
+  padding:10px!important;border-radius:13px!important;
+  box-shadow:none!important;background:#fff!important
+}
+.cleanChatBody .messengerAvatar{width:38px!important;height:38px!important;font-size:14px!important}
+.cleanChatBody .messengerIdentity{gap:8px!important}
+.cleanChatBody .messengerIdentity strong{font-size:12px!important}
+.cleanChatBody .messengerIdentity span{font-size:8px!important}
+.cleanChatBody .messengerIdentity small{font-size:7px!important}
+.cleanChatBody .messengerRoomActions{gap:5px!important}
+.cleanChatBody .roomTimer{padding:6px 8px!important;font-size:8px!important}
+.cleanChatBody .leaveRoomButton{padding:6px 8px!important;border-radius:9px!important;font-size:8px!important}
+
+.cleanChatBody .securityStrip.compact{
+  margin-top:8px!important;padding:8px 10px!important;border-radius:10px!important
+}
+.cleanChatBody .securityStrip.compact strong{font-size:9px!important}
+.cleanChatBody .securityStrip.compact span{font-size:7px!important}
+
+.cleanChatBody .chatName{display:grid;gap:4px;margin:9px 0 0!important}
+.cleanChatBody .chatName span{font-size:8px!important;font-weight:900!important}
+.cleanChatBody .chatName input{
+  min-height:36px!important;border:1px solid #dbe5df!important;border-radius:9px!important;
+  padding:8px 9px!important;font-size:9px!important
+}
+.cleanChatBody .chatInviteGuide{
+  margin-top:8px!important;padding:9px!important;border:1px solid #dfe8e2!important;
+  border-radius:10px!important;background:#f7faf8!important
+}
+.cleanChatBody .chatInviteGuide strong{font-size:9px!important}
+.cleanChatBody .chatInviteGuide span{font-size:7px!important}
+.cleanChatBody .chatInviteActions{display:grid!important;grid-template-columns:1fr 1fr;gap:6px!important;margin-top:7px!important}
+.cleanChatBody .chatInviteActions button{
+  min-height:34px!important;padding:7px 8px!important;border-radius:9px!important;font-size:8px!important
+}
+.cleanChatBody .chatInviteCopiedHint{margin-top:6px!important;font-size:8px!important}
+
+.cleanChatBody .callPanel{
+  margin-top:8px!important;padding:9px!important;border-radius:11px!important;gap:8px!important
+}
+.cleanChatBody .callPanel strong{font-size:9px!important}
+.cleanChatBody .callPanel span{font-size:7px!important}
+.cleanChatBody .callPanel button{
+  min-height:31px!important;padding:6px 8px!important;border-radius:8px!important;font-size:8px!important
+}
+
+.cleanChatBody .chatError{margin-top:8px!important;padding:8px!important;border-radius:9px!important;font-size:8px!important}
+.cleanChatBody .chatWindow{margin-top:8px!important;border-radius:12px!important;box-shadow:none!important}
+.cleanChatBody .messages{min-height:220px!important;max-height:42vh!important;padding:9px!important;gap:6px!important}
+.cleanChatBody .chatEmpty{gap:4px!important}
+.cleanChatBody .chatEmpty strong{font-size:9px!important}
+.cleanChatBody .chatEmpty span{font-size:7px!important}
+.cleanChatBody .chatMessage{padding:7px 8px!important;border-radius:9px 12px 12px!important}
+.cleanChatBody .chatMessage p{font-size:9px!important;line-height:1.35!important}
+.cleanChatBody .chatMessage span{font-size:7px!important}
+.cleanChatBody .messageComposer{padding:8px!important}
+.cleanChatBody .messageComposer .emojiRow{padding:0 0 6px!important;gap:4px!important}
+.cleanChatBody .messageComposer .emojiRow>span{font-size:7px!important}
+.cleanChatBody .messageComposer .emojiRow button{width:28px!important;height:28px!important;font-size:15px!important}
+.cleanChatBody .messageInputShell{padding:7px 9px!important;border-radius:10px!important}
+.cleanChatBody .messageInputShell>span{font-size:7px!important}
+.cleanChatBody .messageInputShell textarea{font-size:9px!important;min-height:24px!important}
+.cleanChatBody .messageSend{min-height:40px!important;padding:0 12px!important;border-radius:10px!important;font-size:8px!important}
+.cleanChatBody .messageComposerHint{font-size:7px!important}
+.cleanChatBody .newRoomButton{margin-top:8px!important;font-size:8px!important}
+
+.cleanChatBody .closedRoomCard{margin:20px auto!important;padding:20px 14px!important;border-radius:14px!important}
+.cleanChatBody .closedRoomIcon{width:52px!important;height:52px!important;margin-bottom:10px!important}
+.cleanChatBody .closedRoomCard h1{font-size:20px!important}
+.cleanChatBody .closedRoomCard p{font-size:9px!important}
+.cleanChatBody .closedRoomActions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.cleanChatBody .closedRoomActions>*{min-height:34px!important;padding:7px 9px!important;border-radius:9px!important;font-size:8px!important}
+
+@media(max-width:760px){
+  .cleanChatShell{width:100%;margin:0;border:0;border-radius:0;box-shadow:none;min-height:100dvh;padding-bottom:calc(60px + env(safe-area-inset-bottom));overflow:visible}
+  .cleanChatBody{padding:10px}
+  .cleanChatBody .chatInviteActions{grid-template-columns:1fr}
+  .cleanChatBody .messages{max-height:48dvh!important}
+  .cleanChatBody .messageSend span{display:none!important}
+}
