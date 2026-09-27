@@ -262,3 +262,5 @@
 @media(min-width:761px){
   body{background:#eef4f0}
 }
+
+.clean-home-route .atlasNotifyToolbar{display:none!important}
