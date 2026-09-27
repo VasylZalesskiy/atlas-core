@@ -126,7 +126,7 @@ export default function CleanHome({lang="uk",setLang,inboxUnread=0}){
         </button>
       </div>
     </header>
-    <CleanHistoryNav lang={lang}/>
+    <CleanHistoryNav lang={lang} titleUk="Головна" titleEn="Home"/>
 
     <section className="cleanHomeHero">
       <span className="cleanHomeEyebrow">ATLAS</span>
