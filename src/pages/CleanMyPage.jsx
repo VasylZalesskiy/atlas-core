@@ -2,6 +2,7 @@ import {useEffect,useState} from "react";
 import {Bell,Home as HomeIcon,MapPin,MessageCircleMore,MessagesSquare,Pencil,Plus,Power,PowerOff,Sparkles,Trash2,UserRound} from "lucide-react";
 import {Link} from "react-router-dom";
 import OnlinePresence from "../components/OnlinePresence";
+import CleanHistoryNav from "../components/CleanHistoryNav";
 import {deleteMyOpportunity,loadMyPassport,saveMyPassport,setMyOpportunityActive} from "../services/passportStore";
 import "../styles/cleanHome.css";
 import "../styles/cleanMyPage.css";
@@ -122,6 +123,7 @@ export default function CleanMyPage({lang="uk",setLang,inboxUnread=0}){
         </button>
       </div>
     </header>
+    <CleanHistoryNav lang={lang}/>
 
     <section className="cleanMyBody">
       <div className="cleanMyHeading">
