@@ -1,0 +1,70 @@
+.cleanMyShell{overflow:visible}
+.cleanMyBody{padding:18px 14px 16px;background:#fff}
+.cleanMyHeading{margin-bottom:14px}
+.cleanMyHeading>span{display:block;margin-bottom:4px;color:var(--clean-green);font-size:8px;font-weight:950;letter-spacing:.16em}
+.cleanMyHeading h1{margin:0;color:var(--clean-text);font-size:24px;line-height:1.05;letter-spacing:-.03em}
+.cleanMyHeading p{margin:6px 0 0;color:var(--clean-muted);font-size:10px;line-height:1.4}
+
+.cleanMyState,.cleanMyError{padding:12px;border-radius:11px;font-size:9px}
+.cleanMyState{background:#f6f8f7;color:#66746c;text-align:center;font-weight:800}
+.cleanMyError{margin-bottom:10px;background:#fff3f3;border:1px solid #efd4d4;color:#943535;overflow-wrap:anywhere}
+
+.cleanMyProfile{
+  display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:11px;border:1px solid #dfe8e2;border-radius:13px;background:#fff
+}
+.cleanMyAvatar{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#e4f5e9;color:var(--clean-green);font-size:16px;font-weight:950}
+.cleanMyProfileCopy{min-width:0}
+.cleanMyProfileCopy strong{display:block;font-size:13px;color:#24392c}
+.cleanMyProfileCopy span{display:flex;align-items:center;gap:3px;margin-top:2px;color:#6c7a71;font-size:8px}
+.cleanMyProfileCopy small{display:block;margin-top:2px;color:#718078;font-size:8px}
+.cleanMyProfile>button{min-height:32px;padding:6px 8px;border:1px solid #dce6df;border-radius:9px;background:#fff;color:#355344;font-size:8px;font-weight:900;display:flex;align-items:center;gap:4px}
+
+.cleanMyForm{display:grid;gap:10px;padding:12px;border:1px solid #dfe8e2;border-radius:13px;background:#fff}
+.cleanMyFormTitle{display:flex;align-items:center;gap:7px;color:var(--clean-green)}
+.cleanMyFormTitle strong{color:#263b2f;font-size:13px}
+.cleanMyForm label{display:grid;gap:4px}
+.cleanMyForm label>span{font-size:8px;font-weight:900;color:#56675d}
+.cleanMyForm input,.cleanMyForm textarea{
+  width:100%;border:1px solid #d9e4dd;border-radius:9px;padding:9px 10px;background:#fff;color:#293b31;font:inherit;font-size:9px;outline:0
+}
+.cleanMyForm input:focus,.cleanMyForm textarea:focus{border-color:#8fc4a2;box-shadow:0 0 0 3px #eef8f2}
+.cleanMyForm textarea{min-height:66px;resize:vertical}
+.cleanMyOptional{border:1px solid #e2e9e4;border-radius:10px;padding:9px}
+.cleanMyOptional summary{cursor:pointer;color:#56675d;font-size:8px;font-weight:900}
+.cleanMyOptional[open]{display:grid;gap:9px}
+.cleanMyOptional[open] summary{margin-bottom:2px}
+.cleanMyFormActions{display:flex;gap:7px}
+.cleanMyPrimary,.cleanMySecondary{
+  min-height:36px;padding:8px 11px;border-radius:9px;font:inherit;font-size:9px;font-weight:900;cursor:pointer
+}
+.cleanMyPrimary{border:0;background:var(--clean-green);color:#fff}
+.cleanMySecondary{border:1px solid #dbe4de;background:#fff;color:#44584c}
+
+.cleanMyCapabilities{margin-top:14px}
+.cleanMySectionHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.cleanMySectionHead>div{display:flex;align-items:center;gap:6px}
+.cleanMySectionHead h2{margin:0;font-size:15px;color:#23372b}
+.cleanMySectionHead>div span{min-width:22px;height:22px;padding:0 6px;display:grid;place-items:center;border-radius:99px;background:#e9f6ed;color:var(--clean-green);font-size:8px;font-weight:950}
+.cleanMySectionHead>a{min-height:32px;padding:7px 9px;display:flex;align-items:center;gap:5px;border-radius:9px;background:var(--clean-green);color:#fff;text-decoration:none;font-size:8px;font-weight:900}
+
+.cleanMyEmpty{padding:15px;display:grid;justify-items:center;gap:5px;border:1px dashed #cfdbd3;border-radius:12px;background:#fafcfb;text-align:center;color:#688078}
+.cleanMyEmpty svg{color:var(--clean-green)}
+.cleanMyEmpty strong{font-size:10px;color:#31443a}
+.cleanMyEmpty small{font-size:8px}
+
+.cleanMyList{display:grid;gap:7px}
+.cleanMyList article{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px;border:1px solid #dfe7e2;border-radius:11px;background:#fff}
+.cleanMyList article.inactive{opacity:.52}
+.cleanMyList article>div:first-child{min-width:0}
+.cleanMyList article strong{display:block;font-size:10px;color:#2a3c32;line-height:1.3}
+.cleanMyList article span{display:flex;align-items:center;gap:3px;margin-top:3px;color:#718078;font-size:8px}
+.cleanMyItemActions{display:flex;gap:5px}
+.cleanMyItemActions button{width:30px;height:30px;display:grid;place-items:center;border:1px solid #dfe7e2;border-radius:8px;background:#fff;color:#4f6357;cursor:pointer}
+.cleanMyItemActions button.delete{color:#9a4141}
+.cleanMyItemActions button:disabled{opacity:.45}
+
+@media(max-width:760px){
+  .cleanMyShell{width:100%;margin:0;border:0;border-radius:0;box-shadow:none;min-height:100dvh;padding-bottom:calc(60px + env(safe-area-inset-bottom));overflow:visible}
+  .cleanMyBody{padding:16px 12px}
+}
