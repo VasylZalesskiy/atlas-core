@@ -49,12 +49,12 @@
 .searchScopePicker{background:#f7faf8}
 .scopeHeading>span{color:#0b7b41;font-size:10px;font-weight:900;letter-spacing:.08em}
 .scopeButtons{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:17px}
-.scopeButtons button{border:1px solid #d7e2db;background:#fff;border-radius:16px;padding:16px;display:flex;align-items:flex-start;gap:11px;text-align:left;color:#425149;cursor:pointer;transition:.18s ease}
-.scopeButtons button:hover{border-color:#7dbc99;transform:translateY(-1px)}
-.scopeButtons button.active{border-color:#0b8847;background:#eaf7ef;box-shadow:0 0 0 2px rgba(11,136,71,.08)}
+.scopeButtons button,.scopeButtons a{border:1px solid #d7e2db;background:#fff;border-radius:16px;padding:16px;display:flex;align-items:flex-start;gap:11px;text-align:left;color:#425149;cursor:pointer;transition:.18s ease}
+.scopeButtons button:hover,.scopeButtons a:hover{border-color:#7dbc99;transform:translateY(-1px)}
+.scopeButtons button.active,.scopeButtons a.active{border-color:#0b8847;background:#eaf7ef;box-shadow:0 0 0 2px rgba(11,136,71,.08)}
 .scopeButtons button:disabled{opacity:.62;cursor:wait;transform:none}
-.scopeButtons button>svg{color:#0c8144;flex:0 0 auto;margin-top:2px}
-.scopeButtons button>span{display:grid;gap:4px}
+.scopeButtons button>svg,.scopeButtons a>svg{color:#0c8144;flex:0 0 auto;margin-top:2px}
+.scopeButtons button>span,.scopeButtons a>span{display:grid;gap:4px}
 .scopeButtons strong{font-size:16px}
 .scopeButtons small{color:#67756d;font-size:12px;line-height:1.35}
 .finalSolutions{border-top:1px solid #e2e9e5;padding-top:24px}
@@ -97,7 +97,11 @@
 .chainAlternative .chainMeta{margin-top:6px}
 .chainAlternative .chainAction{grid-column:auto;flex:0 0 auto;margin:0;padding:8px;font-size:0}
 .chainAlternative .chainAction svg{width:15px;height:15px}
-@media(max-width:900px){.solutionChains{grid-template-columns:1fr}.scopeButtons{grid-template-columns:1fr}.scopeButtons button{align-items:center}.passportStepGrid{grid-template-columns:1fr 1fr}.immediateSolutionBody{grid-template-columns:1fr}.immediateSolutionBody>.chainActions{justify-content:flex-start}.immediateAlternatives>div{grid-template-columns:1fr}}
-@media(max-width:620px){.immediateSolution{padding:18px;border-radius:19px}.immediateSolutionTop{align-items:flex-start;flex-direction:column;gap:6px}.immediateSolutionBody{gap:16px;padding-top:18px}.immediateSolutionBody>.chainActions{width:100%;min-width:0}.immediateSolutionBody>.chainActions .chainAction{width:100%;flex:1}.immediateAlternatives article{grid-template-columns:minmax(0,1fr) auto}.immediateAlternatives .chainActions{width:auto}.immediateAlternatives .chainAction{width:36px;flex:0 0 36px}.solutionDetails>.solutionChains{padding:10px}.passportStage,.searchScopePicker,.solutionChainCard{padding:16px;border-radius:18px}.passportStepGrid{grid-template-columns:1fr}.solutionChainHead{display:grid}.chainCompleteness{justify-self:start;grid-template-columns:auto auto;align-items:center;gap:7px}.chainCompleteness span{text-align:left}.chainStep{grid-template-columns:30px minmax(0,1fr)}.chainStepNumber{width:28px;height:28px}.chainAction,.chainActions{grid-column:1/-1;width:100%}.chainActions .chainAction{flex:1}.chainAlternatives{grid-column:1/-1}.chainAlternative .chainAction{width:auto}.scopeButtons button{padding:14px}}
+@media(max-width:900px){.solutionChains{grid-template-columns:1fr}.scopeButtons{grid-template-columns:1fr}.scopeButtons button,.scopeButtons a{align-items:center}.passportStepGrid{grid-template-columns:1fr 1fr}.immediateSolutionBody{grid-template-columns:1fr}.immediateSolutionBody>.chainActions{justify-content:flex-start}.immediateAlternatives>div{grid-template-columns:1fr}}
+@media(max-width:620px){.immediateSolution{padding:18px;border-radius:19px}.immediateSolutionTop{align-items:flex-start;flex-direction:column;gap:6px}.immediateSolutionBody{gap:16px;padding-top:18px}.immediateSolutionBody>.chainActions{width:100%;min-width:0}.immediateSolutionBody>.chainActions .chainAction{width:100%;flex:1}.immediateAlternatives article{grid-template-columns:minmax(0,1fr) auto}.immediateAlternatives .chainActions{width:auto}.immediateAlternatives .chainAction{width:36px;flex:0 0 36px}.solutionDetails>.solutionChains{padding:10px}.passportStage,.searchScopePicker,.solutionChainCard{padding:16px;border-radius:18px}.passportStepGrid{grid-template-columns:1fr}.solutionChainHead{display:grid}.chainCompleteness{justify-self:start;grid-template-columns:auto auto;align-items:center;gap:7px}.chainCompleteness span{text-align:left}.chainStep{grid-template-columns:30px minmax(0,1fr)}.chainStepNumber{width:28px;height:28px}.chainAction,.chainActions{grid-column:1/-1;width:100%}.chainActions .chainAction{flex:1}.chainAlternatives{grid-column:1/-1}.chainAlternative .chainAction{width:auto}.scopeButtons button,.scopeButtons a{padding:14px}}
 
 .chainAction:disabled{opacity:.65;cursor:default}
+
+.scopeButtons a{text-decoration:none}
+.healthFollowup .scopeButtons{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:720px){.healthFollowup .scopeButtons{grid-template-columns:1fr}}
