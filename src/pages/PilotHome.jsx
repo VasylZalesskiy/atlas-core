@@ -1,7 +1,6 @@
 import {useRef,useState} from "react";
 import {
-  Camera,HandHeart,Laptop,Leaf,LoaderCircle,MapPin,Search,
-  ShoppingBasket,Sparkles,Wrench,X
+  Camera,HandHeart,Laptop,Leaf,LoaderCircle,MapPin,Search,Sparkles,Wrench,X
 } from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "../components/VoiceTaskInput";
@@ -77,13 +76,6 @@ export default function PilotHome({lang="uk"}){
     if(fileRef.current)fileRef.current.value="";
   }
 
-  const tiles=[
-    {icon:ShoppingBasket,label:uk?"Продукти":"Food"},
-    {icon:Wrench,label:uk?"Інструменти":"Tools"},
-    {icon:Laptop,label:uk?"Послуги":"Services"},
-    {icon:HandHeart,label:uk?"Допомога":"Help"}
-  ];
-
   return <main className="homeRef">
     <section className="homeRefHero">
       <div className="homeRefHeroText">
@@ -118,8 +110,5 @@ export default function PilotHome({lang="uk"}){
       <b>→</b>
     </Link>
 
-    <div className="homeRefTiles">
-      {tiles.map(({icon:Icon,label})=><div className="homeRefTile" key={label}><span><Icon size={22}/></span><small>{label}</small></div>)}
-    </div>
   </main>;
 }
