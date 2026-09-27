@@ -39,21 +39,26 @@ export default function PassportAccountPanel({accounts=[],passports=[],activePas
     finally{setBusy("")}
   }
 
-  if(!account)return <section className="passportAccountPanel">
-    <div className="passportAccountIntro">
-      <KeyRound size={22}/>
-      <div><strong>Вхід до моїх сторінок Atlas</strong><span>Один логін і пароль можуть відкривати кілька ваших Паспортів — людей або компаній.</span></div>
-    </div>
-    <div className="passportAccountLogin">
-      <label><span>Логін / ім’я</span><input value={login} onChange={e=>setLogin(e.target.value)} autoComplete="username" placeholder="Наприклад: Vasyl"/></label>
-      <label><span>Пароль</span><input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" placeholder="Мінімум 8 символів"/></label>
-      <div className="passportAccountButtons">
-        <button type="button" className="primary" disabled={busy||!login.trim()||password.length<8} onClick={()=>submit("login")}><LogIn size={17}/>{busy==="login"?"Входжу…":"Увійти"}</button>
-        <button type="button" className="secondary" disabled={busy||!login.trim()||password.length<8} onClick={()=>submit("register")}><KeyRound size={17}/>{busy==="register"?"Створюю…":"Створити доступ"}</button>
+  if(!account)return <section className={"passportAccountPanel passportAccountLoggedOut "+(mobileExpanded?"expanded":"")}>
+    <button type="button" className="passportAccountLoggedOutToggle" aria-expanded={mobileExpanded} onClick={()=>setMobileExpanded(value=>!value)}>
+      <LogIn size={18}/><span><strong>Вже користувалися Atlas?</strong><small>Увійти до своєї сторінки</small></span><ChevronDown size={18}/>
+    </button>
+    {mobileExpanded&&<>
+      <div className="passportAccountIntro">
+        <KeyRound size={22}/>
+        <div><strong>Вхід до моїх сторінок Atlas</strong><span>Один логін і пароль можуть відкривати кілька ваших Паспортів — людей або компаній.</span></div>
       </div>
-    </div>
-    {passports.length>0&&<small className="passportAccountHint">Якщо на цьому пристрої вже є Паспорт, кнопка «Створити доступ» прив’яже його до нового логіна.</small>}
-    {error&&<div className="passportAccountError">{error}</div>}
+      <div className="passportAccountLogin">
+        <label><span>Логін / ім’я</span><input value={login} onChange={e=>setLogin(e.target.value)} autoComplete="username" placeholder="Наприклад: Vasyl"/></label>
+        <label><span>Пароль</span><input type="password" value={password} onChange={e=>setPassword(e.target.value)} autoComplete="current-password" placeholder="Мінімум 8 символів"/></label>
+        <div className="passportAccountButtons">
+          <button type="button" className="primary" disabled={busy||!login.trim()||password.length<8} onClick={()=>submit("login")}><LogIn size={17}/>{busy==="login"?"Входжу…":"Увійти"}</button>
+          <button type="button" className="secondary" disabled={busy||!login.trim()||password.length<8} onClick={()=>submit("register")}><KeyRound size={17}/>{busy==="register"?"Створюю…":"Створити доступ"}</button>
+        </div>
+      </div>
+      {passports.length>0&&<small className="passportAccountHint">Якщо на цьому пристрої вже є Паспорт, кнопка «Створити доступ» прив’яже його до нового логіна.</small>}
+      {error&&<div className="passportAccountError">{error}</div>}
+    </>}
   </section>;
 
   return <section className={"passportAccountPanel logged "+(mobileExpanded?"mobileExpanded":"")}>
