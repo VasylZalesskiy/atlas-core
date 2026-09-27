@@ -114,7 +114,7 @@ export default function CleanResults({lang="uk",setLang,inboxUnread=0}){
         </button>
       </div>
     </header>
-    <CleanHistoryNav lang={lang}/>
+    <CleanHistoryNav lang={lang} titleUk="Результати" titleEn="Results"/>
 
     <section className="cleanResultsBody">
       <div className="cleanResultsHeading">
