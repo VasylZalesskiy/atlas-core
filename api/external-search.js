@@ -254,10 +254,11 @@ async function searchCommerce({goal,query,domain,locationText,language}){
   let live=[];
   try{live=(await Promise.all(searches)).flat()}catch{}
   live=uniqueResults(live);
-  const prepared=buildMarketplaceShortcuts({goal,query,locationText,language});
+  const concretePrepared=buildMarketplaceShortcuts({goal,query,locationText,language})
+    .filter(item=>["listing","store_option"].includes(item?.result_kind));
   const representedSources=new Set(live.map(item=>item.source_name).filter(Boolean));
-  const missingSources=prepared.filter(item=>!representedSources.has(item.source_name));
-  return rankMarketplaceResults([...live,...missingSources],{
+  const missingConcrete=concretePrepared.filter(item=>!representedSources.has(item.source_name));
+  return rankMarketplaceResults([...live,...missingConcrete],{
     requestedTonnes:extractRequestedTonnes(`${goal} ${query}`),limit:16
   });
 }
