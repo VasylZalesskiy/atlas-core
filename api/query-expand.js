@@ -11,6 +11,17 @@ function clean(value){
   return String(value||"").replace(/\s+/g," ").trim();
 }
 
+function extractResponseText(data){
+  if(typeof data?.output_text==="string"&&data.output_text.trim())return data.output_text;
+  for(const item of data?.output||[]){
+    if(item?.type!=="message")continue;
+    for(const content of item?.content||[]){
+      if(content?.type==="output_text"&&typeof content.text==="string")return content.text;
+    }
+  }
+  return "";
+}
+
 function parseTerms(text){
   const raw=String(text||"").trim().replace(/^```(?:json)?\s*/i,"").replace(/\s*```$/i,"");
   const start=raw.indexOf("{");
@@ -44,7 +55,7 @@ async function expandQuery(query){
       timeoutMs:5500,
       json:true
     });
-    const terms=parseTerms(data?.output_text);
+    const terms=parseTerms(extractResponseText(data));
     if(terms.length)return {terms,model,provider:"google-gemini-free-tier",paid_fallback_used:false};
   }catch{}
 
@@ -66,7 +77,7 @@ async function expandQuery(query){
       },
       schemaName:"atlas_query_terms"
     });
-    const terms=parseTerms(data?.output_text);
+    const terms=parseTerms(extractResponseText(data));
     if(terms.length)return {terms,model,provider:"openai",paid_fallback_used:true};
   }
 
