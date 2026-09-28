@@ -1,11 +1,11 @@
 {
-  "name":"Atlas — рішення поруч",
+  "name":"Atlas 2 — рішення задач через можливості людей",
   "short_name":"Atlas",
-  "description":"Потреби людей поєднуються з можливостями інших людей.",
+  "description":"Опиши задачу — Atlas допоможе знайти можливості людей для її вирішення.",
   "start_url":"/",
   "scope":"/",
   "display":"standalone",
-  "background_color":"#f7faf8",
+  "background_color":"#f4f7f5",
   "theme_color":"#0f7a43",
   "lang":"uk",
   "icons":[
@@ -14,8 +14,9 @@
     {"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
   ],
   "shortcuts":[
-    {"name":"Новий пошук","url":"/","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]},
-    {"name":"Мої потреби","url":"/needs","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]},
-    {"name":"Передати Atlas","url":"/share","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]}
+    {"name":"Знайти рішення","short_name":"Рішення","url":"/","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Мої можливості","short_name":"Можливості","url":"/opportunities","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Мої потреби","short_name":"Потреби","url":"/needs","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Чати","short_name":"Чати","url":"/messages","icons":[{"src":"/atlas-icon.svg","sizes":"any","type":"image/svg+xml"}]}
   ]
 }
