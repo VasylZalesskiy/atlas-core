@@ -1,8 +1,8 @@
-import {useMemo,useState} from "react";
+import {useEffect,useMemo,useState} from "react";
 import {NavLink,Route,Routes,useNavigate,useParams,Navigate} from "react-router-dom";
 import {
   ArrowLeft,ArrowRight,CheckCircle2,ChevronRight,Clock3,Compass,
-  Heart,Home as HomeIcon,MapPin,MessageCircle,Mic,Plus,Search,
+  Download,Heart,Home as HomeIcon,MapPin,MessageCircle,Mic,Plus,Search,
   Send,Settings,SmilePlus,Sparkles,Users,UserRound,AudioWaveform
 } from "lucide-react";
 
@@ -88,6 +88,36 @@ function VoiceButton({onText,label="Надиктувати"}){
   </button>
 }
 
+function InstallAtlas(){
+  const [prompt,setPrompt]=useState(()=>window.atlasInstallPrompt||null);
+  const [installed,setInstalled]=useState(()=>window.matchMedia?.("(display-mode: standalone)")?.matches||window.navigator.standalone===true);
+  useEffect(()=>{
+    const ready=()=>setPrompt(window.atlasInstallPrompt||null);
+    const done=()=>{setInstalled(true);setPrompt(null)};
+    window.addEventListener("atlas-install-ready",ready);
+    window.addEventListener("atlas-app-installed",done);
+    return()=>{window.removeEventListener("atlas-install-ready",ready);window.removeEventListener("atlas-app-installed",done)};
+  },[]);
+  if(installed)return null;
+  const install=async()=>{
+    const deferred=prompt||window.atlasInstallPrompt;
+    if(deferred){
+      deferred.prompt();
+      try{await deferred.userChoice}catch{}
+      window.atlasInstallPrompt=null;
+      setPrompt(null);
+      return;
+    }
+    const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+    alert(isiOS?"На iPhone: натисни «Поділитися» в Safari → «На початковий екран».":"У меню браузера обери «Встановити застосунок» або «Додати на головний екран».");
+  };
+  return <button className="installCard" onClick={install}>
+    <span className="installIcon"><Download size={19}/></span>
+    <span><strong>Встановити Atlas на телефон</strong><small>Відкриватиметься як окремий застосунок</small></span>
+    <ChevronRight size={19}/>
+  </button>
+}
+
 function PageIntro({eyebrow,title,children,action}){
   return <div className="pageIntro">
     <div><span className="eyebrow">{eyebrow}</span><h1>{title}</h1>{children&&<p>{children}</p>}</div>
@@ -116,6 +146,8 @@ function Home(){
         {["Потрібен бухгалтер","Перевезти диван","Хто навчить Excel?"].map(x=><button key={x} onClick={()=>setTask(x)}>{x}</button>)}
       </div>
     </section>
+
+    <InstallAtlas/>
 
     <section className="quickGrid">
       <button className="quickCard accent" onClick={()=>nav("/needs")}>
