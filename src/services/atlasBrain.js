@@ -17,7 +17,12 @@ function isAssistanceNeed(value){
 }
 
 export function createPassportSeedPlan(query,{lang="uk"}={}){
-  const goal=clean(query),terms=cleanTerms(goal),uk=lang==="uk";
+  const goal=clean(query),baseTerms=cleanTerms(goal),uk=lang==="uk";
+  const assistance=isAssistanceNeed(goal);
+  const assistanceTerms=assistance
+    ?(uk?["допомога","допоможу","доставка","доставлю","привезти","підвезти","купівля"]:["help","assist","delivery","deliver","pickup","shopping"])
+    :[];
+  const terms=[...new Set([...baseTerms,...assistanceTerms])].slice(0,20);
   return {
     understood:Boolean(goal),
     goal,
@@ -29,9 +34,9 @@ export function createPassportSeedPlan(query,{lang="uk"}={}){
     clarification:{required:false,question:"",options:[]},
     passport_search:{
       terms,
-      capability_description:uk
-        ?"Можливість людини або компанії, яка прямо відповідає запиту"
-        :"A person or company capability that directly matches the request"
+      capability_description:assistance
+        ?(uk?"Людина або компанія, яка може допомогти з купівлею, доставкою, привезенням або виконанням цієї задачі":"A person or company that can help buy, deliver, collect or complete this task")
+        :(uk?"Можливість людини або компанії, яка прямо відповідає запиту":"A person or company capability that directly matches the request")
     },
     solution_steps:goal?[{
       id:"passport-first",
