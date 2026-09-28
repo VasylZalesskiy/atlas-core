@@ -1,6 +1,6 @@
 const OPENAI_URL="https://api.openai.com/v1/responses";
 const AI_GATEWAY_URL="https://ai-gateway.vercel.sh/v1/responses";
-const DEFAULT_OPENAI_MODEL="gpt-6-sol";
+const DEFAULT_OPENAI_MODEL="gpt-6-luna";
 
 function apiKey(){
   return String(process.env.OPENAI_API_KEY||"").trim();
