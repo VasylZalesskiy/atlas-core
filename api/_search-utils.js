@@ -222,7 +222,7 @@ export function isActionableCommerceResult(result){
 
 const SEARCH_STOP_WORDS=new Set([
   "потрібно","потрібен","потрібна","потрібні","треба","шукаю","хочу","купити","куплю","продати","продам",
-  "знайти","доставка","доставкою","оптом","гуртом","мені","для","або","та","і","у","в","на","по",
+  "знайти","доставка","доставкою","допомога","допомоги","допомогу","допомогти","поміч","помочі","покупка","покупки","покупці","покупкою","придбання","придбанні","оптом","гуртом","мені","для","або","та","і","у","в","на","по",
   "продаж","оголошення","пропозиція","пропозиції","маркетплейс","україна","україні","ua","olx","rozetka","prom",
   "agroboard","agriaffaires","need","want","find","buy","sell","with","delivery","wholesale","marketplace","listing",
   "ukraine","for","the","a","an",
@@ -235,7 +235,7 @@ const SEARCH_STOP_WORDS=new Set([
   "ton","tons","tonne","tonnes","kg","kilogram","kilograms"
 ]);
 
-const SEARCH_WORD_ALIASES={гороху:"горох",гороха:"горох",картоплі:"картопля"};
+const SEARCH_WORD_ALIASES={гороху:"горох",гороха:"горох",картоплі:"картопля",картоплю:"картопля",картоплею:"картопля"};
 
 export function marketplaceSearchTerm(text){
   const withoutQuantity=String(text||"")
