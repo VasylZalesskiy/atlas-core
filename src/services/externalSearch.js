@@ -77,12 +77,8 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
     })
     :[];
 
-  // First ask Atlas's OpenAI grounded web-answer endpoint. When OpenAI search
-  // is not configured (or temporarily unavailable), fall back
-  // to the independent zero-cost retrieval endpoint below.
-  const grounded=await groundedResults(plan,searches,{lang,signal});
-  if(grounded.length)return uniqueResults([...grounded,...marketplaceFallback()]);
-
+  // Zero-cost mode: skip paid grounded AI web search and use the independent
+  // live web retrieval endpoint directly.
   try{
     const response=await fetch("/api/external-search",{
       method:"POST",
