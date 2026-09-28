@@ -8,7 +8,7 @@ import {analyzeAtlasQuery,createFallbackPlan,createPassportSeedPlan} from "../se
 import {searchPassportProfiles} from "../services/passportSearch";
 import {searchExternalSources} from "../services/externalSearch";
 import {getDrivingRoute,openGoogleDirections,searchDestination,searchNearbyPlaces} from "../services/googleMaps";
-import {trackAtlas} from "../services/analytics";
+import {trackAtlas,trackAtlasActivity} from "../services/analytics";
 import useGeolocation from "../hooks/useGeolocation";
 import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
@@ -1015,6 +1015,11 @@ ${initialWhere}`;
       language:lang,
       location_provided:Boolean(cleanWhere||origin),
       source
+    });
+    trackAtlasActivity("search",{
+      label:cleanTask,
+      path:"/solution",
+      meta:{has_location:Boolean(cleanWhere||origin),source}
     });
     saveSearchHistory({task:cleanTask,where:cleanWhere});
     setTask(cleanTask);
