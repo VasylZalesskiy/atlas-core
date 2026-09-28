@@ -309,11 +309,18 @@ function subjectTokens(value){
 }
 
 function passportMatchesTask(candidate,task){
+  const taskText=String(task||"").toLowerCase();
+  const candidateText=[
+    candidate?.title,candidate?.description,candidate?.matchedTerms?.join(" ")
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  const assistanceTask=/допомог|поміч|привез|підвез|достав|help|assist|deliver|pickup/iu.test(taskText);
+  const assistanceCapability=/допомог|допоможу|поміч|привез|підвез|достав|кур'єр|курєр|help|assist|deliver|courier|pickup/iu.test(candidateText);
+  if(assistanceTask&&assistanceCapability)return true;
+
   const taskTokens=subjectTokens(task);
   if(!taskTokens.length)return false;
-  const candidateTokens=new Set(subjectTokens([
-    candidate?.title,candidate?.description,candidate?.matchedTerms?.join(" ")
-  ].filter(Boolean).join(" ")));
+  const candidateTokens=new Set(subjectTokens(candidateText));
   return taskTokens.some(token=>candidateTokens.has(token));
 }
 
