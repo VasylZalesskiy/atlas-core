@@ -4,7 +4,7 @@ import {
   ArrowLeft,Check,Clock3,ExternalLink,Globe2,MapPin,Navigation,
   MessageCircle,Phone,RefreshCw,Search,UserRound
 } from "lucide-react";
-import {createFallbackPlan,createPassportSeedPlan} from "../services/atlasBrain";
+import {analyzeAtlasQuery,createFallbackPlan,createPassportSeedPlan} from "../services/atlasBrain";
 import {searchPassportProfiles} from "../services/passportSearch";
 import {searchExternalSources} from "../services/externalSearch";
 import {getDrivingRoute,openGoogleDirections,searchDestination,searchNearbyPlaces} from "../services/googleMaps";
@@ -330,7 +330,7 @@ function candidatePriority(candidate,task){
   if(candidate?.kind==="passport")return passportMatchesTask(candidate,task)
     ?500+Math.min(80,candidate.matchScore)
     :140+Math.min(40,candidate.matchScore);
-  if(candidate?.kind==="passport_history")return 340+Math.min(30,candidate.matchScore);
+  if(candidate?.kind==="passport_history")return 40+Math.min(20,candidate.matchScore);
   if(candidate?.kind==="external"&&candidate.resultKind==="store_option")return 480;
   if(candidate?.kind==="external"&&candidate.resultKind==="listing")return 450;
   if(candidate?.kind==="external"&&["official_result","web_answer","web_result"].includes(candidate.resultKind))return 420;
@@ -375,7 +375,7 @@ function recommendationReason(candidate,lang){
 function ImmediateSolution({candidate,alternatives,origin,lang,stillSearching}){
   return <section className="immediateSolution">
     <div className="immediateSolutionTop">
-      <span>{lang==="uk"?"НАЙКРАЩА ДОСТУПНА ДІЯ":"BEST AVAILABLE ACTION"}</span>
+      <span>{lang==="uk"?"РІШЕННЯ ATLAS":"ATLAS SOLUTION"}</span>
       {stillSearching&&<small><RefreshCw className="spin" size={13}/>{lang==="uk"?"Atlas ще перевіряє альтернативи":"Atlas is still checking alternatives"}</small>}
     </div>
     <div className="immediateSolutionBody">
@@ -599,24 +599,46 @@ ${initialWhere}`;
   })),[passportGroups,lang,activeTask]);
 
   useEffect(()=>{
-    if(!activeTask||!passportsChecked||exactPassportFound)return;
+    const controller=new AbortController();
+    if(!activeTask||!passportsChecked||exactPassportFound)return()=>controller.abort();
     const runKey=`${searchRunId}:${activeTask}:${initialWhere}`;
-    if(brainRunRef.current===runKey)return;
+    if(brainRunRef.current===runKey)return()=>controller.abort();
     brainRunRef.current=runKey;
 
-    const deterministicPlan=createFallbackPlan(searchCore(activeTask),{lang});
-    setPlan({...deterministicPlan,location_text:initialWhere});
-    setBrainReady(true);
-    setBrainLoading(false);
+    setBrainLoading(true);
+    setBrainReady(false);
     setBrainError("");
     setSearchScope("");
     setNearbyGroups([]);
     setInternetGroups([]);
-    trackAtlas("Atlas Deterministic Search Started After Passport Miss",{
-      domain:deterministicPlan?.domain||"",
-      language:lang
-    });
-  },[activeTask,passportsChecked,exactPassportFound,searchRunId,lang,initialWhere]);
+
+    analyzeAtlasQuery(searchCore(activeTask),{
+      lang,
+      location:origin||null,
+      locationText:initialWhere,
+      signal:controller.signal
+    })
+      .then(nextPlan=>{
+        if(controller.signal.aborted)return;
+        setPlan({...nextPlan,location_text:initialWhere,original_query:activeTask});
+        setBrainReady(true);
+        trackAtlas("Atlas Brain Search Planned After Passport Miss",{
+          domain:nextPlan?.domain||"",
+          solution_scope:nextPlan?.solution_scope||"",
+          language:lang
+        });
+      })
+      .catch(error=>{
+        if(controller.signal.aborted)return;
+        const fallback=createFallbackPlan(searchCore(activeTask),{lang});
+        setPlan({...fallback,location_text:initialWhere,original_query:activeTask});
+        setBrainReady(true);
+        setBrainError(error?.message||"atlas-brain-unavailable");
+      })
+      .finally(()=>{if(!controller.signal.aborted)setBrainLoading(false)});
+
+    return()=>controller.abort();
+  },[activeTask,passportsChecked,exactPassportFound,searchRunId,lang,initialWhere,origin?.latitude,origin?.longitude]);
 
   async function ensureOrigin(){
     if(origin)return origin;
@@ -922,13 +944,11 @@ ${initialWhere}`;
     });
   },[rankedCandidates,sortMode,activeTask]);
   const resolvedCandidates=sortedCandidates.filter(candidate=>candidate.resolved);
-  const historyCandidates=sortedCandidates.filter(candidate=>candidate?.kind==="passport_history");
-  const preparedCandidates=sortedCandidates.filter(candidate=>candidate?.kind==="external"&&["search_page","maps_search"].includes(candidate.resultKind));
-  const actionableCandidates=[
-    ...resolvedCandidates,
-    ...historyCandidates.filter(candidate=>!resolvedCandidates.includes(candidate)),
-    ...preparedCandidates.filter(candidate=>!resolvedCandidates.includes(candidate))
-  ];
+  const actionableCandidates=resolvedCandidates.filter(candidate=>{
+    if(candidate?.kind==="passport_history")return false;
+    if(candidate?.kind==="external"&&["search_page","maps_search","store_option_pending"].includes(candidate.resultKind))return false;
+    return true;
+  });
   const informationMode=plan?.solution_scope==="information";
   const informationCandidates=actionableCandidates.filter(candidate=>candidate?.kind==="answer"||(candidate?.kind==="external"&&["official_result","web_answer","web_result"].includes(candidate.resultKind)));
   const resultPool=informationMode&&informationCandidates.length?informationCandidates:actionableCandidates;
