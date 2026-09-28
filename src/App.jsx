@@ -10,6 +10,7 @@ import Solution from "./pages/Solution";
 import PilotGate from "./components/PilotGate";
 import i18n from "./i18n";
 import {loadSolutionFlows} from "./services/solutionFlowStore";
+import {trackAtlasActivity} from "./services/analytics";
 
 const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBridge"));
 const VoicePrivacyControl=lazy(()=>import("./components/VoicePrivacyControl"));
@@ -25,6 +26,7 @@ const Needs=lazy(()=>import("./pages/Needs"));
 const MatchSearch=lazy(()=>import("./pages/MatchSearch"));
 const ShareApp=lazy(()=>import("./pages/ShareApp"));
 const CatalogAdmin=lazy(()=>import("./pages/CatalogAdmin"));
+const ActivityAdmin=lazy(()=>import("./pages/ActivityAdmin"));
 const TomatoPilot=lazy(()=>import("./pages/TomatoPilot"));
 const Groups=lazy(()=>import("./pages/Groups"));
 const GroupPage=lazy(()=>import("./pages/GroupPage"));
@@ -63,7 +65,7 @@ export default function App(){
   };
   const t=useMemo(()=>i18n.getResourceBundle(lang,"translation")||i18n.getResourceBundle("uk","translation"),[lang]);
   const location=useLocation();
-  const catalogAdminRoute=location.pathname.startsWith("/admin/catalog");
+  const adminRoute=location.pathname.startsWith("/admin/");
   const solutionRoute=location.pathname==="/solution";
   const chatRoute=location.pathname==="/chat";
 
@@ -79,7 +81,7 @@ export default function App(){
   },[]);
 
   useEffect(()=>{
-    if(!backgroundReady||catalogAdminRoute)return;
+    if(!backgroundReady||adminRoute)return;
     let alive=true;
     let busy=false;
     const refresh=async()=>{
@@ -101,7 +103,7 @@ export default function App(){
     window.addEventListener("atlas:inbox-changed",onInbox);
     document.addEventListener("visibilitychange",onVisible);
     return()=>{alive=false;window.clearInterval(timer);window.removeEventListener("atlas:inbox-changed",onInbox);document.removeEventListener("visibilitychange",onVisible)};
-  },[backgroundReady,catalogAdminRoute]);
+  },[backgroundReady,adminRoute]);
 
   useEffect(()=>{
     const sync=lng=>setLangState(normalizeLanguage(lng));
@@ -114,9 +116,17 @@ export default function App(){
     document.documentElement.lang=lang;
   },[lang]);
 
+  useEffect(()=>{
+    if(adminRoute)return;
+    trackAtlasActivity("page_view",{
+      path:location.pathname,
+      meta:{has_query:Boolean(location.search)}
+    });
+  },[location.pathname,location.search,adminRoute]);
+
   return <>
     <Suspense fallback={<RouteLoader/>}>
-      {catalogAdminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="*" element={<Navigate to="/admin/catalog" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
+      {adminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="/admin/stats" element={<ActivityAdmin/>}/><Route path="*" element={<Navigate to="/admin/stats" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
         <Header lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>
         <NavigationControls lang={lang}/>
         {backgroundReady&&<Suspense fallback={null}><MatchNotificationBridge lang={lang}/></Suspense>}
