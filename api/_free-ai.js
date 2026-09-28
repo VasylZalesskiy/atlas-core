@@ -73,14 +73,19 @@ export async function runFreeAiResponse({instructions,input,maxOutputTokens=2600
   }
 
   let lastError=null;
-  for(const model of GEMINI_MODELS){
+  const started=Date.now();
+  for(let index=0;index<GEMINI_MODELS.length;index+=1){
+    const model=GEMINI_MODELS[index];
+    const remaining=Math.max(1200,timeoutMs-(Date.now()-started));
+    if(remaining<=1200&&index>0)break;
     try{
-      const result=await callGemini(model,{key,instructions,input,maxOutputTokens,json,timeoutMs:Math.min(timeoutMs,9000)});
+      const perModel=Math.min(index===0?3500:2200,remaining);
+      const result=await callGemini(model,{key,instructions,input,maxOutputTokens,json,timeoutMs:perModel});
       return {...result,status:await getFreeAiStatus()};
     }catch(error){
       lastError=error;
       const retryable=["UNAVAILABLE","RESOURCE_EXHAUSTED","INTERNAL"].includes(String(error?.code||"").toUpperCase())||
-        [429,500,502,503,504].includes(Number(error?.status));
+        [20,429,500,502,503,504].includes(Number(error?.status||error?.code));
       if(!retryable)break;
     }
   }
