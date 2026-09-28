@@ -100,9 +100,20 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
       throw error;
     }
     const results=usefulResults(data?.results);
-    return uniqueResults(results.length?results:marketplaceFallback());
+    if(results.length)return uniqueResults(results);
+
+    // Paid fallback is used only after the zero-cost live retrieval found no
+    // concrete result. This keeps Luna web-search spend minimal.
+    const grounded=await groundedResults(plan,searches,{lang,signal});
+    if(grounded.length)return uniqueResults(grounded);
+
+    return uniqueResults(marketplaceFallback());
   }catch(error){
     if(error?.name==="AbortError")throw error;
+
+    const grounded=await groundedResults(plan,searches,{lang,signal}).catch(()=>[]);
+    if(grounded.length)return uniqueResults(grounded);
+
     const fallback=uniqueResults(marketplaceFallback());
     if(fallback.length)return fallback;
     throw error;
