@@ -5,7 +5,7 @@ export function randomHex(bytes=16){
 
 export const CHAT_ROOM_TTL_MS=60*60*1000;
 
-export function createChatRoom(now=Date.now()){
+export function createChatRoom(now=Date.now(),ttlMs=CHAT_ROOM_TTL_MS){
   const roomCode=randomHex(8).toUpperCase();
   // Each room gets a fresh code. The code is embedded directly into the
   // room's 256-bit AES key material, so changing the room changes the key.
@@ -14,7 +14,7 @@ export function createChatRoom(now=Date.now()){
     roomId:`ATLAS-${randomHex(4).toUpperCase()}`,
     roomCode,
     secret,
-    expiresAt:now+CHAT_ROOM_TTL_MS
+    expiresAt:now+Math.max(CHAT_ROOM_TTL_MS,Number(ttlMs)||CHAT_ROOM_TTL_MS)
   };
 }
 

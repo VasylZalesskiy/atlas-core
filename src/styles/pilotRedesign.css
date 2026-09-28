@@ -1,0 +1,676 @@
+:root{
+  --pilot-green:#11884b;
+  --pilot-green-dark:#0c6f3c;
+  --pilot-soft:#eef8f2;
+  --pilot-border:#dbe8df;
+  --pilot-text:#15231b;
+  --pilot-muted:#68766e;
+  --pilot-bg:#f8fbf9;
+}
+.pilotPage{width:min(760px,100%);margin:0 auto;padding:28px 18px 110px;color:var(--pilot-text)}
+.pilotHome{width:min(680px,100%)}
+.pilotHero{text-align:center;padding:18px 0 24px}
+.pilotKicker{margin:0 0 8px;font-size:12px;font-weight:950;letter-spacing:.16em;color:var(--pilot-green)}
+.pilotHero h1{margin:0;font-size:clamp(34px,6vw,54px);line-height:1.04;letter-spacing:-.045em}
+.pilotHero h1 span{color:var(--pilot-green)}
+.pilotHero>p:last-child{margin:14px auto 0;color:var(--pilot-muted);font-size:17px}
+.pilotSearchCard{display:grid;gap:12px;padding:18px;border:1px solid #cae2d3;border-radius:22px;background:#fff;box-shadow:0 16px 42px rgba(24,91,51,.11)}
+.pilotSearchCard>label:first-child{font-weight:900;font-size:15px}
+.pilotTaskInput{position:relative}
+.pilotTaskInput .voiceTaskInput{border:1px solid #ccddd2;border-radius:16px;background:#fff}
+.pilotTaskInput .voiceTaskInput textarea,.pilotTaskInput .voiceTaskInput input{min-height:112px!important;font-size:17px!important;line-height:1.35!important;border:0!important;padding:15px 58px 15px 15px!important}
+.pilotPhotoHint{position:absolute;right:12px;bottom:12px;width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:#f0f6f2;color:#49725a;pointer-events:none}
+.pilotCameraButton{position:absolute;right:12px;bottom:12px;width:38px;height:38px;border:0;border-radius:11px;display:grid;place-items:center;background:#edf6f0;color:#0b7540;cursor:pointer}
+.pilotFileInput{display:none}
+.pilotPhotoPreview{display:grid;grid-template-columns:54px 1fr auto;gap:9px;align-items:center;padding:7px;border:1px solid #dbe5df;border-radius:12px;background:#f8fbf9;color:#53635a;font-size:12px}
+.pilotPhotoPreview img{width:54px;height:54px;object-fit:cover;border-radius:9px}
+.pilotPhotoPreview span{display:flex;align-items:center;gap:7px}
+.pilotPhotoPreview button{width:32px;height:32px;border:0;border-radius:9px;background:#fff;color:#64736b;display:grid;place-items:center}
+.pilotPhotoPreview .spin{animation:atlasSpin 1s linear infinite}
+.pilotLocation{display:flex;align-items:center;gap:8px;border:1px solid var(--pilot-border);border-radius:13px;padding:0 12px;background:#fbfdfc;color:#587064}
+.pilotLocation input{width:100%;height:44px;border:0;outline:0;background:transparent;font:inherit}
+.pilotPrimary{min-height:48px;border:0;border-radius:13px;padding:12px 17px;background:var(--pilot-green);color:#fff;font:inherit;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;cursor:pointer}
+.pilotPrimary:hover{background:var(--pilot-green-dark)}
+.pilotPrimary:disabled{opacity:.48;cursor:not-allowed}
+.pilotCapabilityCard{margin-top:18px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:13px;padding:18px;border:1px solid #cfe5d7;border-radius:20px;background:linear-gradient(135deg,#f4fbf6,#eaf7ef);text-decoration:none;color:#164b2c}
+.pilotCapabilityIcon{width:52px;height:52px;border-radius:16px;background:#fff;display:grid;place-items:center;color:var(--pilot-green);box-shadow:0 8px 18px rgba(18,102,54,.09)}
+.pilotCapabilityCard strong{display:block;font-size:20px}
+.pilotCapabilityCard small{display:block;margin-top:4px;color:#5f7468;font-size:13px}
+.pilotCapabilityCard>b{font-size:25px;color:var(--pilot-green)}
+.pilotExamples{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:11px}
+.pilotExamples span{padding:9px 7px;border:1px solid #e2e9e4;border-radius:12px;background:#fff;text-align:center;font-size:11px;font-weight:800;color:#56655d}
+
+.pilotPageHead{margin-bottom:18px}
+.pilotPageHead>div{display:flex;align-items:center;gap:9px;color:var(--pilot-green)}
+.pilotPageHead h1{margin:0;font-size:30px;letter-spacing:-.025em;color:var(--pilot-text)}
+.pilotPageHead>p{margin:7px 0 0;color:var(--pilot-muted);line-height:1.45}
+.pilotQueryBar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:13px 15px;border-radius:15px;background:#eff8f3;border:1px solid #d2e7d9;margin-bottom:12px}
+.pilotQueryBar strong{font-size:16px}
+.pilotQueryBar small{display:inline-flex;align-items:center;gap:4px;color:#617068}
+.pilotFilterBar{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:14px}
+.pilotFilterBar label{display:flex;align-items:center;gap:7px;border:1px solid #dbe4de;border-radius:12px;padding:0 10px;background:#fff;color:#5f6f66}
+.pilotFilterBar input,.pilotFilterBar select{min-height:42px;border:0;outline:0;background:transparent;font:inherit;color:#2d3a33}
+.pilotFilterBar input{width:100%}
+.pilotState,.pilotEmpty,.pilotError{padding:18px;border-radius:15px;margin:10px 0}
+.pilotState{background:#f3f7f4;color:#526359;text-align:center;font-weight:800}
+.pilotEmpty{display:grid;gap:5px;background:#f8faf9;border:1px dashed #ccd9d1;text-align:center;color:#536159}
+.pilotEmpty strong{color:#24332b}
+.pilotError{background:#fff3f3;border:1px solid #efd2d2;color:#9a3434;font-size:13px;overflow-wrap:anywhere}
+.pilotResultList{display:grid;gap:10px}
+.pilotResultCard{padding:15px;border:1px solid #dfe7e2;border-radius:17px;background:#fff;box-shadow:0 5px 16px rgba(31,71,47,.05)}
+.pilotResultTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.pilotResultTop>div{display:grid;gap:3px}
+.pilotResultTop strong{font-size:17px}
+.pilotResultTop span{font-size:12px;color:#65736b}
+.pilotResultTop small{display:inline-flex;align-items:center;gap:4px;color:#5d6d63;white-space:nowrap}
+.pilotResultCard p{margin:9px 0;color:#506058;line-height:1.42;font-size:14px}
+.pilotResultMeta{margin:5px 0 10px;font-size:12px;font-weight:850;color:#0c7540}
+.pilotResultCard button,.pilotResultCard a{min-height:39px;border:0;border-radius:11px;padding:8px 12px;background:#edf7f1;color:#0b7440;font-weight:900;display:inline-flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;cursor:pointer}
+.pilotWebButton{width:100%;margin-top:16px;min-height:48px;border:1px solid #cbd8d0;border-radius:13px;background:#fff;color:#294439;font:inherit;font-weight:900;display:flex;align-items:center;justify-content:center;gap:8px}
+.pilotBrowserFallback{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px}
+.pilotBrowserFallback a{min-height:45px;border:1px solid #d8e1db;border-radius:12px;display:flex;align-items:center;justify-content:center;gap:7px;text-decoration:none;color:#1f5134;font-weight:900;background:#fff}
+
+.pilotProfileSummary{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:15px;border:1px solid #dce6e0;border-radius:17px;background:#fff}
+.pilotAvatar{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;background:#dff2e6;color:#0b7540;font-size:21px;font-weight:950}
+.pilotProfileSummary>div:nth-child(2){display:grid;gap:4px}
+.pilotProfileSummary strong{font-size:19px}
+.pilotProfileSummary span{display:flex;align-items:center;gap:4px;color:#627168;font-size:12px}
+.pilotProfileSummary small{color:#6b776f}
+.pilotProfileSummary button{border:1px solid #dbe5df;border-radius:11px;background:#fff;padding:8px 10px;display:flex;align-items:center;gap:5px;font-weight:850;color:#375444}
+.pilotProfileForm,.pilotOpportunityForm{display:grid;gap:12px;padding:17px;border:1px solid #dce7e0;border-radius:18px;background:#fff}
+.pilotProfileForm h2{margin:0 0 2px;font-size:20px}
+.pilotProfileForm label,.pilotOptional label{display:grid;gap:5px}
+.pilotProfileForm label>span,.pilotOptional label>span,.pilotBigField>span{font-size:12px;font-weight:850;color:#53645a}
+.pilotProfileForm input,.pilotProfileForm textarea,.pilotOpportunityForm input,.pilotOpportunityForm textarea,.pilotOpportunityForm select{width:100%;border:1px solid #d5e0d9;border-radius:11px;padding:11px 12px;font:inherit;background:#fff}
+.pilotProfileForm textarea{min-height:74px}
+.pilotProfileForm details{border:1px solid #e2e9e4;border-radius:12px;padding:10px}
+.pilotProfileForm summary{cursor:pointer;font-weight:850;color:#4f6358}
+.pilotProfileForm details[open]{display:grid;gap:10px}
+.pilotFormActions{display:flex;gap:8px}
+.pilotFormActions>button:not(.pilotPrimary){border:1px solid #d9e2dc;border-radius:12px;background:#fff;padding:10px 14px;font-weight:850}
+
+.pilotCapabilitiesSection{margin-top:18px}
+.pilotSectionTitle{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.pilotSectionTitle>div{display:flex;align-items:center;gap:8px}
+.pilotSectionTitle h2{margin:0;font-size:22px}
+.pilotSectionTitle>div span{min-width:26px;height:26px;border-radius:999px;display:grid;place-items:center;background:#e7f5ec;color:#0b7440;font-size:12px;font-weight:950}
+.pilotAddButton{display:inline-flex;align-items:center;gap:6px;padding:10px 12px;border-radius:12px;background:var(--pilot-green);color:#fff;text-decoration:none;font-weight:900;font-size:13px}
+.pilotCapabilityList{display:grid;gap:8px}
+.pilotCapabilityList article{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:14px;border:1px solid #dfe7e2;border-radius:14px;background:#fff}
+.pilotCapabilityList article.inactive{opacity:.55}
+.pilotCapabilityList article>div:first-child{display:grid;gap:4px}
+.pilotCapabilityList article strong{font-size:15px}
+.pilotCapabilityList article span{font-size:11px;color:#68776e}
+.pilotItemActions{display:flex;gap:5px}
+.pilotItemActions button{width:36px;height:36px;border:1px solid #dfe6e1;border-radius:10px;background:#fff;color:#53665b;display:grid;place-items:center}
+
+.pilotBackLink{display:inline-flex;align-items:center;gap:6px;margin-bottom:10px;text-decoration:none;color:#4c6256;font-weight:850;font-size:13px}
+.pilotBigField{display:grid;gap:7px}
+.pilotBigField textarea{min-height:150px;font-size:17px;line-height:1.4;resize:vertical}
+.pilotTypeChips{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.pilotTypeChips button{min-height:42px;border:1px solid #dce5df;border-radius:12px;background:#f8faf9;color:#46594e;font-weight:850}
+.pilotTypeChips button.active{border-color:#92c9a7;background:#eaf7ef;color:#08723d;box-shadow:0 0 0 2px rgba(17,136,75,.08)}
+.pilotLineField{display:flex;align-items:center;gap:7px;color:#5c6e64}
+.pilotLineField input{flex:1}
+.pilotOptional{border:1px solid #e1e8e3;border-radius:12px;padding:11px}
+.pilotOptional summary{display:flex;align-items:center;gap:7px;cursor:pointer;font-weight:850;color:#4f6257}
+.pilotOptional[open]{display:grid;gap:10px}
+.pilotPriceRow{display:grid;grid-template-columns:1fr auto auto;gap:7px}
+
+.pilotRoomActions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px}
+.pilotTempRoom{min-height:58px;border:1px solid #dbe5df;border-radius:14px;background:#fff;color:#395247;display:flex;align-items:center;justify-content:center;gap:9px;padding:9px 12px;text-align:left}
+.pilotTempRoom span{display:grid;gap:2px}
+.pilotTempRoom strong{font-size:13px}
+.pilotTempRoom small{font-size:10px;color:#6c7971}
+.pilotRoomsList h2{font-size:20px;margin:0 0 10px}
+.pilotRoomsList article{display:grid;grid-template-columns:1fr auto auto;gap:7px;align-items:center;border:1px solid #dfe7e2;border-radius:14px;background:#fff;padding:7px;margin-bottom:8px}
+.pilotRoomsList article>button:not(.pilotRoomOpen){width:38px;height:38px;border:1px solid #dfe6e1;border-radius:10px;background:#fff;color:#50645a;display:grid;place-items:center}
+.pilotRoomOpen{border:0;background:transparent;display:flex;align-items:center;gap:10px;text-align:left;color:#21362b}
+.pilotRoomOpen span{display:grid;gap:2px}
+.pilotRoomOpen small{font-size:10px;color:#718078}
+
+@media(max-width:760px){
+  .pilotPage{padding:18px 12px 92px}
+  .pilotHero{padding:8px 2px 17px}
+  .pilotHero h1{font-size:32px}
+  .pilotHero>p:last-child{font-size:13px}
+  .pilotSearchCard{padding:13px;border-radius:18px}
+  .pilotExamples{grid-template-columns:repeat(2,1fr)}
+  .pilotFilterBar{grid-template-columns:1fr}
+  .pilotResultTop{flex-direction:column;gap:5px}
+  .pilotPageHead h1{font-size:25px}
+  .pilotSectionTitle{align-items:flex-start}
+  .pilotAddButton span{display:none}
+  .pilotTypeChips{grid-template-columns:repeat(2,1fr)}
+  .pilotRoomActions{grid-template-columns:1fr}
+  .pilotPriceRow{grid-template-columns:1fr 1fr}
+  .pilotPriceRow input{grid-column:1/-1}
+  .pilotBottomNav{display:grid!important}
+  body{padding-bottom:0}
+}
+
+
+/* Approved Atlas visual — compact app composition on desktop and mobile */
+body{background:#eef4f0}
+.atlasTopbarV3{
+  width:min(430px,100%)!important;
+  margin:0 auto!important;
+  height:54px!important;
+  min-height:54px!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  padding:0 12px!important;
+  gap:8px!important;
+  border-left:1px solid #dfe8e2;
+  border-right:1px solid #dfe8e2;
+  box-shadow:none!important
+}
+.atlasTopbarV3Brand>b{width:32px!important;height:32px!important;border-radius:9px!important}
+.atlasTopbarV3Brand strong{font-size:14px!important}
+.atlasTopbarV3Brand small{display:none!important}
+.atlasTopbarV3Nav{display:none!important}
+.atlasTopbarV3Right{gap:5px!important}
+.atlasTopbarV3Action{width:32px!important;height:32px!important;border-radius:9px!important}
+.atlasTopbarV3Lang{min-height:32px!important;padding-inline:6px!important;border-radius:9px!important}
+
+.pilotHome{
+  width:min(430px,100%)!important;
+  min-height:calc(100dvh - 54px);
+  margin:0 auto!important;
+  padding:0 12px 96px!important;
+  background:#fff;
+  border-left:1px solid #dfe8e2;
+  border-right:1px solid #dfe8e2;
+  box-shadow:0 12px 40px rgba(29,72,46,.08)
+}
+.pilotHeroVisual{
+  position:relative;
+  min-height:244px;
+  margin:0 -12px;
+  padding:26px 22px 70px!important;
+  overflow:hidden;
+  border-radius:0 0 28px 28px;
+  text-align:left!important;
+  background:
+    radial-gradient(circle at 92% 12%,rgba(255,255,255,.85) 0 10%,transparent 11%),
+    radial-gradient(circle at 10% 85%,rgba(39,143,73,.12) 0 22%,transparent 23%),
+    linear-gradient(145deg,#fff0a5 0%,#fff6c8 44%,#def2c9 100%)
+}
+.pilotHeroVisual:after{
+  content:"";
+  position:absolute;
+  right:-42px;
+  top:18px;
+  width:150px;
+  height:150px;
+  border-radius:50%;
+  background:rgba(255,255,255,.38)
+}
+.pilotHeroCopy{position:relative;z-index:2;max-width:335px}
+.pilotHero .pilotKicker{
+  margin:0 0 9px!important;
+  color:#167943!important;
+  font-size:10px!important;
+  letter-spacing:.18em!important
+}
+.pilotHero h1{
+  margin:0!important;
+  max-width:340px;
+  color:#173523;
+  font-size:29px!important;
+  line-height:1.02!important;
+  letter-spacing:-.035em!important
+}
+.pilotHero h1 span{color:#137d45!important}
+.pilotHero>p:last-child,.pilotHeroCopy>p:last-child{
+  margin:11px 0 0!important;
+  max-width:300px;
+  color:#526c59!important;
+  font-size:12px!important;
+  font-weight:650
+}
+.pilotProduce{
+  position:absolute;
+  z-index:1;
+  right:12px;
+  bottom:13px;
+  left:18px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:flex-end;
+  gap:2px;
+  filter:drop-shadow(0 8px 8px rgba(59,87,43,.13))
+}
+.pilotProduce span{display:block;font-size:45px;line-height:.9;transform:rotate(-4deg)}
+.pilotProduce span:nth-child(2){font-size:40px;transform:rotate(10deg)}
+.pilotProduce span:nth-child(3){font-size:48px;transform:rotate(-8deg)}
+.pilotProduce span:nth-child(4){font-size:43px;transform:rotate(5deg)}
+.pilotProduce span:nth-child(5){font-size:48px;transform:rotate(-5deg)}
+
+.pilotSearchCardOverlap{
+  position:relative;
+  z-index:5;
+  margin-top:-43px!important;
+  padding:13px!important;
+  gap:9px!important;
+  border:1px solid #d7e5da!important;
+  border-radius:18px!important;
+  box-shadow:0 12px 28px rgba(36,90,53,.13)!important
+}
+.pilotSearchCard>label:first-child{font-size:13px!important}
+.pilotTaskInput .voiceTaskInput{border-radius:13px!important}
+.pilotTaskInput .voiceTaskInput textarea,.pilotTaskInput .voiceTaskInput input{
+  min-height:78px!important;
+  padding:12px 52px 12px 12px!important;
+  font-size:14px!important
+}
+.pilotCameraButton{right:9px!important;bottom:9px!important;width:33px!important;height:33px!important;border-radius:10px!important}
+.pilotLocation{border-radius:11px!important;padding-inline:10px!important}
+.pilotLocation input{height:38px!important;font-size:12px!important}
+.pilotSearchCard .pilotPrimary{min-height:42px!important;border-radius:11px!important;font-size:13px!important}
+
+.pilotCapabilityCard{
+  margin-top:12px!important;
+  padding:13px!important;
+  gap:10px!important;
+  border-radius:16px!important;
+  background:linear-gradient(135deg,#edf9ef,#e6f5e8)!important;
+  box-shadow:none!important
+}
+.pilotCapabilityIcon{width:42px!important;height:42px!important;border-radius:13px!important}
+.pilotCapabilityCard strong{font-size:16px!important}
+.pilotCapabilityCard small{margin-top:2px!important;font-size:10px!important}
+.pilotCapabilityCard>b{font-size:19px!important}
+
+.pilotExamples{
+  grid-template-columns:repeat(4,1fr)!important;
+  gap:7px!important;
+  margin-top:8px!important
+}
+.pilotExamples span{
+  min-height:67px;
+  padding:7px 4px!important;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:3px;
+  border:0!important;
+  border-radius:13px!important;
+  background:#f7f4e7!important;
+  color:#425448!important
+}
+.pilotExamples span:nth-child(2){background:#eef3eb!important}
+.pilotExamples span:nth-child(3){background:#edf3f6!important}
+.pilotExamples span:nth-child(4){background:#f5efe9!important}
+.pilotExamples b{font-size:25px;line-height:1}
+.pilotExamples small{font-size:9px;font-weight:900}
+
+.pilotBottomNav{
+  display:grid!important;
+  position:fixed!important;
+  z-index:80!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:0!important;
+  transform:translateX(-50%)!important;
+  width:min(430px,100%)!important;
+  grid-template-columns:repeat(4,1fr)!important;
+  border-top:1px solid #dce7df!important;
+  border-left:1px solid #dce7df!important;
+  border-right:1px solid #dce7df!important;
+  background:rgba(255,255,255,.97)!important;
+  box-shadow:0 -7px 18px rgba(37,78,49,.08)!important;
+  backdrop-filter:blur(12px)
+}
+.pilotBottomNav a{min-height:62px!important;padding:7px 2px!important}
+.pilotBottomNav .bottomNavLabel{font-size:9px!important;font-weight:850!important}
+
+footer{
+  width:min(430px,100%);
+  margin:0 auto!important;
+  padding:18px 12px 82px!important;
+  border-left:1px solid #dfe8e2;
+  border-right:1px solid #dfe8e2;
+  background:#fff
+}
+
+@media(max-width:760px){
+  .pilotHeroVisual{min-height:226px;padding:22px 18px 66px!important}
+  .pilotHero h1{font-size:27px!important}
+  .pilotProduce span{font-size:41px}
+  .pilotProduce span:nth-child(2){font-size:36px}
+  .pilotProduce span:nth-child(3){font-size:44px}
+  .pilotProduce span:nth-child(4){font-size:39px}
+  .pilotProduce span:nth-child(5){font-size:44px}
+  .atlasTopbarV3{padding-top:env(safe-area-inset-top)!important;min-height:calc(50px + env(safe-area-inset-top))!important}
+}
+
+
+/* Pixel-match pass against approved Variant B reference */
+.atlasTopbarV3{
+  width:min(390px,100%)!important;
+  height:46px!important;
+  min-height:46px!important;
+  padding:0 10px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  background:#fff!important
+}
+.atlasTopbarV3Brand{gap:6px!important}
+.atlasTopbarV3Brand>b{
+  width:26px!important;height:26px!important;border-radius:7px!important;
+  font-size:13px!important
+}
+.atlasTopbarV3Brand strong{font-size:12px!important;letter-spacing:.04em!important}
+.atlasTopbarV3Right{display:flex!important;align-items:center!important;gap:6px!important}
+.atlasTopbarV3Lang{
+  order:1;min-height:27px!important;height:27px!important;
+  border:0!important;background:#fff!important;padding:0 2px!important;gap:2px!important
+}
+.atlasTopbarV3Lang svg{display:none!important}
+.atlasTopbarV3Lang select{font-size:9px!important;font-weight:900!important}
+.atlasTopbarV3 .atlasPresence{order:2}
+.atlasTopbarV3 .atlasPresenceBar{display:flex!important;align-items:center!important}
+.atlasTopbarV3 .atlasPresenceButton{
+  min-height:27px!important;height:27px!important;border:0!important;background:#fff!important;
+  padding:0 2px!important;gap:3px!important;font-size:8px!important
+}
+.atlasTopbarV3 .atlasPresenceButton svg{width:12px!important;height:12px!important}
+.atlasTopbarV3 .atlasPresenceDot{width:5px!important;height:5px!important;box-shadow:none!important}
+.atlasTopbarV3 .atlasPresenceDivider,.atlasTopbarV3 .atlasPresenceSound{display:none!important}
+.atlasTopbarV3Bell{
+  order:3;position:relative;width:28px;height:28px;border:0;border-radius:8px;
+  display:grid;place-items:center;color:#173c27;text-decoration:none;background:#fff
+}
+.atlasTopbarV3Bell>b{
+  position:absolute;right:-2px;top:-2px;min-width:13px;height:13px;padding:0 3px;border-radius:8px;
+  display:grid;place-items:center;background:#d93b3b;color:#fff;font-size:7px
+}
+
+.pilotHome{
+  width:min(390px,100%)!important;
+  min-height:calc(100dvh - 46px)!important;
+  padding:0 10px 76px!important;
+  background:linear-gradient(#eef8c8 0 36%,#fff 36% 100%)!important
+}
+.pilotHeroVisual{
+  min-height:154px!important;
+  height:154px!important;
+  margin:0 -10px!important;
+  padding:18px 19px 44px!important;
+  border-radius:0!important;
+  background:
+    radial-gradient(circle at 87% 26%,rgba(255,255,255,.62) 0 13%,transparent 14%),
+    radial-gradient(circle at 15% 92%,rgba(69,150,72,.12) 0 20%,transparent 21%),
+    linear-gradient(135deg,#fff0a9 0%,#fff4b9 45%,#dff0b9 100%)!important
+}
+.pilotHeroVisual:after{display:none!important}
+.pilotHeroCopy{max-width:250px!important}
+.pilotHero .pilotKicker{
+  margin:0 0 5px!important;font-size:7px!important;letter-spacing:.16em!important
+}
+.pilotHero h1{
+  max-width:245px!important;font-size:20px!important;line-height:1.02!important;letter-spacing:-.025em!important
+}
+.pilotHeroCopy>p:last-child{
+  margin:6px 0 0!important;max-width:220px!important;font-size:8px!important;line-height:1.25!important
+}
+.pilotProduce{
+  right:13px!important;bottom:10px!important;left:auto!important;width:154px!important;
+  justify-content:flex-end!important;gap:0!important
+}
+.pilotProduce span{font-size:31px!important}
+.pilotProduce span:nth-child(2){font-size:27px!important}
+.pilotProduce span:nth-child(3){font-size:34px!important}
+.pilotProduce span:nth-child(4){font-size:29px!important}
+.pilotProduce span:nth-child(5){font-size:34px!important}
+
+.pilotSearchCardOverlap{
+  width:calc(100% - 8px)!important;
+  margin:-13px auto 0!important;
+  padding:9px!important;gap:6px!important;
+  border-radius:13px!important;
+  box-shadow:0 5px 14px rgba(30,87,48,.10)!important
+}
+.pilotSearchCard>label:first-child{font-size:9px!important}
+.pilotTaskInput .voiceTaskInput{border-radius:9px!important}
+.pilotTaskInput .voiceTaskInput textarea,.pilotTaskInput .voiceTaskInput input{
+  min-height:46px!important;height:46px!important;
+  padding:9px 38px 9px 9px!important;font-size:9px!important;line-height:1.2!important
+}
+.pilotCameraButton{
+  display:none!important
+}
+.pilotTaskInput .voiceTaskInput button{
+  width:28px!important;height:28px!important;right:5px!important;bottom:8px!important
+}
+.pilotLocation{
+  height:29px!important;min-height:29px!important;border-radius:8px!important;padding:0 8px!important
+}
+.pilotLocation svg{width:11px!important;height:11px!important}
+.pilotLocation input{height:27px!important;font-size:8px!important}
+.pilotSearchCard .pilotPrimary{
+  min-height:31px!important;height:31px!important;border-radius:8px!important;
+  background:#098b45!important;font-size:9px!important
+}
+.pilotSearchCard .pilotPrimary svg{width:12px!important;height:12px!important}
+
+.pilotCapabilityCard{
+  width:calc(100% - 8px)!important;margin:5px auto 0!important;
+  padding:8px 10px!important;min-height:49px!important;border-radius:10px!important;
+  background:#fff!important;border:1px solid #dce8dc!important;color:#173c27!important
+}
+.pilotCapabilityIcon{
+  width:31px!important;height:31px!important;border-radius:8px!important;
+  background:#e9f7ed!important;box-shadow:none!important
+}
+.pilotCapabilityIcon svg{width:18px!important;height:18px!important}
+.pilotCapabilityCard strong{font-size:10px!important}
+.pilotCapabilityCard small{font-size:7px!important}
+.pilotCapabilityCard>b{font-size:15px!important}
+
+.pilotExamples{
+  width:calc(100% - 8px)!important;margin:5px auto 0!important;
+  grid-template-columns:repeat(4,1fr)!important;gap:4px!important
+}
+.pilotExamples span{
+  min-height:53px!important;padding:0!important;border-radius:7px!important;
+  overflow:hidden;position:relative;display:flex!important;align-items:flex-end!important;justify-content:center!important;
+  background:
+    linear-gradient(to top,rgba(255,255,255,.95) 0 20px,rgba(255,255,255,0) 21px),
+    linear-gradient(135deg,#dcefae,#88b967)!important
+}
+.pilotExamples span:nth-child(2){background:
+    linear-gradient(to top,rgba(255,255,255,.95) 0 20px,rgba(255,255,255,0) 21px),
+    linear-gradient(135deg,#d7b483,#6d4b2e)!important}
+.pilotExamples span:nth-child(3){background:
+    linear-gradient(to top,rgba(255,255,255,.95) 0 20px,rgba(255,255,255,0) 21px),
+    linear-gradient(135deg,#a9d7a6,#5b865d)!important}
+.pilotExamples span:nth-child(4){background:
+    linear-gradient(to top,rgba(255,255,255,.95) 0 20px,rgba(255,255,255,0) 21px),
+    linear-gradient(135deg,#f0e6cf,#b98752)!important}
+.pilotExamples b{
+  position:absolute;top:4px;left:50%;transform:translateX(-50%);
+  font-size:24px!important;filter:drop-shadow(0 1px 1px rgba(0,0,0,.12))
+}
+.pilotExamples small{
+  position:relative;z-index:2;width:100%;padding:4px 2px 3px;text-align:center;
+  font-size:7px!important;color:#253529
+}
+
+.pilotBottomNav{
+  width:min(390px,100%)!important;min-height:47px!important;height:47px!important;
+  border-radius:0!important;box-shadow:none!important
+}
+.pilotBottomNav a{min-height:47px!important;height:47px!important;padding:4px 1px!important;border-radius:0!important}
+.pilotBottomNav a.active{background:#eef9f1!important}
+.pilotBottomNav .bottomNavIcon svg{width:16px!important;height:16px!important}
+.pilotBottomNav .bottomNavLabel{font-size:7px!important}
+footer{display:none!important}
+
+@media(max-width:430px){
+  .atlasTopbarV3,.pilotHome,.pilotBottomNav{width:100%!important;border-left:0!important;border-right:0!important}
+}
+
+
+/* Unified Atlas app shell for all redesigned pages */
+:root{
+  --atlas-app-width:390px;
+  --atlas-app-pad:12px;
+  --atlas-app-green:#0b8b47;
+  --atlas-app-text:#173125;
+  --atlas-app-muted:#68766e;
+  --atlas-app-border:#dce6df;
+  --atlas-app-soft:#f7faf8;
+  --atlas-app-radius:14px;
+}
+.pilotPage{
+  width:min(var(--atlas-app-width),100%)!important;
+  min-height:calc(100dvh - 46px)!important;
+  margin:0 auto!important;
+  padding:16px var(--atlas-app-pad) 78px!important;
+  background:#fff!important;
+  border-left:1px solid #e2e9e5;
+  border-right:1px solid #e2e9e5;
+  color:var(--atlas-app-text)!important;
+}
+.pilotPageHead{margin:0 0 13px!important}
+.pilotPageHead>div{gap:7px!important;color:var(--atlas-app-green)!important}
+.pilotPageHead>div>svg{width:18px!important;height:18px!important}
+.pilotPageHead h1{font-size:21px!important;line-height:1.08!important;letter-spacing:-.02em!important}
+.pilotPageHead>p{margin-top:5px!important;font-size:10px!important;line-height:1.4!important;color:var(--atlas-app-muted)!important}
+
+.pilotPrimary{
+  min-height:38px!important;
+  border-radius:10px!important;
+  padding:9px 12px!important;
+  background:var(--atlas-app-green)!important;
+  font-size:10px!important;
+}
+.pilotQueryBar{
+  margin-bottom:9px!important;
+  padding:9px 10px!important;
+  border-radius:10px!important;
+  font-size:9px!important;
+}
+.pilotQueryBar strong{font-size:11px!important}
+.pilotFilterBar{gap:6px!important;margin-bottom:10px!important}
+.pilotFilterBar label{border-radius:9px!important;padding:0 8px!important}
+.pilotFilterBar input,.pilotFilterBar select{min-height:33px!important;font-size:9px!important}
+.pilotState,.pilotEmpty,.pilotError{
+  padding:12px!important;
+  border-radius:11px!important;
+  margin:8px 0!important;
+  font-size:9px!important;
+}
+.pilotResultList{gap:7px!important}
+.pilotResultCard{
+  padding:11px!important;
+  border-radius:12px!important;
+  box-shadow:none!important
+}
+.pilotResultTop strong{font-size:12px!important}
+.pilotResultTop span,.pilotResultTop small{font-size:8px!important}
+.pilotResultCard p{margin:6px 0!important;font-size:9px!important;line-height:1.4!important}
+.pilotResultMeta{font-size:8px!important;margin:4px 0 7px!important}
+.pilotResultCard button,.pilotResultCard a{
+  min-height:32px!important;
+  border-radius:8px!important;
+  padding:7px 9px!important;
+  font-size:9px!important
+}
+.pilotWebButton{
+  min-height:38px!important;
+  margin-top:10px!important;
+  border-radius:10px!important;
+  font-size:10px!important
+}
+.pilotBrowserFallback{gap:6px!important;margin-top:9px!important}
+.pilotBrowserFallback a{min-height:35px!important;border-radius:9px!important;font-size:9px!important}
+
+.pilotProfileSummary{
+  gap:9px!important;
+  padding:11px!important;
+  border-radius:12px!important
+}
+.pilotAvatar{width:42px!important;height:42px!important;font-size:16px!important}
+.pilotProfileSummary strong{font-size:13px!important}
+.pilotProfileSummary span,.pilotProfileSummary small{font-size:8px!important}
+.pilotProfileSummary button{padding:7px 8px!important;border-radius:8px!important;font-size:8px!important}
+.pilotProfileForm,.pilotOpportunityForm{
+  gap:9px!important;
+  padding:12px!important;
+  border-radius:12px!important
+}
+.pilotProfileForm h2{font-size:15px!important}
+.pilotProfileForm label>span,.pilotOptional label>span,.pilotBigField>span{font-size:8px!important}
+.pilotProfileForm input,.pilotProfileForm textarea,.pilotOpportunityForm input,.pilotOpportunityForm textarea,.pilotOpportunityForm select{
+  border-radius:8px!important;
+  padding:9px 10px!important;
+  font-size:9px!important
+}
+.pilotProfileForm textarea{min-height:62px!important}
+.pilotCapabilitiesSection{margin-top:12px!important}
+.pilotSectionTitle{margin-bottom:7px!important}
+.pilotSectionTitle h2{font-size:15px!important}
+.pilotSectionTitle>div span{min-width:21px!important;height:21px!important;font-size:8px!important}
+.pilotAddButton{padding:8px 9px!important;border-radius:9px!important;font-size:9px!important}
+.pilotCapabilityList{gap:6px!important}
+.pilotCapabilityList article{
+  padding:10px!important;
+  border-radius:10px!important
+}
+.pilotCapabilityList article strong{font-size:10px!important}
+.pilotCapabilityList article span{font-size:8px!important}
+.pilotItemActions button{width:30px!important;height:30px!important;border-radius:8px!important}
+
+.pilotBackLink{margin-bottom:8px!important;font-size:9px!important}
+.pilotBigField textarea{min-height:110px!important;font-size:11px!important}
+.pilotTypeChips{gap:5px!important}
+.pilotTypeChips button{min-height:34px!important;border-radius:9px!important;font-size:9px!important}
+.pilotLineField{gap:5px!important}
+.pilotOptional{padding:9px!important;border-radius:9px!important}
+.pilotOptional summary{font-size:9px!important}
+.pilotPriceRow{gap:5px!important}
+
+.pilotRoomActions{grid-template-columns:1fr!important;gap:7px!important;margin-bottom:13px!important}
+.pilotTempRoom{min-height:44px!important;border-radius:10px!important;padding:8px 10px!important}
+.pilotTempRoom strong{font-size:10px!important}
+.pilotTempRoom small{font-size:8px!important}
+.pilotRoomsList h2{font-size:14px!important;margin-bottom:7px!important}
+.pilotRoomsList article{
+  gap:5px!important;
+  border-radius:10px!important;
+  padding:6px!important;
+  margin-bottom:6px!important
+}
+.pilotRoomOpen{gap:7px!important}
+.pilotRoomOpen strong{font-size:10px!important}
+.pilotRoomOpen small{font-size:7px!important}
+.pilotRoomsList article>button:not(.pilotRoomOpen){width:31px!important;height:31px!important;border-radius:8px!important}
+
+@media(max-width:430px){
+  .pilotPage{width:100%!important;border-left:0!important;border-right:0!important}
+}
+
+/* Desktop browser preview should end with content, not mimic full browser height */
+@media(min-width:431px){
+  .pilotPage{
+    min-height:0!important;
+    padding-bottom:14px!important;
+  }
+  .pilotBottomNav{
+    position:static!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+    margin:0 auto!important;
+    width:min(390px,100%)!important;
+    border-top:1px solid #dce7df!important;
+    border-left:1px solid #dce7df!important;
+    border-right:1px solid #dce7df!important;
+    border-bottom:1px solid #dce7df!important;
+    border-radius:0 0 14px 14px!important;
+  }
+}

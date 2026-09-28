@@ -68,12 +68,25 @@ function healthDecision(value){
   return "triage";
 }
 function healthGoal(value){return String(value||"").replace(/,\s*(?:так\s*[,—-]?\s*є хоча б одна|ні\s*[,—-]?\s*але біль сильний або посилюється|ні\s*[,—-]?\s*біль легкий і не посилюється).*$/i,"").trim()}
+function isLegOrLimbPain(value){
+  return /(?:болить|біль).*?(?:нога|ногу|ноги|стоп|щиколот|колін|гоміл|стегн|рук|кист|плеч|лікоть)|(?:leg|foot|ankle|knee|calf|thigh|arm|hand|shoulder|elbow).*?(?:pain|hurt)/iu.test(String(value||""));
+}
+function healthWarningText(goal,uk){
+  if(isLegOrLimbPain(goal)){
+    return uk
+      ?"Серйозна травма або деформація; не можете стати на ногу чи рухати кінцівкою; раптовий значний набряк, почервоніння або жар однієї кінцівки; стопа/кисть стала холодною, блідою або німіє; сильна кровотеча; задишка або біль у грудях."
+      :"Serious injury or deformity; unable to bear weight or move the limb; sudden major swelling, redness or warmth in one limb; the foot/hand becomes cold, pale or numb; heavy bleeding; shortness of breath or chest pain.";
+  }
+  return uk
+    ?"Раптовий або дуже сильний біль; непритомність; значна кровотеча; утруднене дихання або біль у грудях; різке погіршення стану."
+    :"Sudden or very severe pain; fainting; major bleeding; trouble breathing or chest pain; rapid worsening.";
+}
 
 function createHealthPlan(query,lang){
   const decision=healthDecision(query),goal=healthGoal(query),uk=lang==="uk";
   const passportTerms=uk?["лікар","сімейний лікар","медик","фельдшер"]:["doctor","family doctor","medic","paramedic"];
   const base={understood:Boolean(goal),goal,intent:"get_help",domain:"health",solution_scope:"local_action",passport_search:{terms:passportTerms,capability_description:uk?"Перевірена медична допомога або консультація":"Verified medical help or consultation"},result_strategy:uk?"Спочатку терміновість, потім одна найбезпечніша наступна дія":"Urgency first, then one safest next action",fallback:true};
-  if(decision==="triage")return {...base,urgency:"unknown",needs_location:false,clarification:{required:true,question:uk?"Чи є хоча б одна небезпечна ознака?":"Is at least one warning sign present?",helper_text:uk?"Раптовий або дуже сильний біль; живіт різко болить при дотику; кров у блюванні чи калі; непритомність; утруднене дихання або біль у грудях.":"Sudden or severe pain; marked tenderness; blood in vomit or stool; collapse; trouble breathing or chest pain.",options:uk?["Так, є хоча б одна","Ні, але біль сильний або посилюється","Ні, біль легкий і не посилюється"]:["Yes, at least one","No, but pain is severe or worsening","No, pain is mild and not worsening"]},solution_steps:[{id:"medical-triage",title:uk?"Визначити терміновість":"Determine urgency",purpose:goal,passport_terms:passportTerms,nearby_query:"",internet_query:"",nearby_relevant:false,internet_relevant:false}],external_searches:[],safety:{level:"caution",message:uk?"Atlas не ставить діагноз — спочатку потрібно визначити терміновість.":"Atlas does not diagnose — urgency must be determined first."}};
+  if(decision==="triage")return {...base,urgency:"unknown",needs_location:false,clarification:{required:true,question:uk?"Чи є хоча б одна небезпечна ознака?":"Is at least one warning sign present?",helper_text:healthWarningText(goal,uk),options:uk?["Так, є хоча б одна","Ні, але біль сильний або посилюється","Ні, біль легкий і не посилюється"]:["Yes, at least one","No, but pain is severe or worsening","No, pain is mild and not worsening"]},solution_steps:[{id:"medical-triage",title:uk?"Визначити терміновість":"Determine urgency",purpose:goal,passport_terms:passportTerms,nearby_query:"",internet_query:"",nearby_relevant:false,internet_relevant:false}],external_searches:[],safety:{level:"caution",message:uk?"Atlas не ставить діагноз — спочатку потрібно визначити терміновість.":"Atlas does not diagnose — urgency must be determined first."}};
   if(decision==="emergency")return {...base,urgency:"emergency",needs_location:false,clarification:{required:false,question:"",options:[]},direct_action:{id:"call-emergency",type:"emergency",source:uk?"Екстрена медична допомога":"Emergency medical help",title:uk?"Телефонуйте 103 або 112 зараз":"Call emergency services now",description:uk?"Повідомте диспетчеру симптоми та точне місце перебування.":"Tell the dispatcher the symptoms and your exact location.",primary_href:"tel:103",primary_label:uk?"Подзвонити 103":"Call 103",secondary_href:"tel:112",secondary_label:uk?"Подзвонити 112":"Call 112",recommendation:uk?"За небезпечних ознак наступна дія — виклик екстреної допомоги, а не пошук інформації.":"With warning signs, the next action is emergency help, not an information search."},solution_steps:[{id:"call-emergency",title:uk?"Викликати екстрену допомогу":"Call emergency services",purpose:goal,passport_terms:[],nearby_query:"",internet_query:"",nearby_relevant:false,internet_relevant:false}],external_searches:[],safety:{level:"urgent",message:uk?"Не керуйте авто самі, якщо стан тяжкий.":"Do not drive yourself if the condition is severe."}};
   const urgent=decision==="urgent";
   const mapsQuery=urgent?(uk?"невідкладна медична допомога лікарня клініка":"urgent medical care hospital clinic"):(uk?"сімейний лікар амбулаторія":"family doctor medical clinic");

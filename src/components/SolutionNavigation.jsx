@@ -1,4 +1,4 @@
-import {ArrowLeft,HeartHandshake,Home,IdCard,MessageCircleMore,PenLine,Plus} from "lucide-react";
+import {ArrowLeft,Home,MessageCircleMore,MessagesSquare,PenLine,Plus,Sparkles} from "lucide-react";
 import {NavLink,useNavigate} from "react-router-dom";
 import "../styles/solutionNavigation.css";
 
@@ -22,9 +22,9 @@ export default function SolutionNavigation({lang="uk"}){
   }
 
   const links=[
-    {to:"/needs",label:uk?"Потреби":"Needs",icon:HeartHandshake},
-    {to:"/profile",label:uk?"Можливості":"Opportunities",icon:IdCard},
-    {to:"/chat",label:uk?"Чат":"Chat",icon:MessageCircleMore}
+    {to:"/me",label:uk?"Можливості":"Capabilities",icon:Sparkles},
+    {to:"/messages",label:uk?"Повідомлення":"Messages",icon:MessagesSquare},
+    {to:"/rooms",label:uk?"Кімнати":"Rooms",icon:MessageCircleMore}
   ];
 
   return <nav className="solutionNavigation" aria-label={uk?"Навігація Atlas":"Atlas navigation"}>
@@ -36,10 +36,7 @@ export default function SolutionNavigation({lang="uk"}){
         <button type="button" className="solutionNavigationNew" onClick={()=>navigate("/")}><Plus size={17}/><span>{uk?"Новий пошук":"New search"}</span></button>
       </div>
       <div className="solutionNavigationMainGroup">
-        {links.map(item=>{
-          const Icon=item.icon;
-          return <NavLink key={item.to} to={item.to}><Icon size={17}/><span>{item.label}</span></NavLink>;
-        })}
+        {links.map(item=>{const Icon=item.icon;return <NavLink key={item.to} to={item.to}><Icon size={17}/><span>{item.label}</span></NavLink>})}
       </div>
     </div>
   </nav>;

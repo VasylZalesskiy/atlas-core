@@ -1,0 +1,286 @@
+.homeRef{
+  width:min(390px,100%);
+  margin:0 auto;
+  min-height:calc(100dvh - 46px);
+  padding:0 12px 82px;
+  background:#fff;
+  color:#173125;
+  border-left:1px solid #e2e9e5;
+  border-right:1px solid #e2e9e5;
+}
+
+.homeRefHero{
+  position:relative;
+  overflow:hidden;
+  margin:0 -12px;
+  min-height:172px;
+  padding:22px 18px 52px;
+  background:linear-gradient(135deg,#fff4ba 0%,#f5f3bb 46%,#dcedbf 100%);
+}
+.homeRefHero:before{
+  content:"";
+  position:absolute;
+  width:150px;height:150px;
+  right:-54px;top:-40px;
+  border-radius:50%;
+  background:rgba(255,255,255,.42);
+}
+.homeRefHero:after{
+  content:"";
+  position:absolute;
+  width:120px;height:120px;
+  left:-36px;bottom:-58px;
+  border-radius:50%;
+  background:rgba(70,142,73,.08);
+}
+.homeRefHeroText{position:relative;z-index:2;max-width:255px}
+.homeRefEyebrow{
+  display:block;
+  margin-bottom:7px;
+  color:#0b7a41;
+  font-size:8px;
+  font-weight:950;
+  letter-spacing:.18em;
+}
+.homeRefHero h1{
+  margin:0;
+  max-width:255px;
+  color:#173125;
+  font-size:21px;
+  line-height:1.03;
+  letter-spacing:-.025em;
+}
+.homeRefHero h1 strong{color:#0b7f43}
+.homeRefHero p{
+  margin:8px 0 0;
+  max-width:220px;
+  color:#53695c;
+  font-size:9px;
+  line-height:1.35;
+  font-weight:650;
+}
+.homeRefArt{
+  position:absolute;
+  right:16px;
+  bottom:15px;
+  width:126px;
+  height:68px;
+  z-index:1;
+}
+.homeRefArtCircle{
+  position:absolute;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  color:#0b7a41;
+  border:3px solid rgba(255,255,255,.92);
+  box-shadow:0 8px 16px rgba(68,96,52,.12);
+}
+.homeRefArtCircle.large{
+  width:64px;height:64px;
+  right:0;bottom:0;
+  background:#d7ecac;
+}
+.homeRefArtCircle.mid{
+  width:48px;height:48px;
+  right:50px;bottom:2px;
+  background:#f6d995;
+  color:#815f22;
+}
+.homeRefArtCircle.small{
+  width:38px;height:38px;
+  right:85px;bottom:20px;
+  background:#fff;
+  color:#0b7a41;
+}
+
+.homeRefSearch{
+  position:relative;
+  z-index:5;
+  display:grid;
+  gap:7px;
+  width:calc(100% - 8px);
+  margin:-24px auto 0;
+  padding:10px;
+  border:1px solid #d7e3db;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 8px 22px rgba(26,72,44,.10);
+}
+.homeRefSearch>label:first-child{
+  font-size:10px;
+  font-weight:900;
+  color:#183426;
+}
+.homeRefTask{position:relative}
+.homeRefTask .voiceTaskInput{
+  border:1px solid #d8e3dc!important;
+  border-radius:10px!important;
+  background:#fff!important;
+  overflow:hidden;
+}
+.homeRefTask .voiceTaskInput textarea,
+.homeRefTask .voiceTaskInput input{
+  min-height:52px!important;
+  height:52px!important;
+  padding:10px 66px 10px 10px!important;
+  border:0!important;
+  font-size:10px!important;
+  line-height:1.25!important;
+}
+.homeRefTask .voiceTaskInput button{
+  right:7px!important;
+  bottom:9px!important;
+  width:30px!important;
+  height:30px!important;
+}
+.homeRefCamera{
+  position:absolute;
+  z-index:4;
+  right:40px;
+  bottom:9px;
+  width:30px;height:30px;
+  border:0;
+  border-radius:8px;
+  display:grid;
+  place-items:center;
+  background:#eef7f1;
+  color:#0c7c43;
+  cursor:pointer;
+}
+.homeRefPhoto{
+  display:grid;
+  grid-template-columns:48px 1fr auto;
+  gap:8px;
+  align-items:center;
+  padding:6px;
+  border:1px solid #dce6df;
+  border-radius:10px;
+  background:#f8fbf9;
+}
+.homeRefPhoto img{width:48px;height:48px;object-fit:cover;border-radius:8px}
+.homeRefPhoto span{display:flex;align-items:center;gap:6px;color:#596a60;font-size:9px}
+.homeRefPhoto button{
+  width:28px;height:28px;
+  border:0;border-radius:8px;
+  display:grid;place-items:center;
+  background:#fff;color:#6f7b74;
+}
+
+.homeRefLocation{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  height:31px;
+  padding:0 9px;
+  border:1px solid #dce5df;
+  border-radius:9px;
+  color:#678076;
+  background:#fbfdfc;
+}
+.homeRefLocation input{
+  flex:1;
+  height:29px;
+  border:0;
+  outline:0;
+  background:transparent;
+  color:#32433a;
+  font:inherit;
+  font-size:9px;
+}
+.homeRefFind{
+  height:33px;
+  border:0;
+  border-radius:9px;
+  background:#0b8b47;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  font:inherit;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+}
+.homeRefFind:disabled{opacity:.48;cursor:not-allowed}
+
+.homeRefCapabilities{
+  width:calc(100% - 8px);
+  min-height:52px;
+  margin:7px auto 0;
+  padding:8px 10px;
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:center;
+  gap:9px;
+  border:1px solid #d9e6dd;
+  border-radius:11px;
+  background:#f4fbf6;
+  color:#173c27;
+  text-decoration:none;
+}
+.homeRefCapIcon{
+  width:33px;height:33px;
+  border-radius:9px;
+  display:grid;
+  place-items:center;
+  background:#fff;
+  color:#0b7a41;
+  box-shadow:0 4px 12px rgba(26,86,45,.07);
+}
+.homeRefCapabilities strong{display:block;font-size:11px}
+.homeRefCapabilities small{display:block;margin-top:2px;color:#6a786f;font-size:7px}
+.homeRefCapabilities>b{color:#0b7a41;font-size:16px}
+
+.homeRefTiles{
+  width:calc(100% - 8px);
+  margin:6px auto 0;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:5px;
+}
+.homeRefTile{
+  min-height:58px;
+  padding:7px 3px 5px;
+  display:grid;
+  place-items:center;
+  align-content:center;
+  gap:5px;
+  border:1px solid #e4e9e6;
+  border-radius:9px;
+  background:#fff;
+}
+.homeRefTile:nth-child(1){background:#faf6e9}
+.homeRefTile:nth-child(2){background:#f1f5ed}
+.homeRefTile:nth-child(3){background:#edf3f6}
+.homeRefTile:nth-child(4){background:#f7f1eb}
+.homeRefTile span{
+  width:31px;height:31px;
+  border-radius:9px;
+  display:grid;place-items:center;
+  background:rgba(255,255,255,.9);
+  color:#0b7a41;
+  box-shadow:0 3px 8px rgba(22,65,39,.06);
+}
+.homeRefTile small{
+  color:#34463b;
+  font-size:7px;
+  font-weight:900;
+}
+
+@media(min-width:761px){
+  body{background:#edf4ef!important}
+  .homeRef{box-shadow:0 0 0 1px rgba(0,0,0,.01)}
+}
+@media(max-width:430px){
+  .homeRef{width:100%;border-left:0;border-right:0}
+}
+
+/* Desktop preview: keep the approved mobile composition compact */
+@media(min-width:431px){
+  .homeRef{
+    min-height:0!important;
+    padding-bottom:14px!important;
+  }
+}

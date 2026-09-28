@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useState} from "react";
-import {ArrowLeft,CheckCircle2,Clock3,Inbox,MessageCircle,PackageCheck,Phone,RefreshCw,Send,X} from "lucide-react";
+import {ArrowLeft,CheckCircle2,Clock3,Inbox,MessageCircle,PackageCheck,Phone,RefreshCw,Send,Trash2,X} from "lucide-react";
 import {Link,useSearchParams} from "react-router-dom";
 import {
   cancelSolutionFlow,
@@ -66,6 +66,7 @@ export default function Messages({lang="uk"}){
   const [busy,setBusy]=useState("");
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
+  const [hiddenIds,setHiddenIds]=useState(()=>{try{const value=JSON.parse(localStorage.getItem("atlas.hidden-conversations.v1")||"[]");return new Set(Array.isArray(value)?value:[])}catch{return new Set()}});
 
   const refreshFlows=useCallback(async({quiet=false}={})=>{
     if(!quiet)setLoading(true);
@@ -106,11 +107,12 @@ export default function Messages({lang="uk"}){
   },[refreshFlows,openThread,selectedId]);
 
   const filteredFlows=useMemo(()=>flows.filter(flow=>{
+    if(hiddenIds.has(flow.id))return false;
     if(filter==="unread")return Number(flow.unread_count)>0;
     if(filter==="active")return openStatuses.has(flow.status);
     if(filter==="closed")return !openStatuses.has(flow.status);
     return true;
-  }),[flows,filter]);
+  }),[flows,filter,hiddenIds]);
   const unreadTotal=useMemo(()=>flows.reduce((sum,item)=>sum+Number(item.unread_count||0),0),[flows]);
 
   function selectFlow(id){
@@ -120,6 +122,12 @@ export default function Messages({lang="uk"}){
   function closeThread(){
     setSelectedId("");setThread(null);setMessages([]);setError("");setNotice("");
     setSearchParams(current=>{const next=new URLSearchParams(current);next.delete("thread");return next},{replace:true});
+  }
+  function hideConversation(id){
+    if(!id)return;
+    const next=new Set(hiddenIds);next.add(id);setHiddenIds(next);
+    try{localStorage.setItem("atlas.hidden-conversations.v1",JSON.stringify([...next]))}catch{}
+    closeThread();
   }
 
   async function sendMessage(event){
@@ -186,7 +194,7 @@ export default function Messages({lang="uk"}){
         {!selectedId&&<div className="threadBlank"><MessageCircle size={30}/><strong>{uk?"Оберіть розмову":"Choose a conversation"}</strong></div>}
         {selectedId&&threadLoading&&!thread&&<div className="threadBlank"><RefreshCw className="spin" size={22}/>{uk?"Відкриваю…":"Opening…"}</div>}
         {thread&&<>
-          <header className="threadHeader"><button className="threadBack" type="button" onClick={closeThread} aria-label={uk?"Назад до розмов":"Back to conversations"}><ArrowLeft size={20}/></button><div><strong>{counterpartName(thread,uk)}</strong><span>{flowSubject(thread,uk)}</span></div><em className={`conversationStatus status-${thread.status}`}>{statusLabel(thread.status,uk)}</em></header>
+          <header className="threadHeader"><button className="threadBack" type="button" onClick={closeThread} aria-label={uk?"Назад до розмов":"Back to conversations"}><ArrowLeft size={20}/></button><div><strong>{counterpartName(thread,uk)}</strong><span>{flowSubject(thread,uk)}</span></div><em className={`conversationStatus status-${thread.status}`}>{statusLabel(thread.status,uk)}</em><button className="threadHide" type="button" onClick={()=>hideConversation(thread.id)} title={uk?"Прибрати зі стрічки":"Remove from feed"}><Trash2 size={17}/></button></header>
 
           {needsResponse&&<div className="threadDecision"><div><Clock3 size={19}/><span><strong>{uk?"Людина чекає на вашу відповідь":"This person is waiting for your reply"}</strong><small>{uk?"Прийміть звернення, щоб підтвердити домовленість.":"Accept the request to confirm the agreement."}</small></span></div><div><button type="button" className="accept" disabled={Boolean(busy)} onClick={()=>action("accept")}><CheckCircle2 size={17}/>{uk?"Прийняти":"Accept"}</button><button type="button" disabled={Boolean(busy)} onClick={()=>action("decline")}><X size={17}/>{uk?"Відхилити":"Decline"}</button></div></div>}
 

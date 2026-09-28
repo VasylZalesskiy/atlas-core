@@ -31,6 +31,7 @@ function waitForIce(peer){
 }
 
 export default function Chat(){
+  const permanentRoom=new URLSearchParams(window.location.search).get("permanent")==="1";
   const [roomId,setRoomId]=useState("");
   const [roomSecret,setRoomSecret]=useState("");
   const [roomExpiresAt,setRoomExpiresAt]=useState(0);
@@ -171,6 +172,18 @@ export default function Chat(){
     if(!parsed){
       localStorage.setItem(`atlas-chat-owner:${room.roomId}`,deviceId);
       history.replaceState(null,"",`${window.location.pathname}${window.location.search}${formatChatHash(room)}`);
+    }
+    if(parsed&&permanentRoom){
+      try{
+        const storageKey="atlas.permanent-rooms.v1";
+        const current=JSON.parse(localStorage.getItem(storageKey)||"[]");
+        const list=Array.isArray(current)?current:[];
+        if(!list.some(item=>item.id===room.roomId)){
+          list.unshift({id:room.roomId,name:"Переговори",href:`/chat?permanent=1${formatChatHash(room)}`,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+          localStorage.setItem(storageKey,JSON.stringify(list));
+          window.dispatchEvent(new Event("atlas:rooms-changed"));
+        }
+      }catch{}
     }
     setRoomId(room.roomId);
     setRoomSecret(room.secret);
@@ -450,7 +463,7 @@ export default function Chat(){
   },[keyReady,reconnectKey,roomId,sendPacket]);
 
   useEffect(()=>{
-    if(!roomExpiresAt||roomExpired)return;
+    if(permanentRoom||!roomExpiresAt||roomExpired)return;
     expiryHandledRef.current=false;
     const update=()=>{
       const left=roomExpiresAt-Date.now();
@@ -476,7 +489,7 @@ export default function Chat(){
     update();
     const timer=window.setInterval(update,1000);
     return()=>window.clearInterval(timer);
-  },[closeAudio,roomExpired,roomExpiresAt,roomId,sendPacket]);
+  },[closeAudio,permanentRoom,roomExpired,roomExpiresAt,roomId,sendPacket]);
 
   useEffect(()=>()=>{
     closeAudio();
@@ -499,7 +512,7 @@ export default function Chat(){
     }
   }
 
-  function inviteUrl(){return `${window.location.origin}/chat${formatChatHash({roomId,secret:roomSecret,expiresAt:roomExpiresAt})}`}
+  function inviteUrl(){const base=permanentRoom?"/chat?permanent=1":"/chat";return `${window.location.origin}${base}${formatChatHash({roomId,secret:roomSecret,expiresAt:roomExpiresAt})}`}
 
   async function copyInvite(){
     try{await navigator.clipboard.writeText(inviteUrl());setCopied(true);window.setTimeout(()=>setCopied(false),1800)}
@@ -508,7 +521,7 @@ export default function Chat(){
 
   async function shareInvite(){
     if(navigator.share){
-      try{await navigator.share({title:"Запрошення в чат Atlas",text:"Відкрий це запрошення, щоб поговорити зі мною в Atlas. Посилання діє одну годину.",url:inviteUrl()});return}
+      try{await navigator.share({title:"Запрошення в чат Atlas",text:permanentRoom?"Відкрий це запрошення, щоб приєднатися до постійної кімнати Atlas.":"Відкрий це запрошення, щоб поговорити зі мною в Atlas. Тимчасове посилання діє одну годину.",url:inviteUrl()});return}
       catch(error){if(error?.name==="AbortError")return}
     }
     await copyInvite();
@@ -796,12 +809,12 @@ export default function Chat(){
         <div><strong>{peerOnline?peerName:"Приватна кімната"}</strong><span>{connectionText}</span><small>{roomId||"Створюємо…"} · {participantCount}/2</small></div>
       </div>
       <div className="messengerRoomActions">
-        <div className="roomTimer" title="Час до закриття кімнати"><Timer size={16}/><strong>{roomTimeLeft(remainingMs)}</strong></div>
+        <div className="roomTimer" title={permanentRoom?"Постійна кімната":"Час до закриття кімнати"}><Timer size={16}/><strong>{permanentRoom?"Постійна":roomTimeLeft(remainingMs)}</strong></div>
         <button type="button" className="leaveRoomButton" onClick={leaveRoom} title="Вийти із кімнати"><LogOut size={19}/><span>Вийти</span></button>
       </div>
     </header>
 
-    <div className="securityStrip compact"><ShieldCheck size={21}/><div><strong>Захист розмови · наскрізне шифрування</strong><span>Без архіву повідомлень у Atlas · кімната діє до 1 години.</span></div></div>
+    <div className="securityStrip compact"><ShieldCheck size={21}/><div><strong>Захист розмови · наскрізне шифрування</strong><span>{permanentRoom?"Кімната збережена у списку. Повідомлення не архівуються на сервері Atlas.":"Без архіву повідомлень у Atlas · тимчасова кімната діє до 1 години."}</span></div></div>
 
     <label className="chatName"><span>Ваше ім’я</span><input maxLength={40} value={displayName} onChange={event=>setDisplayName(event.target.value)} placeholder="Наприклад: Василь"/></label>
 
