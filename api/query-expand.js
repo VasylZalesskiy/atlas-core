@@ -1,4 +1,5 @@
 import {getFreeAiStatus,runFreeAiResponse} from "./_free-ai.js";
+import {getOpenAIStatus,runOpenAIResponse} from "./_openai-ai.js";
 
 function send(res,status,body){
   res.status(status).setHeader("Content-Type","application/json; charset=utf-8");
@@ -35,27 +36,46 @@ async function expandQuery(query){
     "Do not broaden to unrelated services or products. Do not add locations, prices, brands, personal data or explanations.",
     "The terms are used only to match existing Atlas opportunity descriptions."
   ].join("\n");
-  const {data,model}=await runFreeAiResponse({
-    instructions,
-    input:query,
-    maxOutputTokens:320,
-    timeoutMs:9000,
-    json:true
-  });
-  return {terms:parseTerms(data?.output_text),model};
+  try{
+    const {data,model}=await runFreeAiResponse({
+      instructions,
+      input:query,
+      maxOutputTokens:320,
+      timeoutMs:5500,
+      json:true
+    });
+    const terms=parseTerms(data?.output_text);
+    if(terms.length)return {terms,model,provider:"google-gemini-free-tier",paid_fallback_used:false};
+  }catch{}
+
+  const openai=await getOpenAIStatus();
+  if(openai.configured){
+    const {data,model}=await runOpenAIResponse({
+      instructions,
+      input:query,
+      maxOutputTokens:320,
+      timeoutMs:8000,
+      model:"gpt-6-luna"
+    });
+    const terms=parseTerms(data?.output_text);
+    if(terms.length)return {terms,model,provider:"openai",paid_fallback_used:true};
+  }
+
+  return {terms:[],model:"deterministic",provider:"fallback",paid_fallback_used:false};
 }
 
 export default async function handler(req,res){
   if(req.method==="GET"){
     const status=await getFreeAiStatus();
-    if(String(req.query?.test||"")!=="1")return send(res,200,{status:"free-query-expander-online",free_ai:status});
-    if(!status.configured)return send(res,200,{status:"free-query-expander-online",free_ai:status,api_call_ok:false,error_code:"free-ai-key-unavailable"});
+    const openai=await getOpenAIStatus();
+    if(String(req.query?.test||"")!=="1")return send(res,200,{status:"atlas-query-expander-online",free_ai:status,paid_fallback:{configured:openai.configured,model:"gpt-6-luna"}});
+    if(!status.configured&&!openai.configured)return send(res,200,{status:"atlas-query-expander-online",free_ai:status,paid_fallback:{configured:false,model:"gpt-6-luna"},api_call_ok:false,error_code:"ai-key-unavailable"});
     try{
       const result=await expandQuery("потрібно зремонтувати компютер");
-      return send(res,200,{status:"free-query-expander-online",free_ai:status,api_call_ok:true,...result});
+      return send(res,200,{status:"atlas-query-expander-online",free_ai:status,paid_fallback:{configured:openai.configured,model:"gpt-6-luna"},api_call_ok:true,...result});
     }catch(error){
       return send(res,200,{
-        status:"free-query-expander-online",
+        status:"atlas-query-expander-online",
         free_ai:status,
         api_call_ok:false,
         error_code:error?.code||"free-ai-unavailable",
@@ -70,11 +90,12 @@ export default async function handler(req,res){
   if(query.length>600)return send(res,400,{error:"query-too-long"});
 
   const status=await getFreeAiStatus();
-  if(!status.configured)return send(res,200,{terms:[],provider:"google-gemini-free-tier",configured:false});
+  const openai=await getOpenAIStatus();
+  if(!status.configured&&!openai.configured)return send(res,200,{terms:[],provider:"fallback",configured:false});
 
   try{
     const result=await expandQuery(query);
-    return send(res,200,{...result,provider:"google-gemini-free-tier",configured:true});
+    return send(res,200,{...result,configured:true});
   }catch(error){
     return send(res,200,{
       terms:[],
