@@ -296,6 +296,7 @@ function CandidateAction({candidate,origin,lang}){
 
 const TASK_STOP_WORDS=new Set([
   "потрібно","потрібен","потрібна","потрібні","треба","хочу","шукаю","знайти","купити","продати","орендувати",
+  "допомога","допомоги","допомогу","допомогти","поміч","покупка","покупки","покупці","покупкою","придбання","придбанні",
   "мені","для","або","та","що","коли","який","яка","яке","у","в","на","по","до","від","кг","кілограмів",
   "need","needed","want","find","buy","sell","rent","for","with","the","and","or","kg"
 ]);
@@ -314,14 +315,19 @@ function passportMatchesTask(candidate,task){
     candidate?.title,candidate?.description,candidate?.matchedTerms?.join(" ")
   ].filter(Boolean).join(" ").toLowerCase();
 
-  const assistanceTask=/допомог|поміч|привез|підвез|достав|help|assist|deliver|pickup/iu.test(taskText);
-  const assistanceCapability=/допомог|допоможу|поміч|привез|підвез|достав|кур'єр|курєр|help|assist|deliver|courier|pickup/iu.test(candidateText);
-  if(assistanceTask&&assistanceCapability)return true;
-
   const taskTokens=subjectTokens(task);
-  if(!taskTokens.length)return false;
   const candidateTokens=new Set(subjectTokens(candidateText));
-  return taskTokens.some(token=>candidateTokens.has(token));
+  const subjectMatch=taskTokens.some(token=>candidateTokens.has(token));
+  if(subjectMatch)return true;
+
+  const assistanceTask=/допомог|поміч|привез|підвез|достав|help|assist|deliver|pickup/iu.test(taskText);
+  if(!assistanceTask)return false;
+
+  // Assistance is relevant only when it can actually execute the task:
+  // shopping / delivery / pickup / transport. A generic "I can help" attached
+  // to an unrelated skill (for example computer repair) is not a match.
+  const taskExecutionCapability=/покуп|придба|закуп|достав|привез|підвез|забрат|кур'єр|курєр|перевез|shopping|purchase|buying|deliver|delivery|courier|pickup|transport/iu.test(candidateText);
+  return taskExecutionCapability;
 }
 
 function candidateIdentity(candidate){
