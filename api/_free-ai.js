@@ -1,9 +1,9 @@
-const GEMINI_MODEL="gemini-3.1-flash-lite";
-const GEMINI_URL=`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const PRIMARY_MODEL="gemini-3.5-flash-lite";
+const FALLBACK_MODELS=["gemini-3.1-flash-lite","gemini-3.8-flash"];
+const GEMINI_MODELS=[PRIMARY_MODEL,...FALLBACK_MODELS];
 
 function apiKey(){
-  // The dedicated variable is intentional: Atlas will not silently reuse a
-  // key from a project that may have billing enabled.
+  // Dedicated key only: Atlas must not silently reuse another Google key.
   return String(process.env.GEMINI_FREE_TIER_API_KEY||"").trim();
 }
 
@@ -21,35 +21,20 @@ export async function getFreeAiStatus(){
     configured:Boolean(apiKey()),
     zero_cost_only:true,
     paid_fallback:false,
-    model:GEMINI_MODEL,
+    model:PRIMARY_MODEL,
+    fallback_models:FALLBACK_MODELS,
     required_key:"GEMINI_FREE_TIER_API_KEY",
     billing_requirement:"billing-disabled-project"
   };
 }
 
-export async function runFreeAiResponse({instructions,input,maxOutputTokens=2600,timeoutMs=15000,json=true}={}){
-  const key=apiKey();
-  if(!key){
-    // For normal Atlas Brain JSON planning, a missing free-tier key is an
-    // expected operating mode, not a runtime failure. Let brain.js select the
-    // deterministic fallback without emitting an error-level log. Diagnostics
-    // still throw so /api/brain?test=1 reports the missing key truthfully.
-    if(json){
-      return {
-        data:{status:"incomplete",incomplete_details:{reason:"free-ai-key-unavailable"},output_text:""},
-        model:GEMINI_MODEL,
-        status:await getFreeAiStatus()
-      };
-    }
-    throw Object.assign(new Error("free-ai-key-unavailable"),{code:"free-ai-key-unavailable"});
-  }
-
+async function callGemini(model,{key,instructions,input,maxOutputTokens,json,timeoutMs}){
   const controller=new AbortController();
   const timeout=setTimeout(()=>controller.abort(),timeoutMs);
   try{
     const generationConfig={temperature:0,maxOutputTokens};
     if(json)generationConfig.responseMimeType="application/json";
-    const response=await fetch(GEMINI_URL,{
+    const response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,{
       method:"POST",
       headers:{"Content-Type":"application/json","x-goog-api-key":key},
       body:JSON.stringify({
@@ -68,14 +53,38 @@ export async function runFreeAiResponse({instructions,input,maxOutputTokens=2600
     }
     const outputText=extractGeminiText(data);
     if(!outputText)throw Object.assign(new Error("free-ai-empty-response"),{code:"free-ai-empty-response"});
-    return {
-      data:{...data,status:"completed",output_text:outputText},
-      model:GEMINI_MODEL,
-      status:await getFreeAiStatus()
-    };
+    return {data:{...data,status:"completed",output_text:outputText},model};
   }finally{
     clearTimeout(timeout);
   }
 }
 
-export const FREE_AI_MODEL=GEMINI_MODEL;
+export async function runFreeAiResponse({instructions,input,maxOutputTokens=2600,timeoutMs=15000,json=true}={}){
+  const key=apiKey();
+  if(!key){
+    if(json){
+      return {
+        data:{status:"incomplete",incomplete_details:{reason:"free-ai-key-unavailable"},output_text:""},
+        model:PRIMARY_MODEL,
+        status:await getFreeAiStatus()
+      };
+    }
+    throw Object.assign(new Error("free-ai-key-unavailable"),{code:"free-ai-key-unavailable"});
+  }
+
+  let lastError=null;
+  for(const model of GEMINI_MODELS){
+    try{
+      const result=await callGemini(model,{key,instructions,input,maxOutputTokens,json,timeoutMs:Math.min(timeoutMs,9000)});
+      return {...result,status:await getFreeAiStatus()};
+    }catch(error){
+      lastError=error;
+      const retryable=["UNAVAILABLE","RESOURCE_EXHAUSTED","INTERNAL"].includes(String(error?.code||"").toUpperCase())||
+        [429,500,502,503,504].includes(Number(error?.status));
+      if(!retryable)break;
+    }
+  }
+  throw lastError||Object.assign(new Error("free-ai-unavailable"),{code:"free-ai-unavailable"});
+}
+
+export const FREE_AI_MODEL=PRIMARY_MODEL;
