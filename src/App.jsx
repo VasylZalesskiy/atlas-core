@@ -3,7 +3,7 @@ import {NavLink,Route,Routes,useNavigate,useParams,Navigate} from "react-router-
 import {
   ArrowLeft,ArrowRight,CheckCircle2,ChevronRight,Clock3,Compass,
   Heart,Home as HomeIcon,MapPin,MessageCircle,Mic,Plus,Search,
-  Send,Settings,SmilePlus,Sparkles,Users,UserRound,Waveform
+  Send,Settings,SmilePlus,Sparkles,Users,UserRound,AudioWaveform
 } from "lucide-react";
 
 const opportunitiesSeed=[
@@ -84,7 +84,7 @@ function VoiceButton({onText,label="Надиктувати"}){
     recognition.start();
   };
   return <button type="button" className={"voiceBtn "+(listening?"listening":"")} onClick={start} aria-label={label}>
-    {listening?<Waveform size={22}/>:<Mic size={22}/>}
+    {listening?<AudioWaveform size={22}/>:<Mic size={22}/>}
   </button>
 }
 
