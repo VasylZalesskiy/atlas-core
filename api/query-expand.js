@@ -1,4 +1,4 @@
-import {getQwenStatus,runQwenResponse} from "./_qwen-ai.js";
+import {getFreeAiStatus,runFreeAiResponse} from "./_free-ai.js";
 
 function send(res,status,body){
   res.status(status).setHeader("Content-Type","application/json; charset=utf-8");
@@ -35,7 +35,7 @@ async function expandQuery(query){
     "Do not broaden to unrelated services or products. Do not add locations, prices, brands, personal data or explanations.",
     "The terms are used only to match existing Atlas opportunity descriptions."
   ].join("\n");
-  const {data,model}=await runQwenResponse({
+  const {data,model}=await runFreeAiResponse({
     instructions,
     input:query,
     maxOutputTokens:320,
@@ -47,18 +47,18 @@ async function expandQuery(query){
 
 export default async function handler(req,res){
   if(req.method==="GET"){
-    const status=await getQwenStatus();
-    if(String(req.query?.test||"")!=="1")return send(res,200,{status:"qwen-query-expander-online",qwen:status});
-    if(!status.configured)return send(res,200,{status:"qwen-query-expander-online",qwen:status,api_call_ok:false,error_code:"qwen-key-unavailable"});
+    const status=await getFreeAiStatus();
+    if(String(req.query?.test||"")!=="1")return send(res,200,{status:"free-query-expander-online",free_ai:status});
+    if(!status.configured)return send(res,200,{status:"free-query-expander-online",free_ai:status,api_call_ok:false,error_code:"free-ai-key-unavailable"});
     try{
       const result=await expandQuery("потрібно зремонтувати компютер");
-      return send(res,200,{status:"qwen-query-expander-online",qwen:status,api_call_ok:true,...result});
+      return send(res,200,{status:"free-query-expander-online",free_ai:status,api_call_ok:true,...result});
     }catch(error){
       return send(res,200,{
-        status:"qwen-query-expander-online",
-        qwen:status,
+        status:"free-query-expander-online",
+        free_ai:status,
         api_call_ok:false,
-        error_code:error?.code||"qwen-unavailable",
+        error_code:error?.code||"free-ai-unavailable",
         message:String(error?.message||"Request failed").slice(0,300)
       });
     }
@@ -69,18 +69,18 @@ export default async function handler(req,res){
   if(!query)return send(res,400,{error:"query-required"});
   if(query.length>600)return send(res,400,{error:"query-too-long"});
 
-  const status=await getQwenStatus();
-  if(!status.configured)return send(res,200,{terms:[],provider:"qwen",configured:false});
+  const status=await getFreeAiStatus();
+  if(!status.configured)return send(res,200,{terms:[],provider:"google-gemini-free-tier",configured:false});
 
   try{
     const result=await expandQuery(query);
-    return send(res,200,{...result,provider:"qwen",configured:true});
+    return send(res,200,{...result,provider:"google-gemini-free-tier",configured:true});
   }catch(error){
     return send(res,200,{
       terms:[],
-      provider:"qwen",
+      provider:"google-gemini-free-tier",
       configured:true,
-      error_code:error?.code||"qwen-unavailable"
+      error_code:error?.code||"free-ai-unavailable"
     });
   }
 }
