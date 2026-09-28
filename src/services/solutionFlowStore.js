@@ -1,6 +1,7 @@
 import supabase from "./supabase";
 import {ensureAtlasSession} from "./passportStore";
 import {decodeOpportunityText} from "./opportunityCodec";
+import {recordAtlasActivity} from "./activityStore";
 
 async function invoke(action,payload={}){
   if(!supabase)throw new Error("supabase-unavailable");
@@ -12,6 +13,13 @@ async function invoke(action,payload={}){
     throw new Error(detail||error.message||"solution-flow-failed");
   }
   if(data?.error)throw new Error(data.error);
+  if(!["list","thread","mark_read"].includes(action)){
+    recordAtlasActivity(`solution_${action}`,{
+      path:"/messages",
+      label:["request","passport_request"].includes(action)?String(payload?.subject||"").slice(0,240):"",
+      meta:{action}
+    });
+  }
   return data||{};
 }
 
