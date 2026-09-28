@@ -1,4 +1,5 @@
 import {getOpenAIStatus,runOpenAIResponse} from "./_openai-ai.js";
+import {looksLikeCategory,looksLikeConcreteListing} from "./_search-utils.js";
 
 const MODEL="gpt-6-luna";
 
@@ -10,6 +11,9 @@ function send(res,status,body){
 
 function clean(value,limit=4000){return String(value||"").replace(/\s+/g," ").trim().slice(0,limit)}
 function safeUrl(value){try{const url=new URL(String(value||""));return /^https?:$/.test(url.protocol)?url.toString():""}catch{return ""}}
+function isCommerceTask(value){
+  return /куп|прод|придба|замов|товар|продукт|достав|постач|маркетплейс|оголош|buy|sell|order|product|delivery|supplier|marketplace|listing/iu.test(String(value||""));
+}
 function host(url){try{return new URL(url).hostname.replace(/^www\./,"")}catch{return ""}}
 function collectGrounding(data){
   const answerParts=[];
@@ -71,10 +75,11 @@ async function groundedSearch({goal,query,language="uk",domain="",locationText="
   }
 }
 
-function toResults({answer,sources,language,domain}){
+function toResults({answer,sources,language,domain,goal="",query=""}){
   if(!answer)return [];
   const uk=language!=="en";
   const health=domain==="health";
+  const commerce=isCommerceTask(`${goal} ${query}`);
   const answerResult={
     title:uk?"Відповідь Atlas з інтернету":"Atlas web answer",
     snippet:answer,
@@ -89,20 +94,25 @@ function toResults({answer,sources,language,domain}){
     quantity_text:"",
     verification_text:uk?"Відповідь сформована на основі актуального веб-пошуку; джерела наведені нижче.":"The answer is grounded in a current web search; sources are shown below."
   };
-  const sourceResults=sources.map((source,index)=>({
-    title:source.title||host(source.url)||`${uk?"Джерело":"Source"} ${index+1}`,
-    snippet:"",
-    url:source.url,
-    source_type:"web",
-    source_name:host(source.url)||"Інтернет",
-    source_group:"grounded-web-source",
-    result_kind:"web_result",
-    price_text:"",
-    location_text:"",
-    quantity_tonnes:null,
-    quantity_text:"",
-    verification_text:uk?"Джерело, використане для відповіді Atlas.":"A source used for the Atlas answer."
-  }));
+  const sourceResults=sources
+    .filter(source=>!commerce||looksLikeConcreteListing(source.url))
+    .filter(source=>!looksLikeCategory(source.url))
+    .map((source,index)=>({
+      title:source.title||host(source.url)||`${uk?"Джерело":"Source"} ${index+1}`,
+      snippet:"",
+      url:source.url,
+      source_type:commerce?"marketplace":"web",
+      source_name:host(source.url)||"Інтернет",
+      source_group:"grounded-web-source",
+      result_kind:commerce?"listing":"web_result",
+      price_text:"",
+      location_text:"",
+      quantity_tonnes:null,
+      quantity_text:"",
+      verification_text:uk
+        ?(commerce?"Конкретне джерело пропозиції, використане Atlas. Перевірте актуальність у продавця.":"Джерело, використане для відповіді Atlas.")
+        :(commerce?"A concrete offer source used by Atlas. Confirm availability with the seller.":"A source used for the Atlas answer.")
+    }));
   return [answerResult,...sourceResults];
 }
 
@@ -128,7 +138,7 @@ export default async function handler(req,res){
 
   const grounded=await groundedSearch({goal,query,language,domain,locationText});
   return send(res,200,{
-    results:toResults({...grounded,language,domain}),
+    results:toResults({...grounded,language,domain,goal,query}),
     configured:grounded.configured,
     search_status:grounded.answer?"grounded-answer":grounded.reason,
     source_count:grounded.sources.length,
