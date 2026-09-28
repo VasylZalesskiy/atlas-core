@@ -1,5 +1,6 @@
 import supabase from "./supabase";
 import {databaseKindForGroup,decodeOpportunityText,encodeOpportunityText} from "./opportunityCodec";
+import {recordAtlasActivity} from "./activityStore";
 export {opportunityGroups} from "./opportunityCodec";
 
 function decodeOpportunity(row){if(!row)return row;return {...row,...decodeOpportunityText(row.text,row.kind)}}
@@ -144,6 +145,10 @@ export async function saveMyPassport({passportId=null,accountId=null,displayName
   },{onConflict:"passport_id"});
   if(contactError)throw contactError;
   try{localStorage.setItem("atlas-active-passport",passport.id)}catch{}
+  recordAtlasActivity(passportId?"passport_updated":"passport_created",{
+    path:"/profile",
+    meta:{entity_type:cleanEntityType,has_city:Boolean(cleanCity)}
+  });
   return passport;
 }
 
@@ -155,7 +160,7 @@ export async function uploadOpportunityPhoto(file){
   const {data}=supabase.storage.from("opportunity-photos").getPublicUrl(path);return {url:data.publicUrl,path};
 }
 
-export async function addMyOpportunity(passportId,entry){const user=await ensureAtlasSession();const cleanText=String(entry?.text||"").trim();if(!passportId)throw fail("passport-required");if(!cleanText)throw fail("opportunity-required");const {data,error}=await supabase.from("atlas_opportunities").insert({passport_id:passportId,owner_id:user.id,kind:databaseKindForGroup(entry?.group),text:encodeOpportunityText(entry),is_active:true,visibility_scope:["global","groups","both"].includes(entry?.visibilityScope)?entry.visibilityScope:"global",expires_at:expiresAtForDuration(entry?.duration),photo_url:entry?.photoUrl||null,photo_label:entry?.photoLabel||null,photo_task:entry?.photoTask||null}).select("id,kind,text,is_active,visibility_scope,photo_url,photo_label,photo_task,created_at").single();if(error)throw error;return decodeOpportunity(data)}
+export async function addMyOpportunity(passportId,entry){const user=await ensureAtlasSession();const cleanText=String(entry?.text||"").trim();if(!passportId)throw fail("passport-required");if(!cleanText)throw fail("opportunity-required");const {data,error}=await supabase.from("atlas_opportunities").insert({passport_id:passportId,owner_id:user.id,kind:databaseKindForGroup(entry?.group),text:encodeOpportunityText(entry),is_active:true,visibility_scope:["global","groups","both"].includes(entry?.visibilityScope)?entry.visibilityScope:"global",expires_at:expiresAtForDuration(entry?.duration),photo_url:entry?.photoUrl||null,photo_label:entry?.photoLabel||null,photo_task:entry?.photoTask||null}).select("id,kind,text,is_active,visibility_scope,photo_url,photo_label,photo_task,created_at").single();if(error)throw error;recordAtlasActivity("opportunity_added",{path:"/profile",label:cleanText.slice(0,300),meta:{kind:data.kind,visibility_scope:data.visibility_scope}});return decodeOpportunity(data)}
 export async function updateMyOpportunity(id,entry){const user=await ensureAtlasSession();const cleanText=String(entry?.text||"").trim();if(!id||!cleanText)throw fail("opportunity-required");const {data,error}=await supabase.from("atlas_opportunities").update({kind:databaseKindForGroup(entry?.group),text:encodeOpportunityText(entry),photo_url:entry?.photo_url||entry?.photoUrl||null,photo_label:entry?.photo_label||entry?.photoLabel||null,photo_task:entry?.photo_task||entry?.photoTask||null}).eq("id",id).select("id,kind,text,is_active,visibility_scope,photo_url,photo_label,photo_task,created_at").single();if(error)throw error;return decodeOpportunity(data)}
 export async function setMyOpportunityActive(id,isActive){await ensureAtlasSession();const {data,error}=await supabase.from("atlas_opportunities").update({is_active:Boolean(isActive)}).eq("id",id).select("id,kind,text,is_active,visibility_scope,photo_url,photo_label,photo_task,created_at").single();if(error)throw error;return decodeOpportunity(data)}
 export async function setMyOpportunityCompleted(item,completed){
@@ -177,7 +182,7 @@ export async function recordMyOpportunityFulfillment(item){
 }
 export async function deleteMyOpportunity(id){const user=await ensureAtlasSession();const {error}=await supabase.from("atlas_opportunities").delete().eq("id",id);if(error)throw error}
 
-export async function addMyNeed(passportId,{groupKey,itemKey,unit,quantity,neededFrom,neededUntil}){const user=await ensureAtlasSession();const amount=Number(quantity);if(!passportId)throw fail("passport-required");if(!groupKey||!itemKey)throw fail("catalog-item-required");if(!Number.isFinite(amount)||amount<=0)throw fail("quantity-invalid");if(!neededFrom||!neededUntil||neededUntil<neededFrom)throw fail("date-range-invalid");const {data,error}=await supabase.from("atlas_needs").insert({passport_id:passportId,owner_id:user.id,group_key:String(groupKey),item_key:String(itemKey),quantity:amount,unit:String(unit||"шт").trim().slice(0,12),needed_from:neededFrom,needed_until:neededUntil,status:"not_received"}).select("id,group_key,item_key,quantity,unit,needed_from,needed_until,status,received_at,created_at,updated_at").single();if(error)throw error;return data}
+export async function addMyNeed(passportId,{groupKey,itemKey,unit,quantity,neededFrom,neededUntil}){const user=await ensureAtlasSession();const amount=Number(quantity);if(!passportId)throw fail("passport-required");if(!groupKey||!itemKey)throw fail("catalog-item-required");if(!Number.isFinite(amount)||amount<=0)throw fail("quantity-invalid");if(!neededFrom||!neededUntil||neededUntil<neededFrom)throw fail("date-range-invalid");const {data,error}=await supabase.from("atlas_needs").insert({passport_id:passportId,owner_id:user.id,group_key:String(groupKey),item_key:String(itemKey),quantity:amount,unit:String(unit||"шт").trim().slice(0,12),needed_from:neededFrom,needed_until:neededUntil,status:"not_received"}).select("id,group_key,item_key,quantity,unit,needed_from,needed_until,status,received_at,created_at,updated_at").single();if(error)throw error;recordAtlasActivity("need_added",{path:"/needs",label:`${String(groupKey)} / ${String(itemKey)}`,meta:{quantity:amount,unit:String(unit||"шт").slice(0,12)}});return data}
 export async function updateMyNeedStatus(id,status){const user=await ensureAtlasSession();const nextStatus=status==="received"?"received":"not_received";const now=new Date().toISOString();const {data,error}=await supabase.from("atlas_needs").update({status:nextStatus,received_at:nextStatus==="received"?now:null,updated_at:now}).eq("id",id).select("id,status,received_at,updated_at").single();if(error)throw error;return data}
 export async function deleteMyNeed(id){const user=await ensureAtlasSession();const {error}=await supabase.from("atlas_needs").delete().eq("id",id);if(error)throw error}
 export async function loadPublicPassport(slug){
@@ -206,6 +211,7 @@ export async function createPassportRequest(passport,opportunity,{message,reques
   if(error)throw error;
   const created=(data||[])[0];
   if(!created)throw fail("request-not-created");
+  recordAtlasActivity("solution_request",{path:"/messages",meta:{kind:"opportunity"}});
   return {...created,opportunity};
 }
 
