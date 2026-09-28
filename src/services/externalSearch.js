@@ -8,12 +8,9 @@ function concreteOnly(items){
   return (Array.isArray(items)?items:[]).filter(isConcreteExternalResult);
 }
 
-function preparedActions(items){
-  return (Array.isArray(items)?items:[]).filter(item=>["search_page","maps_search"].includes(item?.result_kind));
-}
-
 function usefulResults(items){
-  return uniqueResults([...concreteOnly(items),...preparedActions(items)]);
+  // Result cards must represent a concrete offer/place/answer, not a link to another search.
+  return uniqueResults(concreteOnly(items));
 }
 
 function uniqueResults(items){
@@ -74,7 +71,7 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
       query:searches.find(item=>item.source==="marketplace")?.query||plan?.goal||"",
       locationText:plan?.location_text||"",
       language:lang
-    })
+    }).filter(item=>["listing","store_option"].includes(item?.result_kind))
     :[];
 
   // Zero-cost mode: skip paid grounded AI web search and use the independent
