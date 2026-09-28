@@ -12,6 +12,10 @@ function isExplicitMarketplaceNeed(value){
   return /куп|прод|придба|замов|товар|продукт|оренд(?:а|увати)|обмін|опт|гурт|постачаль|маркетплейс|оголош|buy|sell|order|product|rent|exchange|wholesale|supplier|marketplace|listing/iu.test(String(value||""));
 }
 
+function isAssistanceNeed(value){
+  return /допомог|поміч|підвез|привез|забрат|help\s+me|need\s+help|assistance/iu.test(String(value||""));
+}
+
 export function createPassportSeedPlan(query,{lang="uk"}={}){
   const goal=clean(query),terms=cleanTerms(goal),uk=lang==="uk";
   return {
@@ -108,6 +112,7 @@ function enforceTaskChannel(plan,query){
   const next={...plan};
   const text=String(query||"");
   const service=isServiceNeed(text);
+  const assistance=isAssistanceNeed(text);
   const transaction=(isExplicitMarketplaceNeed(text)||isProductNeed(text))&&!service;
   const information=isInformationalQuery(text)||next.solution_scope==="information";
 
@@ -130,7 +135,7 @@ function enforceTaskChannel(plan,query){
   }
 
   if(transaction&&!information){
-    next.solution_scope="transaction";
+    next.solution_scope=assistance?"mixed":"transaction";
     next.external_searches=(next.external_searches||[]).filter(item=>item?.source==="marketplace");
     if(!next.external_searches.length){
       next.external_searches=[{source:"marketplace",mode:"standard",query:clean(next.goal)||clean(query),reason:"Find concrete products or listings"}];
