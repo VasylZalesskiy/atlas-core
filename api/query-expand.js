@@ -55,7 +55,16 @@ async function expandQuery(query){
       input:query,
       maxOutputTokens:320,
       timeoutMs:8000,
-      model:"gpt-6-luna"
+      model:"gpt-6-luna",
+      schema:{
+        type:"object",
+        additionalProperties:false,
+        required:["terms"],
+        properties:{
+          terms:{type:"array",items:{type:"string"},maxItems:14}
+        }
+      },
+      schemaName:"atlas_query_terms"
     });
     const terms=parseTerms(data?.output_text);
     if(terms.length)return {terms,model,provider:"openai",paid_fallback_used:true};
