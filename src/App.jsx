@@ -9,7 +9,7 @@ import SolutionNavigation from "./components/SolutionNavigation";
 import Solution from "./pages/Solution";
 import PilotGate from "./components/PilotGate";
 import i18n from "./i18n";
-import {loadSolutionFlows} from "./services/solutionFlowStore";
+import {loadSolutionFlows,subscribeSolutionFlowEvents} from "./services/solutionFlowStore";
 import {trackAtlasActivity} from "./services/analytics";
 
 const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBridge"));
@@ -99,10 +99,11 @@ export default function App(){
     };
     const onVisible=()=>refresh();
     refresh();
-    const timer=window.setInterval(refresh,15000);
+    const stopRealtime=subscribeSolutionFlowEvents(()=>refresh());
+    const timer=window.setInterval(refresh,30000);
     window.addEventListener("atlas:inbox-changed",onInbox);
     document.addEventListener("visibilitychange",onVisible);
-    return()=>{alive=false;window.clearInterval(timer);window.removeEventListener("atlas:inbox-changed",onInbox);document.removeEventListener("visibilitychange",onVisible)};
+    return()=>{alive=false;stopRealtime();window.clearInterval(timer);window.removeEventListener("atlas:inbox-changed",onInbox);document.removeEventListener("visibilitychange",onVisible)};
   },[backgroundReady,adminRoute]);
 
   useEffect(()=>{
