@@ -1,4 +1,4 @@
-import {useCallback,useEffect,useMemo,useState} from "react";
+import {useCallback,useEffect,useMemo,useRef,useState} from "react";
 import {ArrowLeft,CheckCircle2,Clock3,Inbox,MessageCircle,PackageCheck,Phone,RefreshCw,Send,X} from "lucide-react";
 import {Link,useSearchParams} from "react-router-dom";
 import {
@@ -9,7 +9,8 @@ import {
   markSolutionProvided,
   markSolutionThreadRead,
   respondToSolutionFlow,
-  sendSolutionMessage
+  sendSolutionMessage,
+  subscribeSolutionFlowEvents
 } from "../services/solutionFlowStore";
 import "../styles/messages.css";
 
@@ -66,6 +67,7 @@ export default function Messages({lang="uk"}){
   const [busy,setBusy]=useState("");
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
+  const messagesEndRef=useRef(null);
 
   const refreshFlows=useCallback(async({quiet=false}={})=>{
     if(!quiet)setLoading(true);
@@ -97,13 +99,30 @@ export default function Messages({lang="uk"}){
     if(selectedFromUrl&&selectedFromUrl!==selectedId)setSelectedId(selectedFromUrl);
   },[selectedFromUrl,selectedId]);
   useEffect(()=>{
-    const timer=window.setInterval(()=>{
-      if(document.visibilityState!=="visible")return;
-      refreshFlows({quiet:true});
-      if(selectedId)openThread(selectedId,{quiet:true});
-    },8000);
-    return()=>window.clearInterval(timer);
+    let busy=false;
+    const refreshConversation=async()=>{
+      if(busy||document.visibilityState==="hidden")return;
+      busy=true;
+      try{
+        await refreshFlows({quiet:true});
+        if(selectedId)await openThread(selectedId,{quiet:true});
+      }finally{busy=false}
+    };
+    const stopRealtime=subscribeSolutionFlowEvents(()=>refreshConversation());
+    const timer=window.setInterval(refreshConversation,20000);
+    const onVisible=()=>{if(document.visibilityState==="visible")refreshConversation()};
+    const onFocus=()=>refreshConversation();
+    document.addEventListener("visibilitychange",onVisible);
+    window.addEventListener("focus",onFocus);
+    return()=>{
+      stopRealtime();
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange",onVisible);
+      window.removeEventListener("focus",onFocus);
+    };
   },[refreshFlows,openThread,selectedId]);
+
+  useEffect(()=>{messagesEndRef.current?.scrollIntoView({block:"end",behavior:"smooth"})},[messages.length,selectedId]);
 
   const filteredFlows=useMemo(()=>flows.filter(flow=>{
     if(filter==="unread")return Number(flow.unread_count)>0;
@@ -193,6 +212,7 @@ export default function Messages({lang="uk"}){
           <div className="threadMessages">
             {messages.map(message=>{const mine=message.sender_side===thread.viewer_side;return <article className={mine?"mine":"theirs"} key={message.id}><p>{message.body}</p><time>{formatStamp(message.created_at,uk)}</time></article>})}
             {messages.length===0&&<div className="threadBlank">{uk?"Повідомлень ще немає.":"No messages yet."}</div>}
+            <div ref={messagesEndRef}/>
           </div>
 
           {(["accepted","provided"].includes(thread.status))&&<div className="threadProgressActions">
@@ -202,7 +222,7 @@ export default function Messages({lang="uk"}){
             <button type="button" className="cancel" disabled={Boolean(busy)} onClick={()=>action("cancel")}>{uk?"Скасувати":"Cancel"}</button>
           </div>}
 
-          {canReply?<form className="threadComposer" onSubmit={sendMessage}><textarea value={draft} onChange={event=>setDraft(event.target.value)} placeholder={uk?"Напишіть повідомлення…":"Write a message…"} maxLength={2000}/><button disabled={busy==="message"||!draft.trim()} aria-label={uk?"Надіслати повідомлення":"Send message"}><Send size={20}/><span>{uk?"Надіслати":"Send"}</span></button></form>:<div className="threadClosed">{uk?"Ця розмова завершена. Повідомлення збережені в історії.":"This conversation is closed. Messages remain in history."}</div>}
+          {canReply?<form className="threadComposer" onSubmit={sendMessage}><textarea autoFocus value={draft} onChange={event=>setDraft(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"&&!event.shiftKey&&!event.nativeEvent?.isComposing){event.preventDefault();event.currentTarget.form?.requestSubmit()}}} placeholder={uk?"Напишіть повідомлення…":"Write a message…"} maxLength={2000}/><button disabled={busy==="message"||!draft.trim()} aria-label={uk?"Надіслати повідомлення":"Send message"}><Send size={20}/><span>{uk?"Надіслати":"Send"}</span></button></form>:<div className="threadClosed">{uk?"Ця розмова завершена. Повідомлення збережені в історії.":"This conversation is closed. Messages remain in history."}</div>}
         </>}
       </section>
     </div>
