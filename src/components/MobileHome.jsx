@@ -116,8 +116,8 @@ export default function MobileHome({lang="uk"}){
       <Link className="mobilePassportCard capability" to="/profile">
         <IdCard size={27}/><div><strong>{uk?"Паспорт можливостей":"Opportunity Passport"}</strong><span>{uk?"Людина або компанія вказує, що має, вміє або може надати":"A person or company adds what they have, know or can provide"}</span></div><b>{uk?"Заповнити →":"Fill in →"}</b>
       </Link>
-      <Link className="mobilePassportCard need" to="/needs">
-        <HeartHandshake size={27}/><div><strong>{uk?"Паспорт потреб":"Needs Passport"}</strong><span>{uk?"Оберіть потребу зі списку, кількість і термін актуальності":"Choose a need from the list, quantity and validity period"}</span></div><b>{uk?"Додати потребу →":"Add need →"}</b>
+      <Link className="mobilePassportCard need" to="/needs?view=create">
+        <HeartHandshake size={27}/><div><strong>{uk?"Паспорт потреб":"Needs Passport"}</strong><span>{uk?"Додайте будь-яку потребу своїми словами":"Add any need in your own words"}</span></div><b>{uk?"Додати потребу →":"Add need →"}</b>
       </Link>
     </div>
 
