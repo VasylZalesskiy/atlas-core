@@ -4,6 +4,7 @@ import {FileText,HeartHandshake,MapPin,MessageSquare,PlusCircle,RotateCcw,Search
 import ThinkingState from "../components/ThinkingState";
 import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
+import LocationAutocomplete,{rememberedAtlasLocation,rememberAtlasLocation} from "../components/LocationAutocomplete";
 import {saveAtlasFeedback} from "../services/feedbackStore";
 import {trackAtlas} from "../services/analytics";
 import {getCurrentLocation} from "../services/geolocation";
@@ -20,7 +21,7 @@ function taskMayNeedLocation(task){return localTaskPattern.test(String(task||"")
 
 export default function Home({t,lang}){
   const [task,setTask]=useState("");
-  const [where,setWhere]=useState("");
+  const [where,setWhere]=useState(()=>rememberedAtlasLocation());
   const [geoLocation,setGeoLocation]=useState(null);
   const [thinking,setThinking]=useState(false);
   const [activeStep,setActiveStep]=useState(0);
@@ -46,6 +47,7 @@ export default function Home({t,lang}){
       try{nextLocation=await getCurrentLocation()}catch{}
     }
     setGeoLocation(nextLocation);
+    if(where.trim())rememberAtlasLocation(where);
 
     trackAtlas("Atlas Search Submitted",{
       language:lang,
@@ -59,7 +61,7 @@ export default function Home({t,lang}){
 
   function newSearch(){
     setTask("");
-    setWhere("");
+    setWhere(rememberedAtlasLocation());
     setGeoLocation(null);
     setThinking(false);
     setActiveStep(0);
@@ -127,7 +129,7 @@ export default function Home({t,lang}){
         <label style={{fontSize:12}}>{locationLabel}</label>
         <div className="location">
           <MapPin size={18}/>
-          <input value={where} onChange={e=>setWhere(e.target.value)} placeholder={t.wherePh} style={{fontSize:14}}/>
+          <LocationAutocomplete value={where} onChange={setWhere} lang={lang} placeholder={t.wherePh}/>
         </div>
 
         <div style={{display:"grid",gridTemplateColumns:hasSearch?"1fr auto":"1fr",gap:9}}>
