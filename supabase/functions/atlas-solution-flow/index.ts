@@ -179,6 +179,71 @@ Deno.serve(async request=>{
       return json({request:requestRow});
     }
 
+    if(action==="need_contact"){
+      const needId=String(body?.needId||"").trim();
+      const requestedProviderPassportId=String(body?.providerPassportId||"").trim()||null;
+      const customMessage=String(body?.message||"").trim().slice(0,1000);
+      if(!needId)return json({error:"need-required"},400);
+
+      const today=new Date().toISOString().slice(0,10);
+      const {data:need,error:needError}=await admin.from("atlas_needs")
+        .select("id,passport_id,owner_id,item_key,description,quantity,unit,status,needed_until")
+        .eq("id",needId)
+        .eq("status","not_received")
+        .gte("needed_until",today)
+        .maybeSingle();
+      if(needError)throw needError;
+      if(!need)return json({error:"need-not-found"},404);
+      if(passportIds.has(need.passport_id)||need.owner_id===user.id)return json({error:"own-need"},400);
+
+      const providerPassportId=requestedProviderPassportId&&passportIds.has(requestedProviderPassportId)
+        ?requestedProviderPassportId
+        :[...passportIds][0]||null;
+      if(!providerPassportId)return json({error:"passport-required"},400);
+
+      const {data:providerPassport,error:providerError}=await admin.from("atlas_passports")
+        .select("id,owner_id,display_name")
+        .eq("id",providerPassportId)
+        .maybeSingle();
+      if(providerError)throw providerError;
+      if(!providerPassport)return json({error:"passport-not-found"},404);
+
+      const needText=String(need.description||need.item_key||"потреба").trim();
+      const message=(customMessage||`Вітаю. Побачив(ла) вашу потребу «${needText}» в Atlas і хочу обговорити, як можу допомогти.`).slice(0,1000);
+
+      const {data:existing}=await admin.from("atlas_requests")
+        .select(requestFields)
+        .eq("passport_id",providerPassport.id)
+        .eq("requester_passport_id",need.passport_id)
+        .eq("need_id",need.id)
+        .eq("request_kind","passport_message")
+        .in("status",activeStatuses)
+        .order("created_at",{ascending:false})
+        .limit(1)
+        .maybeSingle();
+      if(existing)return json({request:existing,duplicate:true});
+
+      const {data:requestRow,error}=await admin.from("atlas_requests").insert({
+        passport_id:providerPassport.id,
+        requester_passport_id:need.passport_id,
+        opportunity_id:null,
+        need_id:need.id,
+        owner_id:providerPassport.owner_id,
+        requester_id:need.owner_id,
+        requester_name:"",
+        message,
+        subject:needText.slice(0,240),
+        request_kind:"passport_message",
+        status:"pending",
+        initiator_id:user.id,
+        initiator_side:"provider",
+        last_message_at:now
+      }).select(requestFields).single();
+      if(error)throw error;
+      await insertMessage(admin,requestRow,user.id,"provider",message,now);
+      return json({request:requestRow});
+    }
+
     if(action==="request"){
       const opportunityId=String(body?.opportunityId||"").trim();
       const needId=String(body?.needId||"").trim()||null;
