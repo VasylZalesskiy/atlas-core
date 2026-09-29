@@ -49,6 +49,7 @@ export default function Header({lang,setLang,inboxUnread=0}){
     <Link className="atlasTopbarV3Brand" to="/" aria-label={l.goHome}>
       <b>A</b>
       <span><strong>ATLAS</strong><small>{l.home}</small></span>
+      <em style={{fontStyle:"normal",fontSize:8,fontWeight:900,letterSpacing:".08em",color:"#7b6830",background:"#fff5d8",border:"1px solid #eadca9",borderRadius:999,padding:"2px 5px",alignSelf:"flex-start",marginTop:1}}>{lang==="uk"?"ТЕСТ":"TEST"}</em>
     </Link>
 
     <nav className="atlasTopbarV3Nav" aria-label={l.nav}>
