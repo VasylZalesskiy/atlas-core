@@ -31,7 +31,6 @@
   .needsMobileView-menu .needsHeading,.needsMobileView-menu .needComposer,.needsMobileView-menu .needsListHeading,.needsMobileView-menu .needsArchiveTabs,.needsMobileView-menu .needsList,.needsMobileView-menu .needsMobileBack{display:none}
 @media(min-width:761px){.needsWorkspace{max-width:760px;margin-inline:auto}.needsMobileMenu h1{font-size:30px}.needsMobileProduct{grid-template-columns:1fr auto;align-items:center}.needsMobileProduct button{padding:0 20px}}
   .needsMobileView-create .needsMobileMenu,.needsMobileView-create .needsHeading,.needsMobileView-create .needsListHeading,.needsMobileView-create .needsArchiveTabs,.needsMobileView-create .needsList{display:none}
-  .needsMobileView-create.needsSingleItem .needComposer:not(.freeNeedComposer)>.needStep:first-child{display:none}
   .needsMobileView-create .needComposer{margin-top:0}
   .needsMobileView-create .needComposerFooter>div{display:none}
   .needsMobileView-active .needsMobileMenu,.needsMobileView-archive .needsMobileMenu,.needsMobileView-active .needsHeading,.needsMobileView-archive .needsHeading,.needsMobileView-active .needsMobileCreateTitle,.needsMobileView-archive .needsMobileCreateTitle,.needsMobileView-active .needComposer,.needsMobileView-archive .needComposer{display:none}
