@@ -63,7 +63,7 @@ function isProductNeed(value){
   return extractRequestedKilograms(text)!==null||/куп|придба|замов|товар|продукт|постач|опт|гурт|buy|order|supplier|wholesale|bulk/i.test(text);
 }
 function isLodgingNeed(value){return /готел|отел|хостел|мотел|апартамент|житло на ніч|переноч|ночівл|hotel|hostel|motel|lodging|accommodation|place to stay/i.test(String(value||""))}
-function isAgricultureNeed(value){return /агро|сільськ|ферм|врожай|картоп|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|food|produce|peas?/i.test(String(value||""))}
+function isAgricultureNeed(value){return /агро|сільськ|ферм|врожай|картоп|греч|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|food|produce|peas?/i.test(String(value||""))}
 function isHealthNeed(value){return /болить|біль|живіт|голов|груд|спин|температур|нудот|блюван|запамороч|не можу дих|важко дих|непритом|кров у|каш(ель|ля)|травм|поріз|опік|тиск|серц|stomach ache|stomach pain|headache|chest pain|fever|nausea|vomit|dizz|faint|bleed|cannot breathe|can't breathe/i.test(String(value||""))}
 function healthDecision(value){
   const text=String(value||"");
@@ -92,7 +92,7 @@ export function createFallbackPlan(query,{lang="uk"}={}){
   const requestedKg=extractRequestedKilograms(goal);
   const localRetail=product&&requestedKg!==null&&requestedKg<=250;
   const productTerm=marketplaceSearchTerm(goal)||goal;
-  const nearbyQuery=lodging?(uk?"готель":"hotel"):service?goal:localRetail?clean(`${productTerm} ${uk?"магазин супермаркет":"store supermarket"}`):"";
+  const nearbyQuery=lodging?(uk?"готель":"hotel"):service?goal:localRetail?(agriculture?(uk?"продуктовий магазин супермаркет":"grocery store supermarket"):clean(`${productTerm} ${uk?"магазин":"store"}`)):"";
   const internetQuery=lodging?(uk?`готель ${goal}`:`hotel ${goal}`):product?(uk?`купити ${goal}`:`buy ${goal}`):goal;
   const searches=[];
   if(lodging||service||localRetail)searches.push({source:"maps",mode:"nearby",query:nearbyQuery,reason:uk?"Знайти конкретні місцеві варіанти":"Find concrete local options"});
@@ -145,7 +145,8 @@ function enforceTaskChannel(plan,query){
     const requestedKg=extractRequestedKilograms(text);
     const localRetail=requestedKg!==null&&requestedKg<=250;
     const productTerm=marketplaceSearchTerm(text)||clean(next.goal)||clean(query);
-    const localQuery=clean(`${productTerm} магазин супермаркет`);
+    const foodProduct=isAgricultureNeed(text);
+    const localQuery=foodProduct?"продуктовий магазин супермаркет":clean(`${productTerm} магазин`);
     next.solution_scope=(assistance||localRetail)?"mixed":"transaction";
     next.needs_location=Boolean(next.needs_location||localRetail);
     const marketplace={source:"marketplace",mode:"standard",query:clean(next.goal)||clean(query),reason:"Find concrete products or listings"};
