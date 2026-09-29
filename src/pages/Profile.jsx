@@ -25,8 +25,8 @@ function cleanRequestMessage(value){return String(value||"").replace(/[\u200B-\u
 function OpportunityFields({value,onChange,textareaRef,compact=false,onPhoto,catalogGroups=[],catalogItems=[],availableGroups=[]}){
   const selling=value.group==="sell";const config=opportunityFieldConfig[value.group]||opportunityFieldConfig.have;const paid=selling||value.paymentType==="paid";const photo=value.photoUrl||value.photo_url;
   const priceUnitsForGroup=selling?saleUnits:(config.priceUnits?.length?config.priceUnits:servicePriceUnits);
-  const activeGroups=catalogGroups.filter(item=>item.is_active!==false);
-  const itemsForGroup=catalogItems.filter(item=>item.is_active!==false&&item.group_key===value.catalogGroupKey);
+  const activeGroups=catalogGroups.filter(item=>item.is_active!==false&&item.group_key!=="custom");
+  const itemsForGroup=catalogItems.filter(item=>item.is_active!==false&&item.group_key!=="custom"&&item.item_key!=="custom"&&item.group_key===value.catalogGroupKey);
   function setOpportunityGroup(group){
     const nextConfig=opportunityFieldConfig[group]||opportunityFieldConfig.have;
     if(group!=="sell"){
