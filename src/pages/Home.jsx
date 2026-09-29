@@ -1,6 +1,6 @@
 import {useEffect,useState} from "react";
 import {Link,useNavigate} from "react-router-dom";
-import {FileText,MapPin,MessageSquare,PlusCircle,RotateCcw,Search,Smartphone} from "lucide-react";
+import {FileText,HeartHandshake,MapPin,MessageSquare,PlusCircle,RotateCcw,Search,Smartphone} from "lucide-react";
 import ThinkingState from "../components/ThinkingState";
 import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
@@ -88,9 +88,6 @@ export default function Home({t,lang}){
   if(thinking)return <ThinkingState steps={t.thinkingSteps} activeStep={activeStep}/>;
 
   const title=lang==="uk"?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task";
-  const subtitle=lang==="uk"
-    ?"Опишіть задачу — Atlas знайде рішення."
-    :"Describe the task — Atlas will find a solution.";
   const placeholder=lang==="uk"
     ?"Наприклад: потрібен генератор на сьогодні"
     :"For example: I need a generator today";
@@ -105,10 +102,6 @@ export default function Home({t,lang}){
 
   return <main className="home">
     <section className="hero" style={{paddingTop:40}}>
-      <div style={{display:"inline-flex",alignItems:"center",gap:7,marginBottom:10,padding:"6px 10px",borderRadius:999,background:"#fff7df",border:"1px solid #ead79b",color:"#765f20",fontSize:11,fontWeight:900,letterSpacing:".08em"}}>
-        ATLAS · {lang==="uk"?"ТЕСТОВА ВЕРСІЯ":"TEST VERSION"}
-      </div>
-
       <div style={{marginBottom:18,display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap"}}>
         <a href={aboutUrl} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,color:"#0d7a41",fontSize:13,fontWeight:800,textDecoration:"underline",textUnderlineOffset:3}}>
           <FileText size={16}/>
@@ -120,9 +113,8 @@ export default function Home({t,lang}){
         </Link>
       </div>
 
-      <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,letterSpacing:"-.035em",marginBottom:28}}>
+      <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,letterSpacing:"-.035em",marginBottom:22}}>
         {title}
-        <span style={{fontSize:"clamp(16px,1.8vw,20px)",lineHeight:1.45,letterSpacing:0,fontWeight:600,maxWidth:700,margin:"12px auto 0"}}>{subtitle}</span>
       </h1>
 
       <form className="searchbox mainSearchbox" onSubmit={go} style={{padding:20}}>
@@ -130,7 +122,7 @@ export default function Home({t,lang}){
           <label style={{fontSize:12}}>{lang==="uk"?"Опишіть вашу задачу":"Describe your task"}</label>
           {hasSearch&&<button type="button" onClick={newSearch} style={{border:0,background:"transparent",color:"#0d7a41",display:"inline-flex",alignItems:"center",gap:6,fontSize:12,fontWeight:900,cursor:"pointer"}}><RotateCcw size={15}/>{lang==="uk"?"Новий пошук":"New search"}</button>}
         </div>
-        <VoiceTaskInput autoFocus value={task} onChange={setTask} lang={lang} placeholder={placeholder}/>
+        <VoiceTaskInput autoFocus value={task} onChange={setTask} lang={lang} placeholder={placeholder} onKeyDown={event=>{if(event.key==="Enter"&&!event.shiftKey&&!event.nativeEvent?.isComposing){event.preventDefault();event.currentTarget.form?.requestSubmit()}}}/>
 
         <label style={{fontSize:12}}>{locationLabel}</label>
         <div className="location">
@@ -158,13 +150,25 @@ export default function Home({t,lang}){
         <SearchHistoryList lang={lang} compact limit={4} onSelect={item=>nav(solutionUrl(item.task,item.where))}/>
       </section>
 
-      <section style={{maxWidth:680,margin:"28px auto 0",padding:"18px 20px",background:"#fff",border:"1px solid #dfe8e2",borderRadius:18,textAlign:"left"}}>
-        <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-          <PlusCircle size={24} color="#0d7a41" style={{flex:"0 0 auto"}}/>
-          <div style={{flex:1}}>
-            <h2 style={{margin:"0 0 5px",fontSize:18}}>{capabilityTitle}</h2>
-            <p style={{margin:"0 0 13px",color:"#66746c",lineHeight:1.5,fontSize:14}}>{capabilityText}</p>
-            <Link className="primary" style={{display:"inline-flex",padding:"10px 15px",fontSize:13}} to="/profile">{capabilityButton}</Link>
+      <section style={{maxWidth:780,margin:"28px auto 0",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:12,textAlign:"left"}}>
+        <div style={{padding:"18px 20px",background:"#fff",border:"1px solid #dfe8e2",borderRadius:18}}>
+          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+            <PlusCircle size={24} color="#0d7a41" style={{flex:"0 0 auto"}}/>
+            <div style={{flex:1}}>
+              <h2 style={{margin:"0 0 5px",fontSize:18}}>{capabilityTitle}</h2>
+              <p style={{margin:"0 0 13px",color:"#66746c",lineHeight:1.5,fontSize:14}}>{capabilityText}</p>
+              <Link className="primary" style={{display:"inline-flex",padding:"10px 15px",fontSize:13}} to="/profile">{capabilityButton}</Link>
+            </div>
+          </div>
+        </div>
+        <div style={{padding:"18px 20px",background:"#fff",border:"1px solid #dfe8e2",borderRadius:18}}>
+          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+            <HeartHandshake size={24} color="#0d7a41" style={{flex:"0 0 auto"}}/>
+            <div style={{flex:1}}>
+              <h2 style={{margin:"0 0 5px",fontSize:18}}>{lang==="uk"?"Що вам потрібно?":"What do you need?"}</h2>
+              <p style={{margin:"0 0 13px",color:"#66746c",lineHeight:1.5,fontSize:14}}>{lang==="uk"?"Додайте потребу своїми словами.":"Add a need in your own words."}</p>
+              <Link className="primary" style={{display:"inline-flex",padding:"10px 15px",fontSize:13}} to="/needs?view=create">{lang==="uk"?"+ Додати потребу":"+ Add a need"}</Link>
+            </div>
           </div>
         </div>
       </section>
