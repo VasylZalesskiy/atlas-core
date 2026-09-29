@@ -41,7 +41,7 @@ function sourceForInternetStep(step,plannedSources,index){
   if(planned)return planned;
   const text=`${step?.title||""} ${step?.purpose||""} ${step?.internet_query||""}`;
   const commerce=/куп|прод|придба|замов|опт|гурт|товар|постач|маркетплейс|оголош|buy|sell|order|wholesale|supplier|marketplace|listing/i.test(text)
-    ||/\d+(?:[\s.]\d{3})*(?:[.,]\d+)?\s*(?:кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|т(?!\p{L})|тонн(?:а|и|у)?|tonnes?\b)/iu.test(text);
+    ||/\d+(?:[\s.]\d{3})*(?:[.,]\d+)?\s*(?:кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|т(?!\p{L})|тонн(?:а|и|у)?|пар(?:а|и)?|шт(?:\.|ук(?:а|и|ів)?)?|упаков\p{L}*|пач\p{L}*|короб\p{L}*|ящик\p{L}*|комплект\p{L}*|pairs?|pcs?|packs?|boxes?|sets?)(?!\p{L})/iu.test(text);
   return commerce?"marketplace":"web";
 }
 
