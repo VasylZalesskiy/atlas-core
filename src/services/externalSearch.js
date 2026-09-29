@@ -71,7 +71,7 @@ export async function searchExternalSources(plan,{lang="uk",signal}={}){
       query:searches.find(item=>item.source==="marketplace")?.query||plan?.goal||"",
       locationText:plan?.location_text||"",
       language:lang
-    }).filter(item=>["listing","store_option"].includes(item?.result_kind))
+    }).filter(item=>["listing","store_option","search_page"].includes(item?.result_kind))
     :[];
 
   // Zero-cost mode: skip paid grounded AI web search and use the independent
