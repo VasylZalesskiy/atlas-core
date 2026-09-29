@@ -53,7 +53,7 @@ export default function Needs({lang="uk"}){
       <span className="needsOnboardingIcon"><HeartHandshake size={32}/></span>
       <span className="needsOnboardingEyebrow">ATLAS · {uk?"ПАСПОРТ ПОТРЕБ":"NEEDS PASSPORT"}</span>
       <h1>{uk?"Що вам потрібно?":"What do you need?"}</h1>
-      <p>{uk?"Людина або компанія створює профіль один раз, а далі обирає потреби тільки зі списку Atlas із кількістю та терміном актуальності.":"A person or company creates a profile once, then selects needs only from the Atlas list with quantity and validity dates."}</p>
+      <p>{uk?"Людина або компанія створює профіль один раз, а далі може написати будь-яку потребу своїми словами або обрати структуровану потребу зі списку Atlas.":"A person or company creates a profile once, then can describe any need in their own words or choose a structured need from the Atlas list."}</p>
       <div className="needsOnboardingBenefits">
         <div><IdCard size={19}/><span><strong>{uk?"Один профіль":"One profile"}</strong><small>{uk?"для потреб і можливостей":"for needs and opportunities"}</small></span></div>
         <div><LockKeyhole size={19}/><span><strong>{uk?"Контакт приватний":"Private contact"}</strong><small>{uk?"відкривається лише за згодою":"revealed only with consent"}</small></span></div>
