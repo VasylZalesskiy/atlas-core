@@ -151,7 +151,7 @@ export default function App(){
           <Route path="*" element={<Navigate to="/" replace/>}/>
         </Routes>
         <BottomNav lang={lang} inboxUnread={inboxUnread}/>
-        <footer>Atlas 2.6 · {lang==="uk"?"Тестова версія":"Test version"} · {t.principle}</footer>
+        <footer>Atlas 2.6 · {t.principle}</footer>
       </PilotGate>}
     </Suspense>
     <Analytics/>
