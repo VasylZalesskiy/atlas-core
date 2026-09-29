@@ -539,7 +539,7 @@ ${initialWhere}`;
   const [originLoading,setOriginLoading]=useState(false);
   const [originError,setOriginError]=useState("");
   const [sortMode,setSortMode]=useState("recommended");
-  const effectiveClarification=Boolean(effectiveClarification)
+  const effectiveClarification=plan?.clarification?.required
     ?plan.clarification
     :(externalRequested&&brainReady?genericMoneyClarification(activeTask,lang):null);
   const geo=useGeolocation(state?.geoLocation||null);
