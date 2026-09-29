@@ -13,6 +13,7 @@ import {trackAtlas,trackAtlasActivity} from "../services/analytics";
 import useGeolocation from "../hooks/useGeolocation";
 import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
+import LocationAutocomplete,{rememberedAtlasLocation,rememberAtlasLocation} from "../components/LocationAutocomplete";
 import {saveSearchHistory} from "../services/searchHistory";
 import {createAvailabilityCheck,loadMyPassport} from "../services/passportStore";
 import {startNeedConversation} from "../services/solutionFlowStore";
@@ -35,7 +36,6 @@ function searchCore(value){
   }
   return text||clean(value);
 }
-function savedAtlasCity(){try{return clean(localStorage.getItem("atlas-city")||"")}catch{return ""}}
 function genericMoneyClarification(value,lang="uk"){
   const text=clean(value).toLowerCase();
   if(!/^(?:мені\s+)?(?:потрібні|потрібно|треба|хочу)?\s*(?:кошти|гроші|фінансування|money|funding)\s*$/iu.test(text))return null;
@@ -505,7 +505,7 @@ export default function Solution({lang}){
   const [searchParams,setSearchParams]=useSearchParams();
   const initialTask=clean(searchParams.get("q")||state?.task);
   const routeWhere=clean(searchParams.get("where")||state?.where);
-  const [passportCity,setPassportCity]=useState(()=>savedAtlasCity());
+  const [passportCity,setPassportCity]=useState(()=>rememberedAtlasLocation());
   const initialWhere=routeWhere||passportCity;
   const [locationDraft,setLocationDraft]=useState(initialWhere);
   const routeSignature=`${initialTask}
@@ -555,7 +555,7 @@ ${initialWhere}`;
     loadMyPassport().then(data=>{
       const city=clean(data?.passport?.city);
       if(!alive||!city)return;
-      try{localStorage.setItem("atlas-city",city)}catch{}
+      rememberAtlasLocation(city);
       setPassportCity(city);
       setLocationDraft(city);
     }).catch(()=>{});
@@ -1125,7 +1125,7 @@ ${initialWhere}`;
   function applyLocationText(){
     const value=clean(locationDraft);
     if(!value)return;
-    try{localStorage.setItem("atlas-city",value)}catch{}
+    rememberAtlasLocation(value);
     setPassportCity(value);
     const next=new URLSearchParams(searchParams);
     next.set("q",activeTask||task);
@@ -1209,7 +1209,7 @@ ${initialWhere}`;
 
       <div className="simpleLocationRow">
         <MapPin size={17}/><span>{lang==="uk"?"Локація:":"Location:"}</span><strong>{locationText}</strong>
-        {!initialWhere&&<div className="simpleLocationEntry"><input value={locationDraft} onChange={event=>setLocationDraft(event.target.value)} onKeyDown={event=>{if(event.key==="Enter"){event.preventDefault();applyLocationText()}}} placeholder={lang==="uk"?"Місто або район":"City or area"}/><button type="button" onClick={applyLocationText} disabled={!locationDraft.trim()}>{lang==="uk"?"Шукати тут":"Search here"}</button></div>}
+        {!initialWhere&&<div className="simpleLocationEntry"><LocationAutocomplete value={locationDraft} onChange={setLocationDraft} onSelect={()=>window.setTimeout(applyLocationText,0)} lang={lang} placeholder={lang==="uk"?"Місто, село або країна":"City, village or country"}/><button type="button" onClick={applyLocationText} disabled={!locationDraft.trim()}>{lang==="uk"?"Шукати тут":"Search here"}</button></div>}
         {!origin&&<button className="simpleLocationAction" type="button" onClick={()=>geo.requestLocation()} disabled={geo.loading}>{geo.loading?(lang==="uk"?"Визначаю…":"Locating…"):(lang==="uk"?"Моя геолокація":"My location")}</button>}
       </div>
 
