@@ -58,9 +58,12 @@ export function createPassportSeedPlan(query,{lang="uk"}={}){
 }
 
 
+function hasGenericProductQuantity(value){
+  return /\b\d[\d\s.]*(?:[.,]\d+)?\s*(?:пар(?:а|и)?|шт(?:\.|ук(?:а|и|ів)?)?|упаков(?:ка|ки|ок)|пач(?:ка|ки|ок)|короб(?:ка|ки|ок)|ящик(?:а|и|ів)?|комплект(?:а|и|ів)?|pcs?|pairs?|packs?|boxes?|sets?)\b/iu.test(String(value||""));
+}
 function isProductNeed(value){
   const text=String(value||"");
-  return extractRequestedKilograms(text)!==null||/куп|придба|замов|товар|продукт|постач|опт|гурт|buy|order|supplier|wholesale|bulk/i.test(text);
+  return extractRequestedKilograms(text)!==null||hasGenericProductQuantity(text)||/куп|придба|замов|товар|продукт|постач|опт|гурт|buy|order|supplier|wholesale|bulk/i.test(text);
 }
 function isLodgingNeed(value){return /готел|отел|хостел|мотел|апартамент|житло на ніч|переноч|ночівл|hotel|hostel|motel|lodging|accommodation|place to stay/i.test(String(value||""))}
 function isAgricultureNeed(value){return /агро|сільськ|ферм|врожай|картоп|греч|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|food|produce|peas?/i.test(String(value||""))}
