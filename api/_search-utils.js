@@ -165,7 +165,7 @@ export function extractPriceText(text){
 }
 
 function isAgriculture(text){
-  return /агро|agri|сільськ|ферм|врожай|картоп|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|добрив|комбікорм|food|produce|peas?/i.test(String(text||""));
+  return /агро|agri|сільськ|ферм|врожай|картоп|греч|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|добрив|комбікорм|food|produce|peas?/i.test(String(text||""));
 }
 
 export function isProductTransaction(text){
@@ -235,7 +235,7 @@ const SEARCH_STOP_WORDS=new Set([
   "ton","tons","tonne","tonnes","kg","kilogram","kilograms"
 ]);
 
-const SEARCH_WORD_ALIASES={гороху:"горох",гороха:"горох",картоплі:"картопля",картоплю:"картопля",картоплею:"картопля"};
+const SEARCH_WORD_ALIASES={гороху:"горох",гороха:"горох",картоплі:"картопля",картоплю:"картопля",картоплею:"картопля",гречки:"гречка",гречку:"гречка",гречкою:"гречка"};
 
 export function marketplaceSearchTerm(text){
   const withoutQuantity=String(text||"")
