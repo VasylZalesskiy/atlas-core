@@ -168,8 +168,12 @@ function isAgriculture(text){
   return /агро|agri|сільськ|ферм|врожай|картоп|греч|горох|бобов|круп|овоч|фрукт|зерн|пшени|кукурудз|соняш|буряк|морк|цибул|капуст|яблук|ягод|насін|добрив|комбікорм|food|produce|peas?/i.test(String(text||""));
 }
 
+function hasMerchandiseCount(text){
+  return /(?:^|\s)\d[\d\s.]*(?:[.,]\d+)?\s*(?:пар(?:а|и)?|шт(?:\.|ук(?:а|и|ів)?)?|упаков\w*|пач\w*|короб\w*|ящик\w*|комплект\w*|pairs?|pcs?|packs?|boxes?|sets?)\b/iu.test(String(text||""));
+}
+
 export function isProductTransaction(text){
-  return extractRequestedKilograms(text)!==null||/куп|прод|товар|продукт|постач|опт|гурт|кілограм|достав|оренд|buy|sell|supplier|wholesale|bulk|product|delivery/iu.test(String(text||""));
+  return extractRequestedKilograms(text)!==null||hasMerchandiseCount(text)||/куп|прод|товар|продукт|постач|опт|гурт|кілограм|достав|оренд|buy|sell|supplier|wholesale|bulk|product|delivery/iu.test(String(text||""));
 }
 
 export function sourceGroupsFor({source="web",goal="",query="",domain=""}={}){
@@ -192,8 +196,7 @@ export function sourceGroupsFor({source="web",goal="",query="",domain=""}={}){
     return bulk;
   }
   if(isProductTransaction(context))return [
-    {id:"retail-stores",label:"магазини та маркетплейси",domains:["atbmarket.com","rozetka.com.ua","silpo.ua","metro.zakaz.ua","novus.zakaz.ua","auchan.zakaz.ua","prom.ua"]},
-    {id:"marketplaces",label:"маркетплейси",domains:["olx.ua","prom.ua","rozetka.com.ua"]},
+    {id:"marketplaces",label:"маркетплейси",domains:["prom.ua","rozetka.com.ua","olx.ua"]},
     {id:"business-classifieds",label:"бізнес-оголошення",domains:["flagma.ua"]}
   ];
   return [{id:"marketplace-web",label:"маркетплейси та дошки оголошень",domains:[]}];
@@ -241,6 +244,7 @@ export function marketplaceSearchTerm(text){
   const withoutQuantity=String(text||"")
     .toLowerCase()
     .replace(/\d+(?:[\s.]*\d)*(?:[.,]\d+)?\s*(?:тон(?:н(?:а|и|у)?|а|и|у)?(?!\p{L})|т(?!\p{L})|кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|tonnes?\b|tons?\b)/giu," ")
+    .replace(/\d+(?:[\s.]*\d)*(?:[.,]\d+)?\s*(?:пар(?:а|и)?|шт(?:\.|ук(?:а|и|ів)?)?|упаков\w*|пач\w*|короб\w*|ящик\w*|комплект\w*|pairs?|pcs?|packs?|boxes?|sets?)\b/giu," ")
     .replace(/[^\p{L}\p{N}\s-]/gu," ");
   const seen=new Set();
   const words=withoutQuantity.split(/\s+/).filter(Boolean).filter(word=>!SEARCH_STOP_WORDS.has(word)).map(word=>SEARCH_WORD_ALIASES[word]||word).filter(word=>{
