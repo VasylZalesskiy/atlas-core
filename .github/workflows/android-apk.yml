@@ -1,0 +1,63 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "capacitor.config.ts"
+      - "assets/**"
+      - ".github/workflows/android-apk.yml"
+      - "package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Create Android project
+        run: npx cap add android
+
+      - name: Generate ATLAS Android icon and splash
+        run: npx capacitor-assets generate --android --iconBackgroundColor '#0c8748' --iconBackgroundColorDark '#0c8748' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#0b1f15'
+
+      - name: Sync Capacitor
+        run: npx cap sync android
+
+      - name: Build installable debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Rename APK
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ATLAS-android-debug.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATLAS-Android-APK
+          path: ATLAS-android-debug.apk
+          if-no-files-found: error
+          retention-days: 14
