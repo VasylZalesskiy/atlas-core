@@ -10,7 +10,10 @@
     "test": "node --test",
     "mobile:android:sync": "npx cap sync android",
     "mobile:android:open": "npx cap open android",
-    "mobile:android:assets": "npx capacitor-assets generate --android --iconBackgroundColor '#0c8748' --iconBackgroundColorDark '#0c8748' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#0b1f15'"
+    "mobile:android:assets": "npx capacitor-assets generate --android --iconBackgroundColor '#0c8748' --iconBackgroundColorDark '#0c8748' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#0b1f15'",
+    "mobile:ios:sync": "npx cap sync ios",
+    "mobile:ios:open": "npx cap open ios",
+    "mobile:ios:assets": "npx capacitor-assets generate --ios --iconBackgroundColor '#0c8748' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#0b1f15'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
@@ -25,7 +28,8 @@
     "react-i18next": "^15.7.3",
     "react-router-dom": "^6.30.0",
     "@capacitor/core": "^8.0.2",
-    "@capacitor/android": "^8.0.2"
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/ios": "^8.0.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.1",
