@@ -194,7 +194,6 @@ function universalizePlan(plan,query,{lang="uk",locationAvailable=false}={}){
   if(!plan||plan?.domain==="health")return plan;
   const fallback=createFallbackPlan(query,{lang});
   const next={...plan};
-  if(next?.clarification?.required&&hasExternal(next))next.clarification={required:false,question:"",options:[]};
 
   const searches=[...(Array.isArray(next.external_searches)?next.external_searches:[])];
   if(needsLiveWeb(next)&&!hasWeb(next))searches.push({source:"web",mode:"standard",query:clean(next.goal)||clean(query),reason:lang==="uk"?"Отримати актуальну відповідь із живих зовнішніх джерел":"Get a current answer from live external sources"});
