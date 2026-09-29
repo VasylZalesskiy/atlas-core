@@ -24,3 +24,8 @@
 .atlasAiUnderstanding>div:last-child{display:grid;gap:4px}.atlasAiUnderstanding span{font-size:10px;font-weight:900;letter-spacing:.12em;color:#0b8144}.atlasAiUnderstanding h2{margin:0;font-size:18px;letter-spacing:-.02em;color:#1a2b21}.atlasAiUnderstanding strong{font-size:22px;line-height:1.25;color:#0b6f3d}.atlasAiUnderstanding p{margin:4px 0 0;color:#68766e;font-size:13px;line-height:1.45}
 .atlasInternalResults{background:#fff}.atlasInternalHead{margin-bottom:0}.atlasInternalGrid{margin-top:14px}
 @media(max-width:760px){.atlasAiUnderstanding{grid-template-columns:38px 1fr;padding:14px}.atlasAiIcon{width:38px;height:38px;border-radius:12px}.atlasAiUnderstanding strong{font-size:18px}.atlasInternalHead h2{font-size:20px}}
+
+.needContactActions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex:0 0 auto}
+.needContactActions .chainAction{margin-top:0;grid-column:auto;white-space:nowrap}
+.needContactError{margin-bottom:14px;color:#8a3b2f;background:#fff8f6;border-color:#efdbd5}
+@media(max-width:760px){.needContactActions{width:100%;justify-content:stretch}.needContactActions .chainAction{flex:1}}
