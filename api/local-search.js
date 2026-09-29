@@ -39,6 +39,7 @@ function serviceConfig(query){
   if(/невідклад|лікарн|швидк.*допомог|urgent|emergency|hospital/.test(q))return {category:"urgent-medical",label:"Медична допомога",selectors:['["amenity"~"^(hospital|clinic|doctors)$"]','["healthcare"~"^(hospital|clinic|doctor|health_post)$"]']};
   if(/сімейн.*лікар|амбулатор|поліклін|медичн.*(?:центр|допомог)|лікар|doctor|clinic|medical care/.test(q))return {category:"medical",label:"Лікар / амбулаторія",selectors:['["amenity"~"^(clinic|doctors)$"]','["healthcare"~"^(clinic|doctor|health_post)$"]']};
   if(/готел|hotel|hostel/.test(q))return {category:"lodging",label:"Готель",selectors:['["tourism"="hotel"]','["tourism"="hostel"]']};
+  if(/продуктов|супермаркет|grocery|supermarket/.test(q))return {category:"grocery",label:"Продуктовий магазин",selectors:['["shop"="supermarket"]','["shop"="convenience"]','["shop"="grocery"]']};
   if(/ресторан|кафе|restaurant|cafe/.test(q))return {category:"food",label:"Заклад",selectors:['["amenity"="restaurant"]','["amenity"="cafe"]']};
   return {category:"other",label:clean(query)||"Послуга",selectors:[]};
 }
