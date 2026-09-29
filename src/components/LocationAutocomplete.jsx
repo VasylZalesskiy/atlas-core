@@ -1,6 +1,7 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import {MapPin} from "lucide-react";
 import {searchDestination} from "../services/googleMaps";
+import "../styles/locationAutocomplete.css";
 
 const MEMORY_KEY="atlas-city";
 
