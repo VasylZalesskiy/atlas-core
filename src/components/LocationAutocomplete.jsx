@@ -20,7 +20,7 @@ export function rememberAtlasLocation(value){
 function expandedQuery(value,lang){
   const q=clean(value);
   const lower=q.toLocaleLowerCase(lang==="en"?"en":"uk");
-  if(["ук","уа","ua","ukr","ukraine","укра","україна"].includes(lower))return lang==="en"?"Ukraine":"Україна";
+  if(["ук","uk","уа","ua","ukr","ukraine","укра","україна"].includes(lower))return lang==="en"?"Ukraine":"Україна";
   return q;
 }
 
