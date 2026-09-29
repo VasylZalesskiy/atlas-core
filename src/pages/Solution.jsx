@@ -167,7 +167,7 @@ function internetCandidate(item,index,lang){
     verificationText:item.verification_text||"",
     resultKind:item.result_kind||"source_page",
     googleMapsUrl:item.google_maps_url||"",
-    resolved:["listing","store_option","web_answer","web_result","official_result"].includes(item.result_kind)
+    resolved:["listing","store_option","search_page","web_answer","web_result","official_result"].includes(item.result_kind)
   };
 }
 
@@ -966,7 +966,7 @@ ${initialWhere}`;
   const resolvedCandidates=sortedCandidates.filter(candidate=>candidate.resolved);
   const actionableCandidates=resolvedCandidates.filter(candidate=>{
     if(candidate?.kind==="passport_history")return false;
-    if(candidate?.kind==="external"&&["search_page","maps_search","store_option_pending"].includes(candidate.resultKind))return false;
+    if(candidate?.kind==="external"&&["maps_search","store_option_pending"].includes(candidate.resultKind))return false;
     return true;
   });
   const informationMode=plan?.solution_scope==="information";
