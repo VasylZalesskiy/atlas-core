@@ -670,11 +670,7 @@ ${initialWhere}`;
     brainRunRef.current=runKey;
 
     setBrainLoading(true);
-    setBrainReady(false);
     setBrainError("");
-    setSearchScope("");
-    setNearbyGroups([]);
-    setInternetGroups([]);
 
     analyzeAtlasQuery(searchCore(activeTask),{
       lang,
@@ -1127,16 +1123,21 @@ ${initialWhere}`;
 
   function startExternalSearch(){
     if(!internalChecked||externalRequested)return;
+    const fallback=createFallbackPlan(searchCore(activeTask),{lang});
+    const fallbackPlan={...fallback,location_text:initialWhere,original_query:activeTask};
+    const fallbackSteps=normalizeSteps(fallbackPlan,activeTask,lang);
+    const fallbackScope=automaticSearchScope(fallbackPlan,fallbackSteps);
+    setPlan(fallbackPlan);
     setExternalRequested(true);
-    setBrainReady(false);
+    setBrainReady(true);
     setBrainError("");
     brainRunRef.current="";
-    setSearchScope("");
+    setSearchScope(fallbackScope==="direct"?"internet":fallbackScope);
     setNearbyGroups([]);
     setInternetGroups([]);
     setRecoveryCandidates([]);
     recoveryRunRef.current="";
-    trackAtlas("Atlas Open Sources Search Requested",{language:lang,query:activeTask});
+    trackAtlas("Atlas Open Sources Search Requested",{language:lang,query:activeTask,initial_scope:fallbackScope});
   }
 
   function chooseSearchScope(scope){
