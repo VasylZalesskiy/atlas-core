@@ -2,7 +2,7 @@ import {useEffect,useMemo,useRef,useState} from "react";
 import {Link,useLocation,useSearchParams} from "react-router-dom";
 import {
   ArrowLeft,Check,Clock3,ExternalLink,Globe2,HeartHandshake,MapPin,Navigation,
-  MessageCircle,Phone,RefreshCw,Search,UserRound
+  MessageCircle,Phone,RefreshCw,Search,Sparkles,UserRound
 } from "lucide-react";
 import {analyzeAtlasQuery,createFallbackPlan,createPassportSeedPlan} from "../services/atlasBrain";
 import {searchPassportProfiles} from "../services/passportSearch";
@@ -675,7 +675,7 @@ ${initialWhere}`;
 
   useEffect(()=>{
     const controller=new AbortController();
-    if(!activeTask||!internalChecked||!externalRequested)return()=>controller.abort();
+    if(!activeTask||!internalChecked)return()=>controller.abort();
     const runKey=`${searchRunId}:${activeTask}:${initialWhere}`;
     if(brainRunRef.current===runKey)return()=>controller.abort();
     brainRunRef.current=runKey;
@@ -713,7 +713,7 @@ ${initialWhere}`;
       .finally(()=>{if(!controller.signal.aborted)setBrainLoading(false)});
 
     return()=>controller.abort();
-  },[activeTask,internalChecked,externalRequested,searchRunId,lang,initialWhere,origin?.latitude,origin?.longitude]);
+  },[activeTask,internalChecked,searchRunId,lang,initialWhere,origin?.latitude,origin?.longitude]);
 
   async function ensureOrigin(){
     if(origin)return origin;
@@ -1137,17 +1137,15 @@ ${initialWhere}`;
   }
 
   function startExternalSearch(){
-    if(!internalChecked||externalRequested)return;
+    if(!internalChecked||!brainReady||externalRequested)return;
+    const scope=automaticSearchScope(plan,steps);
     setExternalRequested(true);
-    setBrainReady(false);
-    setBrainError("");
-    brainRunRef.current="";
-    setSearchScope("");
+    setSearchScope(scope==="direct"?"internet":scope);
     setNearbyGroups([]);
     setInternetGroups([]);
     setRecoveryCandidates([]);
     recoveryRunRef.current="";
-    trackAtlas("Atlas Open Sources Search Requested",{language:lang,query:activeTask});
+    trackAtlas("Atlas Open Sources Search Requested",{language:lang,query:activeTask,scope});
   }
 
   function chooseSearchScope(scope){
@@ -1193,11 +1191,11 @@ ${initialWhere}`;
             ?(lang==="uk"?"Шукаю в Atlas…":"Searching Atlas…")
             :Boolean(effectiveClarification)
               ?(lang==="uk"?"Потрібне уточнення":"One quick question")
-              :externalRequested&&brainLoading
-                ?(lang==="uk"?"Luna аналізує запит…":"Luna is analysing the request…")
+              :brainLoading
+                ?(lang==="uk"?"Luna аналізує задачу…":"Luna is analysing the task…")
                 :externalRequested
-                  ?(recommendedCandidate?(lang==="uk"?"Відкриті джерела":"Open sources"):(lang==="uk"?"Шукаю у відкритих джерелах…":"Searching open sources…"))
-                  :(lang==="uk"?"Знайдено в Atlas":"Found in Atlas")}
+                  ?(recommendedCandidate?(lang==="uk"?"Знайдені рішення":"Solutions found"):(lang==="uk"?"Шукаю у відкритих джерелах…":"Searching open sources…"))
+                  :(lang==="uk"?"Рішення Atlas":"Atlas solution")}
           </h1>
         </div>
         {plan?.safety?.level&&plan.safety.level!=="none"&&plan.safety.message&&<div className={`simpleSafety ${plan.safety.level}`}>{plan.safety.message}</div>}
@@ -1212,6 +1210,18 @@ ${initialWhere}`;
         {structuredPriceCount<2&&<small>{lang==="uk"?"Цінове сортування з’явиться повністю, коли можливості матимуть ціну за однакову одиницю.":"Price sorting becomes useful when opportunities include comparable unit prices."}</small>}
       </div>}
 
+      {internalChecked&&!Boolean(effectiveClarification)&&<section className="atlasAiUnderstanding">
+        <div className="atlasAiIcon"><Sparkles size={22}/></div>
+        <div>
+          <span>{lang==="uk"?"LUNA · ATLAS AI":"LUNA · ATLAS AI"}</span>
+          <h2>{brainLoading
+            ?(lang==="uk"?"Розумію, яку задачу ви хочете вирішити…":"Understanding the task you want to solve…")
+            :(lang==="uk"?"Я зрозумів задачу так:":"I understood the task as:")}</h2>
+          {!brainLoading&&<strong>{clean(plan?.goal)||activeTask}</strong>}
+          <p>{lang==="uk"?"Спочатку перевіряю людей і бізнеси всередині Atlas. Зовнішній пошук запускається окремо.":"I check people and businesses inside Atlas first. External search runs separately."}</p>
+        </div>
+      </section>}
+
       {Boolean(effectiveClarification)&&<div className="simpleClarifier">
         <strong>{effectiveClarification.question}</strong>
         {effectiveClarification.helper_text&&<span>{effectiveClarification.helper_text}</span>}
@@ -1220,32 +1230,36 @@ ${initialWhere}`;
 
       {!Boolean(effectiveClarification)&&activeTask&&internalChecked&&<section className="atlasInternalResults">
         <div className="atlasInternalHead">
-          <span>{lang==="uk"?"СПОЧАТКУ ATLAS":"ATLAS FIRST"}</span>
-          <h2>{lang==="uk"?"Результати всередині Atlas":"Results inside Atlas"}</h2>
-          <p>{lang==="uk"?"Окремо перевірено Паспорти можливостей і Паспорти потреб.":"Opportunity Passports and Needs Passports were checked separately."}</p>
+          <span>{lang==="uk"?"ВСЕРЕДИНІ ATLAS":"INSIDE ATLAS"}</span>
+          <h2>{internalPassportCandidates.length||needMatches.length
+            ?(lang==="uk"?"Є збіги в Atlas":"Matches found in Atlas")
+            :(lang==="uk"?"Прямих збігів у Atlas поки немає":"No direct Atlas matches yet")}</h2>
+          <p>{lang==="uk"
+            ?`Можливості: ${internalPassportCandidates.length} · Потреби: ${needMatches.length}`
+            :`Opportunities: ${internalPassportCandidates.length} · Needs: ${needMatches.length}`}</p>
         </div>
-        <div className="atlasInternalGrid">
-          <div className="atlasInternalColumn">
-            <div className="atlasInternalColumnTitle"><UserRound size={18}/><strong>{lang==="uk"?"Паспорти можливостей":"Opportunity Passports"}</strong><b>{internalPassportCandidates.length}</b></div>
-            {internalPassportCandidates.length===0?<div className="atlasInternalEmpty">{lang==="uk"?"Точного збігу серед можливостей немає.":"No exact opportunity match found."}</div>:internalPassportCandidates.map(candidate=><article className="atlasInternalCard" key={candidateIdentity(candidate)}>
+        {(internalPassportCandidates.length>0||needMatches.length>0)&&<div className="atlasInternalGrid">
+          {internalPassportCandidates.length>0&&<div className="atlasInternalColumn">
+            <div className="atlasInternalColumnTitle"><UserRound size={18}/><strong>{lang==="uk"?"Можливості":"Opportunities"}</strong><b>{internalPassportCandidates.length}</b></div>
+            {internalPassportCandidates.map(candidate=><article className="atlasInternalCard" key={candidateIdentity(candidate)}>
               <div><span>{candidate.source}</span><h3>{candidate.title}</h3>{candidate.description&&<p>{candidate.description}</p>}{candidate.city&&<small><MapPin size={13}/>{candidate.city}</small>}</div>
               <CandidateAction candidate={candidate} origin={origin} lang={lang}/>
             </article>)}
-          </div>
-          <div className="atlasInternalColumn">
-            <div className="atlasInternalColumnTitle"><HeartHandshake size={18}/><strong>{lang==="uk"?"Паспорти потреб":"Needs Passports"}</strong><b>{needMatches.length}</b></div>
-            {needMatches.length===0?<div className="atlasInternalEmpty">{lang==="uk"?"Схожих актуальних потреб немає.":"No similar active needs found."}</div>:needMatches.slice(0,8).map(item=><article className="atlasInternalCard needCard" key={item.need_id}>
+          </div>}
+          {needMatches.length>0&&<div className="atlasInternalColumn">
+            <div className="atlasInternalColumnTitle"><HeartHandshake size={18}/><strong>{lang==="uk"?"Потреби":"Needs"}</strong><b>{needMatches.length}</b></div>
+            {needMatches.slice(0,8).map(item=><article className="atlasInternalCard needCard" key={item.need_id}>
               <div><span>{lang==="uk"?"ПОТРЕБА":"NEED"}</span><h3>{needResultTitle(item,lang)}</h3><p>{[item.display_name,item.city].filter(Boolean).join(" · ")}</p>{item.needed_until&&<small><Clock3 size={13}/>{lang==="uk"?"Актуально до":"Valid until"} {item.needed_until}</small>}</div>
               {item.passport_slug&&<Link className="chainAction secondaryAction" to={`/p/${item.passport_slug}`}><UserRound size={16}/>{lang==="uk"?"Паспорт":"Passport"}</Link>}
             </article>)}
-          </div>
-        </div>
+          </div>}
+        </div>}
       </section>}
 
-      {!Boolean(effectiveClarification)&&activeTask&&internalChecked&&<section className="openSourcesGate">
-        <div><span>{lang==="uk"?"ДРУГИЙ КРОК":"SECOND STEP"}</span><h2>{lang==="uk"?"Пошук у відкритих джерелах":"Search open sources"}</h2><p>{lang==="uk"?"Atlas уже перевірив свою базу. Магазини, карти, маркетплейси та відкритий інтернет запускаються окремо — тільки за вашою командою.":"Atlas has already checked its own database. Stores, maps, marketplaces and the open web run separately, only when you ask."}</p></div>
-        <button type="button" onClick={startExternalSearch} disabled={externalRequested||solutionBusy}>
-          <Globe2 size={19}/>{externalRequested?(brainLoading?(lang==="uk"?"Luna аналізує…":"Luna analysing…"):(externalBusy||!brainReady?(lang==="uk"?"Шукаю…":"Searching…"):(lang==="uk"?"Пошук запущено":"Search started"))):(lang==="uk"?"Шукати у відкритих джерелах":"Search open sources")}
+      {!Boolean(effectiveClarification)&&activeTask&&internalChecked&&!externalRequested&&<section className="openSourcesGate">
+        <div><span>{lang==="uk"?"НАСТУПНИЙ КРОК":"NEXT STEP"}</span><h2>{lang==="uk"?"Розширити пошук":"Expand the search"}</h2><p>{lang==="uk"?"Якщо всередині Atlas рішення немає — Luna підбере правильний тип зовнішнього пошуку: карти, магазини, маркетплейси або відкритий веб.":"If Atlas has no solution, Luna will choose the right external source: maps, stores, marketplaces or the open web."}</p></div>
+        <button type="button" onClick={startExternalSearch} disabled={!brainReady||brainLoading||solutionBusy}>
+          <Globe2 size={19}/>{brainLoading?(lang==="uk"?"Luna аналізує…":"Luna analysing…"):(lang==="uk"?"Знайти рішення назовні":"Find a solution outside Atlas")}
         </button>
       </section>}
 
