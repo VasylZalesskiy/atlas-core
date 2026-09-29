@@ -3,6 +3,7 @@ import {Bell,Camera,FileText,HeartHandshake,IdCard,LoaderCircle,MapPin,MessageSq
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
 import SearchHistoryList from "./SearchHistoryList";
+import LocationAutocomplete,{rememberedAtlasLocation,rememberAtlasLocation} from "./LocationAutocomplete";
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import {saveAtlasFeedback} from "../services/feedbackStore";
@@ -31,7 +32,7 @@ function compressImage(file){return new Promise(async(resolve,reject)=>{
 export default function MobileHome({lang="uk"}){
   const uk=lang!=="en";
   const [task,setTask]=useState("");
-  const [where,setWhere]=useState("");
+  const [where,setWhere]=useState(()=>rememberedAtlasLocation());
   const [locating,setLocating]=useState(false);
   const [photo,setPhoto]=useState(null);
   const [vision,setVision]=useState(null);
@@ -61,6 +62,7 @@ export default function MobileHome({lang="uk"}){
       try{geoLocation=await getCurrentLocation()}catch{}
       setLocating(false);
     }
+    if(where.trim())rememberAtlasLocation(where);
     saveSearchHistory({task:value,where});
     nav(solutionUrl(value,where),geoLocation?{state:{geoLocation}}:undefined);
   }
@@ -72,7 +74,7 @@ export default function MobileHome({lang="uk"}){
   }
 
   function quick(value){setTask(value);window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
-  function resetSearch(){setTask("");setWhere("");setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value="";window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
+  function resetSearch(){setTask("");setWhere(rememberedAtlasLocation());setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value="";window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
   function clearPhoto(){setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value=""}
   async function sendFeedback(event){
     event.preventDefault();
@@ -143,7 +145,7 @@ export default function MobileHome({lang="uk"}){
       </div>}
       <label className="mobilePilotLocation">
         <span><MapPin size={16}/>{uk?"Де це потрібно?":"Where is it needed?"}</span>
-        <input value={where} onChange={event=>setWhere(event.target.value)} placeholder={uk?"Наприклад: Тернопіль (необов'язково)":"For example: Ternopil (optional)"}/>
+        <LocationAutocomplete value={where} onChange={setWhere} lang={lang} placeholder={uk?"Наприклад: Тернопіль (необов'язково)":"For example: Ternopil (optional)"}/>
       </label>
       <button className="mobilePilotGo" type="submit" disabled={!task.trim()||locating||visionBusy}>{locating?<MapPin size={21}/>:<Search size={21}/>}<span>{locating?(uk?"Визначаю місце…":"Finding location…"):(uk?"Знайти рішення":"Find a solution")}</span></button>
     </form>
