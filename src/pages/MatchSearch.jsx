@@ -17,10 +17,14 @@ const activeStatuses=new Set(["pending","accepted","provided"]);
 
 function normalize(value){return String(value||"").toLowerCase().trim()}
 function needLabel(item,uk){
+  const freeText=String(item?.description||"").trim();
+  if(freeText)return freeText;
   const name=needNames[item?.item_key]?.[uk?"uk":"en"]||item?.item_key||(uk?"Потреба":"Need");
   return `${name}${item?.quantity?` · ${Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} ${item.unit||""}`:""}`;
 }
 function needQuery(item,uk){
+  const freeText=String(item?.description||"").trim();
+  if(freeText)return freeText;
   const name=needNames[item?.item_key]?.[uk?"uk":"en"]||item?.item_key||"";
   return `${name} ${item?.quantity||""} ${item?.unit||""}`.trim();
 }
