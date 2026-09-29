@@ -112,9 +112,11 @@ export default function LocationAutocomplete({
     const requestId=++requestRef.current;
     const controller=new AbortController();
     const timer=window.setTimeout(async()=>{
+      const local=localSuggestions(query);
+      setItems(local);
+      setOpen(true);
       setLoading(true);
       try{
-        const local=localSuggestions(query);
         const result=await searchDestination(null,expandedQuery(query,lang),{lang,limit:6,signal:controller.signal});
         if(requestId!==requestRef.current)return;
         const remote=(result||[])
@@ -133,7 +135,7 @@ export default function LocationAutocomplete({
         setItems(unique);
         setOpen(true);
       }catch(error){
-        if(error?.name!=="AbortError"&&requestId===requestRef.current)setItems([]);
+        if(error?.name!=="AbortError"&&requestId===requestRef.current)setItems(local);
       }finally{
         if(requestId===requestRef.current)setLoading(false);
       }
