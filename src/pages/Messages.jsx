@@ -75,6 +75,7 @@ export default function Messages({lang="uk"}){
     try{
       const next=await loadSolutionFlows();
       setFlows(next||[]);
+      setError("");
       try{window.dispatchEvent(new CustomEvent("atlas:inbox-changed",{detail:{unread:(next||[]).reduce((sum,item)=>sum+Number(item.unread_count||0),0)}}))}catch{}
     }catch(cause){if(!quiet)setError(String(cause?.message||cause||"inbox-failed"))}
     finally{if(!quiet)setLoading(false)}
@@ -85,6 +86,7 @@ export default function Messages({lang="uk"}){
     if(!quiet)setThreadLoading(true);
     try{
       const data=await loadSolutionThread(id);
+      setError("");
       setThread(data.flow||null);
       setMessages(data.messages||[]);
       await markSolutionThreadRead(id).catch(()=>{});
