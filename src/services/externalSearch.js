@@ -1,7 +1,7 @@
 import {buildMarketplaceShortcuts} from "../../api/_search-utils.js";
 
 function isConcreteExternalResult(item){
-  return ["listing","store_option","store_option_pending","web_answer","web_result","official_result"].includes(item?.result_kind);
+  return ["listing","store_option","store_option_pending","search_page","web_answer","web_result","official_result"].includes(item?.result_kind);
 }
 
 function concreteOnly(items){
