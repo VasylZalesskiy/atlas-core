@@ -1,7 +1,8 @@
 import {useEffect,useRef,useState} from "react";
-import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,MessageSquare,Search,Smartphone,X} from "lucide-react";
+import {Bell,Camera,FileText,HeartHandshake,IdCard,LoaderCircle,MapPin,MessageSquare,RotateCcw,Search,Smartphone,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
+import SearchHistoryList from "./SearchHistoryList";
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
 import {saveAtlasFeedback} from "../services/feedbackStore";
@@ -30,6 +31,7 @@ function compressImage(file){return new Promise(async(resolve,reject)=>{
 export default function MobileHome({lang="uk"}){
   const uk=lang!=="en";
   const [task,setTask]=useState("");
+  const [where,setWhere]=useState("");
   const [locating,setLocating]=useState(false);
   const [photo,setPhoto]=useState(null);
   const [vision,setVision]=useState(null);
@@ -54,13 +56,13 @@ export default function MobileHome({lang="uk"}){
     const value=task.trim();
     if(!value)return;
     let geoLocation=null;
-    if(/поруч|де\s+знайти|магазин|аптек|лікар|сервіс|майстер|nearby|where|store|pharmacy|doctor|repair/i.test(value)){
+    if(!where.trim()&&/поруч|де\s+знайти|магазин|аптек|лікар|сервіс|майстер|nearby|where|store|pharmacy|doctor|repair/i.test(value)){
       setLocating(true);
       try{geoLocation=await getCurrentLocation()}catch{}
       setLocating(false);
     }
-    saveSearchHistory({task:value,where:""});
-    nav(solutionUrl(value,""),geoLocation?{state:{geoLocation}}:undefined);
+    saveSearchHistory({task:value,where});
+    nav(solutionUrl(value,where),geoLocation?{state:{geoLocation}}:undefined);
   }
 
   function onSearchKeyDown(event){
@@ -70,6 +72,7 @@ export default function MobileHome({lang="uk"}){
   }
 
   function quick(value){setTask(value);window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
+  function resetSearch(){setTask("");setWhere("");setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value="";window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
   function clearPhoto(){setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value=""}
   async function sendFeedback(event){
     event.preventDefault();
@@ -124,6 +127,7 @@ export default function MobileHome({lang="uk"}){
 
     <div className="mobilePilotSearchHead">
       <div><Search size={19}/><strong>{uk?"Знайти рішення":"Find a solution"}</strong></div>
+      {(task.trim()||where.trim())&&<button className="mobilePilotReset" type="button" onClick={resetSearch}><RotateCcw size={14}/>{uk?"Новий пошук":"New search"}</button>}
     </div>
 
     <form className="mobilePilotSearch" onSubmit={submit}>
@@ -137,6 +141,10 @@ export default function MobileHome({lang="uk"}){
         <div>{visionBusy?<><LoaderCircle className="spin" size={18}/><b>{uk?"Розпізнаю…":"Recognizing…"}</b></>:vision?.error?<span>{vision.note}</span>:<><b>{uk?"Схоже, це":"Looks like"}: {vision?.name||"—"}</b>{vision?.note&&<span>{vision.note}</span>}</>}</div>
         <button type="button" onClick={clearPhoto}><X size={18}/></button>
       </div>}
+      <label className="mobilePilotLocation">
+        <span><MapPin size={16}/>{uk?"Де це потрібно?":"Where is it needed?"}</span>
+        <input value={where} onChange={event=>setWhere(event.target.value)} placeholder={uk?"Наприклад: Тернопіль (необов'язково)":"For example: Ternopil (optional)"}/>
+      </label>
       <button className="mobilePilotGo" type="submit" disabled={!task.trim()||locating||visionBusy}>{locating?<MapPin size={21}/>:<Search size={21}/>}<span>{locating?(uk?"Визначаю місце…":"Finding location…"):(uk?"Знайти рішення":"Find a solution")}</span></button>
     </form>
 
@@ -144,6 +152,14 @@ export default function MobileHome({lang="uk"}){
       <button type="button" onClick={()=>quick(uk?"Потрібна допомога":"I need help")}>🤝 {uk?"Потрібна допомога":"Need help"}</button>
       <button type="button" onClick={()=>quick(uk?"Хто може це надати?":"Who can provide this?")}>🔎 {uk?"Хто може надати?":"Who can provide it?"}</button>
     </div>
+
+    <div className="mobilePilotInfoLinks">
+      <a href={uk?"/atlas-about-uk.txt":"/atlas-about-en.txt"} target="_blank" rel="noreferrer"><FileText size={16}/>{uk?"Як працює Atlas":"How Atlas works"}</a>
+    </div>
+
+    <section className="mobilePilotHistory">
+      <SearchHistoryList lang={lang} compact limit={4} onSelect={item=>nav(solutionUrl(item.task,item.where))}/>
+    </section>
 
     <section className={`mobileFeedbackCompact ${feedbackOpen?"open":""}`}>
       <button className="mobileFeedbackTrigger" type="button" onClick={()=>setFeedbackOpen(open=>!open)} aria-expanded={feedbackOpen}>
