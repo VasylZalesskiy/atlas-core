@@ -59,7 +59,7 @@ export function createPassportSeedPlan(query,{lang="uk"}={}){
 
 
 function hasGenericProductQuantity(value){
-  return /\b\d[\d\s.]*(?:[.,]\d+)?\s*(?:пар(?:а|и)?|шт(?:\.|ук(?:а|и|ів)?)?|упаков(?:ка|ки|ок)|пач(?:ка|ки|ок)|короб(?:ка|ки|ок)|ящик(?:а|и|ів)?|комплект(?:а|и|ів)?|pcs?|pairs?|packs?|boxes?|sets?)\b/iu.test(String(value||""));
+  return /(?:^|\s)\d[\d\s.]*(?:[.,]\d+)?\s*(?:пар(?:а|и)?|шт(?:\.|ук(?:а|и|ів)?)?|упаков(?:ка|ки|ок)|пач(?:ка|ки|ок)|короб(?:ка|ки|ок)|ящик(?:а|и|ів)?|комплект(?:а|и|ів)?|pcs?|pairs?|packs?|boxes?|sets?)(?!\p{L})/iu.test(String(value||""));
 }
 function isProductNeed(value){
   const text=String(value||"");
