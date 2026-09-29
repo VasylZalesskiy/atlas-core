@@ -1192,6 +1192,8 @@ ${initialWhere}`;
   const scopeChoiceAvailable=false;
   const informationSearchAvailable=false;
   const healthTask=plan?.domain==="health";
+  const hasInternalMatches=internalPassportCandidates.length>0||needMatches.length>0;
+  const hasInternalOpportunity=internalPassportCandidates.length>0;
 
   return <main className="simpleSolutionPage">
     <section className="simpleSolutionShell">
@@ -1220,11 +1222,13 @@ ${initialWhere}`;
             ?(lang==="uk"?"Шукаю в Atlas…":"Searching Atlas…")
             :Boolean(effectiveClarification)
               ?(lang==="uk"?"Потрібне уточнення":"One quick question")
-              :brainLoading
-                ?(lang==="uk"?"Atlas шукає рішення…":"Atlas is finding a solution…")
-                :externalRequested
-                  ?(recommendedCandidate?(lang==="uk"?"Знайдені рішення":"Solutions found"):(lang==="uk"?"Шукаю у відкритих джерелах…":"Searching open sources…"))
-                  :(lang==="uk"?"Рішення Atlas":"Atlas solution")}
+              :hasInternalMatches
+                ?(lang==="uk"?"Знайдено в Atlas":"Found in Atlas")
+                :brainLoading
+                  ?(lang==="uk"?"Atlas шукає рішення…":"Atlas is finding a solution…")
+                  :externalRequested
+                    ?(recommendedCandidate?(lang==="uk"?"Знайдені рішення":"Solutions found"):(lang==="uk"?"Шукаю додаткові варіанти…":"Searching for more options…"))
+                    :(lang==="uk"?"Рішення Atlas":"Atlas solution")}
           </h1>
         </div>
         {plan?.safety?.level&&plan.safety.level!=="none"&&plan.safety.message&&<div className={`simpleSafety ${plan.safety.level}`}>{plan.safety.message}</div>}
@@ -1290,9 +1294,11 @@ ${initialWhere}`;
       </section>}
 
       {!Boolean(effectiveClarification)&&activeTask&&internalChecked&&!externalRequested&&<section className="openSourcesGate">
-        <div><span>{lang==="uk"?"НАСТУПНИЙ КРОК":"NEXT STEP"}</span><h2>{lang==="uk"?"Розширити пошук":"Expand the search"}</h2><p>{lang==="uk"?"Якщо в Atlas немає готового рішення — можна розширити пошук на карти, магазини, маркетплейси та відкриті джерела.":"If Atlas has no ready solution, you can expand the search to maps, stores, marketplaces and open sources."}</p></div>
+        <div><span>{lang==="uk"?(hasInternalMatches?"ДОДАТКОВО":"НАСТУПНИЙ КРОК"):(hasInternalMatches?"OPTIONAL":"NEXT STEP")}</span><h2>{lang==="uk"?(hasInternalMatches?"Пошукати ще?":"Розширити пошук"):(hasInternalMatches?"Search for more?":"Expand the search")}</h2><p>{lang==="uk"
+          ?(hasInternalMatches?"Atlas уже знайшов збіг усередині системи. За бажанням можна пошукати додаткові варіанти у відкритих джерелах.":"Якщо в Atlas немає готового рішення — можна розширити пошук на карти, магазини, маркетплейси та відкриті джерела.")
+          :(hasInternalMatches?"Atlas already found a match inside the system. You can optionally search open sources for more options.":"If Atlas has no ready solution, you can expand the search to maps, stores, marketplaces and open sources.")}</p></div>
         <button type="button" onClick={startExternalSearch} disabled={!brainReady||brainLoading||solutionBusy}>
-          <Globe2 size={19}/>{brainLoading?(lang==="uk"?"Atlas шукає…":"Atlas searching…"):(lang==="uk"?"Знайти рішення назовні":"Find a solution outside Atlas")}
+          <Globe2 size={19}/>{brainLoading?(lang==="uk"?"Atlas шукає…":"Atlas searching…"):(lang==="uk"?(hasInternalMatches?"Пошукати ще назовні":"Знайти рішення назовні"):(hasInternalMatches?"Search more outside Atlas":"Find a solution outside Atlas"))}
         </button>
       </section>}
 
@@ -1325,7 +1331,7 @@ ${initialWhere}`;
 
       {!Boolean(effectiveClarification)&&informationSearchAvailable&&recommendedCandidate&&<div className="searchScopePicker"><div className="scopeHeading"><span>{lang==="uk"?"ДОДАТКОВО":"OPTIONAL"}</span><h2>{lang==="uk"?"Потрібно пошукати ще?":"Search for more?"}</h2><p>{lang==="uk"?"Основну відповідь Atlas уже дав. Додатковий пошук запускається лише за вашим бажанням.":"Atlas already gave the main answer. Additional search runs only if you choose it."}</p></div><div className="scopeButtons" role="group"><button type="button" onClick={()=>chooseSearchScope("nearby")}><MapPin size={21}/><span><strong>{lang==="uk"?"Пошукати поруч":"Search nearby"}</strong><small>{lang==="uk"?"Місця та маршрут":"Places and route"}</small></span></button><button type="button" onClick={()=>chooseSearchScope("internet")}><Globe2 size={21}/><span><strong>{lang==="uk"?"Пошукати ще в інтернеті":"Search more online"}</strong><small>{lang==="uk"?"Додаткові джерела за бажанням":"Optional additional sources"}</small></span></button></div></div>}
 
-      {!Boolean(effectiveClarification)&&solutionBusy&&<div className="solutionSearchState">
+      {!Boolean(effectiveClarification)&&solutionBusy&&!hasInternalMatches&&<div className="solutionSearchState">
         <RefreshCw className="spin" size={20}/>
         <div><strong>{lang==="uk"?"Шукаю найкращі варіанти…":"Finding the best options…"}</strong></div>
       </div>}
@@ -1337,7 +1343,7 @@ ${initialWhere}`;
 
       {originError&&<div className="simpleEmpty">{lang==="uk"?"Не вдалося визначити цю локацію. Вкажіть місто на головній сторінці або дозвольте геолокацію.":"Could not resolve this location. Enter a city on the home page or allow geolocation."}</div>}
 
-      {!Boolean(effectiveClarification)&&externalRequested&&!brainLoading&&!recommendedCandidate&&!solutionBusy&&recoveryRunRef.current&&<div className="simpleEmpty">
+      {!Boolean(effectiveClarification)&&externalRequested&&!hasInternalMatches&&!brainLoading&&!recommendedCandidate&&!solutionBusy&&recoveryRunRef.current&&<div className="simpleEmpty">
         {lang==="uk"?"Нічого конкретного не знайдено. Спробуйте уточнити запит або місто.":"No concrete result was found. Try refining the request or location."}
       </div>}
 
