@@ -35,3 +35,9 @@
 .openSourcesGate{background:#fff;border-color:#dde6e0;box-shadow:none}
 .atlasInternalResults{background:#fff;border-color:#e1e7e3}
 .simpleGeoPrompt,.simpleClarifier,.solutionSearchState{background:#fff}
+
+/* Compact need-contact actions on mobile */
+@media(max-width:760px){
+  .needContactActions{width:100%;justify-content:flex-start}
+  .needContactActions .chainAction{flex:0 0 auto;width:auto;min-width:0;padding:9px 12px}
+}
