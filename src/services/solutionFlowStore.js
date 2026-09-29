@@ -73,3 +73,12 @@ export async function sendSolutionMessage(requestId,message){
 export async function markSolutionThreadRead(requestId){
   return invoke("mark_read",{requestId});
 }
+
+export function subscribeSolutionFlowEvents(onChange){
+  if(!supabase||typeof onChange!=="function")return ()=>{};
+  const channel=supabase.channel(`atlas-solution-events:${crypto.randomUUID()}`)
+    .on("postgres_changes",{event:"*",schema:"public",table:"atlas_requests"},payload=>onChange({table:"atlas_requests",payload}))
+    .on("postgres_changes",{event:"*",schema:"public",table:"atlas_request_messages"},payload=>onChange({table:"atlas_request_messages",payload}))
+    .subscribe();
+  return ()=>{supabase.removeChannel(channel).catch(()=>{})};
+}
