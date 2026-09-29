@@ -222,14 +222,14 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
         </div>}
       </div>
 
-      <div className="needStep">
+      {selectedItem&&<div className="needStep">
         <div className="needStepTitle"><span>2</span><div><strong>{uk?"Кількість і актуальність":"Quantity and validity"}</strong><small>{uk?"Atlas зберігає попит у структурованому вигляді":"Atlas stores demand in a structured form"}</small></div></div>
         <div className="needDetailsGrid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))"}}>
           <label className="needQuantityLabel"><span><Scale size={16}/>{uk?"Кількість":"Quantity"}</span><div><input type="number" min="0.1" max="1000000" step="0.1" inputMode="decimal" required value={form.quantity} onChange={event=>setForm({...form,quantity:event.target.value})} placeholder="0"/><b>{selectedItem?.unit||form.unit}</b></div></label>
           <label><span><CalendarRange size={16}/>{uk?"Актуально від":"Needed from"}</span><input type="date" required value={form.neededFrom} onChange={event=>setForm({...form,neededFrom:event.target.value,neededUntil:event.target.value>form.neededUntil?event.target.value:form.neededUntil})}/></label>
           <label><span><CalendarRange size={16}/>{uk?"Актуально до":"Needed until"}</span><input type="date" required min={form.neededFrom} value={form.neededUntil} onChange={event=>setForm({...form,neededUntil:event.target.value})}/></label>
         </div>
-      </div>
+      </div>}
 
       <div className="needComposerFooter">
         <div><Clock3 size={17}/><span>{uk?"Пошук рішення запускається окремо і перевіряє Паспорти можливостей.":"Solution search runs separately and checks Opportunity Passports."}</span></div>
