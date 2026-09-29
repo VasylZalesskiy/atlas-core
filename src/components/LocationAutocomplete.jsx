@@ -5,6 +5,50 @@ import "../styles/locationAutocomplete.css";
 
 const MEMORY_KEY="atlas-city";
 
+const UKRAINE_PRIORITY_PLACES=[
+  "Київ","Харків","Одеса","Дніпро","Запоріжжя","Львів","Кривий Ріг","Миколаїв","Вінниця","Херсон",
+  "Полтава","Чернігів","Черкаси","Житомир","Суми","Рівне","Івано-Франківськ","Тернопіль","Луцьк","Ужгород",
+  "Чернівці","Хмельницький","Кропивницький","Кременчук","Біла Церква","Бровари","Буча","Ірпінь","Мукачево","Дрогобич"
+].map((name,index)=>({id:`atlas-ua-${index}`,name,address:`${name}, Україна`,source:"Atlas"}));
+
+const COUNTRY_SUGGESTIONS=[
+  ["Україна",["ук","uk","уа","ua","ukr","укра","ukraine"]],
+  ["Польща",["поль","pol","poland"]],
+  ["Німеччина",["нім","герм","germ","deutschland"]],
+  ["Румунія",["рум","rom","romania"]],
+  ["Молдова",["молд","mold","moldova"]],
+  ["Словаччина",["словач","slovak"]],
+  ["Угорщина",["угор","hung","hungary"]],
+  ["Чехія",["чех","czech"]],
+  ["Австрія",["австр","austria"]],
+  ["Італія",["італ","italy"]],
+  ["Франція",["фран","france"]],
+  ["Іспанія",["ісп","spain"]],
+  ["Португалія",["порту","portugal"]],
+  ["Велика Британія",["британ","great britain","united kingdom","gb"]],
+  ["США",["сша","usa","united states"]],
+  ["Канада",["канад","canada"]],
+  ["Туреччина",["туреч","turkey","türkiye"]],
+  ["Грузія",["груз","georgia"]],
+  ["Болгарія",["болгар","bulgaria"]]
+].map(([name,aliases],index)=>({id:`atlas-country-${index}`,name,address:name,aliases,source:"Atlas"}));
+
+function normalizeMatch(value){return clean(value).toLocaleLowerCase("uk-UA")}
+function localSuggestions(value){
+  const q=normalizeMatch(value);
+  if(q.length<2)return [];
+  const countries=COUNTRY_SUGGESTIONS.filter(item=>{
+    const name=normalizeMatch(item.name);
+    return name.startsWith(q)||item.aliases.some(alias=>normalizeMatch(alias).startsWith(q)||q.startsWith(normalizeMatch(alias)));
+  });
+  const cities=UKRAINE_PRIORITY_PLACES.filter(item=>normalizeMatch(item.name).startsWith(q));
+  return [...countries,...cities].slice(0,6);
+}
+function isCountryQuery(value){
+  const q=normalizeMatch(value);
+  return COUNTRY_SUGGESTIONS.some(item=>normalizeMatch(item.name).startsWith(q)||item.aliases.some(alias=>normalizeMatch(alias).startsWith(q)||q.startsWith(normalizeMatch(alias))));
+}
+
 function clean(value){return String(value||"").replace(/\s+/g," ").trim()}
 
 export function rememberedAtlasLocation(){
@@ -21,6 +65,7 @@ function expandedQuery(value,lang){
   const q=clean(value);
   const lower=q.toLocaleLowerCase(lang==="en"?"en":"uk");
   if(["ук","uk","уа","ua","ukr","ukraine","укра","україна"].includes(lower))return lang==="en"?"Ukraine":"Україна";
+  if(lang!=="en"&&!isCountryQuery(q)&&/^[А-ЯІЇЄҐа-яіїєґ'’ -]+$/u.test(q))return `${q} Україна`;
   return q;
 }
 
@@ -69,11 +114,21 @@ export default function LocationAutocomplete({
     const timer=window.setTimeout(async()=>{
       setLoading(true);
       try{
+        const local=localSuggestions(query);
         const result=await searchDestination(null,expandedQuery(query,lang),{lang,limit:6,signal:controller.signal});
         if(requestId!==requestRef.current)return;
-        const unique=(result||[])
+        const remote=(result||[])
           .filter(item=>item?.name||item?.title)
-          .filter((item,index,array)=>array.findIndex(other=>(other.id||other.address||other.name)===(item.id||item.address||item.name))===index)
+          .sort((a,b)=>{
+            const uaA=/україна|ukraine/i.test(String(a?.address||""))?1:0;
+            const uaB=/україна|ukraine/i.test(String(b?.address||""))?1:0;
+            return uaB-uaA;
+          });
+        const unique=[...local,...remote]
+          .filter((item,index,array)=>{
+            const name=normalizeMatch(item?.name||item?.title);
+            return name&&array.findIndex(other=>normalizeMatch(other?.name||other?.title)===name)===index;
+          })
           .slice(0,6);
         setItems(unique);
         setOpen(true);
