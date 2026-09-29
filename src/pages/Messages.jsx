@@ -36,6 +36,7 @@ function flowSubject(flow,uk){
   if(flow?.subject)return flow.subject;
   const opportunity=cleanOpportunity(flow?.opportunity?.text);
   if(opportunity)return opportunity;
+  if(flow?.need?.description)return flow.need.description;
   if(flow?.need)return `${uk?"Потреба":"Need"}: ${flow.need.quantity||""} ${flow.need.unit||""} ${flow.need.item_key||""}`.trim();
   return uk?"Розмова в Atlas":"Atlas conversation";
 }
