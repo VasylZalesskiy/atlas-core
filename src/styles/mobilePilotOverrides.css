@@ -35,3 +35,27 @@
   .mobileFeedbackCompact>small.success{color:#0b7a41}
   .mobileFeedbackCompact>small.error{color:#9a3434}
 }
+
+/* Mobile shell stabilization — keep all Atlas screens inside the phone viewport. */
+@media (max-width:760px){
+  html,body,#root{width:100%;max-width:100%;overflow-x:hidden}
+  body{padding:0}
+  .atlasTopbarV3{width:100%;max-width:100%;padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right));overflow:visible}
+  .atlasTopbarV3Brand{min-width:0}
+  .atlasTopbarV3Brand>span{min-width:0}
+  .atlasTopbarV3Right{min-width:0;gap:4px}
+  .atlasTopbarV3Lang{padding-inline:6px}
+  .atlasTopbarV3Lang svg{display:none}
+  .atlasTopbarV3Action,.atlasTopbarV3Me{width:32px;min-width:32px;height:32px;min-height:32px}
+  .atlasTopbarV3Lang{height:32px;min-height:32px}
+  .mobilePilotHome{width:100%;max-width:100%;overflow:hidden}
+  .mobilePilotHome>*{min-width:0;max-width:100%}
+  .mobilePilotSearch,.mobilePassportGrid,.mobilePilotUtilityGrid,.mobileFeedbackCompact,.mobilePilotHistory{width:100%;min-width:0}
+  .mobilePilotSearch textarea,.mobilePilotSearch input{max-width:100%}
+  .searchHistory,.searchHistoryList,.searchHistoryList>a{min-width:0;max-width:100%}
+  .searchHistoryList b{max-width:100%}
+  .bottomNav{left:max(6px,env(safe-area-inset-left));right:max(6px,env(safe-area-inset-right));width:auto;transform:none;bottom:max(7px,env(safe-area-inset-bottom));grid-template-columns:repeat(4,minmax(0,1fr));}
+  .bottomNav a{min-width:0}
+  .bottomNavLabel{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .page,.appPage,.profileShell,.needsWorkspace,.messagesPage,.requestsPage{max-width:100%;overflow-x:hidden}
+}
