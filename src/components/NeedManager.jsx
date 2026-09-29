@@ -106,6 +106,13 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
     setNotice("");
   }
 
+  function chooseStructuredItem(item){
+    if(!item)return;
+    setForm(value=>({...value,groupKey:item.group_key,itemKey:item.item_key,unit:item.unit||"шт"}));
+    setError("");
+    setNotice("");
+  }
+
   async function submitFreeNeed(event){
     event.preventDefault();
     if(adding)return;
@@ -205,23 +212,14 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
       </div>
     </form>:<form className="needComposer" onSubmit={submitNeed}>
       <div className="needStep">
-        <div className="needStepTitle"><span>1</span><div><strong>{uk?"Оберіть потребу зі списку":"Choose a need from the list"}</strong><small>{uk?"Спочатку категорія, потім конкретна позиція":"First choose a category, then a specific item"}</small></div></div>
-        <div className="needDetailsGrid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))"}}>
-          <label><span>{uk?"Категорія":"Category"}</span>
-            <select value={form.groupKey} onChange={event=>changeGroup(event.target.value)} disabled={catalogLoading}>
-              <option value="">{uk?"Оберіть категорію":"Choose category"}</option>
-              {activeGroups.map(group=><option key={group.group_key} value={group.group_key}>{group.icon?(group.icon+" "):""}{uk?group.name_uk:(group.name_en||group.name_uk)}</option>)}
-            </select>
-          </label>
-          <label><span>{uk?"Що саме потрібно":"Specific need"}</span>
-            <select required value={form.itemKey} onChange={event=>changeItem(event.target.value)} disabled={catalogLoading||!form.groupKey}>
-              <option value="">{uk?"Оберіть зі списку":"Choose from the list"}</option>
-              {itemsForGroup.map(item=><option key={item.item_key} value={item.item_key}>{item.icon?(item.icon+" "):""}{uk?item.name_uk:(item.name_en||item.name_uk)}</option>)}
-            </select>
-          </label>
-        </div>
-        {catalogLoading&&<div className="needCatalogLoading">{uk?"Завантажую список…":"Loading list…"}</div>}
-        {selectedItem&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:12,padding:"10px 12px",borderRadius:12,background:"#eaf8ef",color:"#155c35"}}><Check size={18}/><span>{uk?"Обрано:":"Selected:"} <strong>{selectedItem.icon} {uk?selectedItem.name_uk:(selectedItem.name_en||selectedItem.name_uk)}</strong></span></div>}
+        <div className="needStepTitle"><span>1</span><div><strong>{uk?"Виберіть потребу зі списку":"Choose a need from the list"}</strong><small>{uk?"Натисніть на потрібну позицію":"Tap the item you need"}</small></div></div>
+        {catalogLoading?<div className="needCatalogLoading">{uk?"Завантажую список…":"Loading list…"}</div>:<div className="needCatalogVisibleList">
+          {activeItems.length===0?<div className="needCatalogLoading">{uk?"У списку поки немає активних позицій.":"There are no active items yet."}</div>:activeItems.map(item=><button type="button" key={item.group_key+":"+item.item_key} className={form.itemKey===item.item_key&&form.groupKey===item.group_key?"active":""} onClick={()=>chooseStructuredItem(item)}>
+            <span className="needCatalogVisibleIcon">{item.icon||"📦"}</span>
+            <span><strong>{uk?item.name_uk:(item.name_en||item.name_uk)}</strong><small>{item.unit?(uk?"Одиниця: ":"Unit: ")+item.unit:""}</small></span>
+            {form.itemKey===item.item_key&&form.groupKey===item.group_key?<Check size={19}/>:<ChevronRight size={19}/>}
+          </button>)}
+        </div>}
       </div>
 
       <div className="needStep">
