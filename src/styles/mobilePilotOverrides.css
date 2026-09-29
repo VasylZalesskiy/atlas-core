@@ -2,10 +2,12 @@
   .mobilePilotIntro{order:1}
   .mobilePilotSearchHead{order:2}
   .mobilePilotSearch{order:3}
-  .mobilePassportGrid{order:4;margin-top:11px;margin-bottom:4px}
-  .mobilePilotQuick{order:5}
-  .mobileFeedbackCompact{order:6}
-  .mobilePilotUtilityGrid{order:7}
+  .mobilePilotQuick{order:4}
+  .mobilePilotHistory{order:5}
+  .mobilePassportGrid{order:6;margin-top:11px;margin-bottom:4px}
+  .mobilePilotInfoLinks{order:7}
+  .mobileFeedbackCompact{order:8}
+  .mobilePilotUtilityGrid{order:9}
 
   .mobilePilotIntro{padding:2px 0 8px}
   .mobilePilotIntro h1{font-size:25px;line-height:1.05;margin-bottom:0}
