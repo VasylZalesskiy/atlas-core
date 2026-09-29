@@ -25,7 +25,8 @@ function formatDateRange(from,to,uk){
 
 function friendlyNeedError(error,uk){
   const text=String(error?.message||error||"");
-  if(/atlas_needs|atlas_need_groups|atlas_need_items|relation .*atlas_need.*does not exist/i.test(text))return uk?"Сховище потреб ще не активоване в Atlas.":"Needs storage is not active in Atlas yet.";
+  if(/relation .*atlas_need.*does not exist|42P01/i.test(text))return uk?"Сховище потреб ще не активоване в Atlas.":"Needs storage is not active in Atlas yet.";
+  if(/row-level security|permission denied|42501/i.test(text))return uk?"Цей пристрій не має доступу до цього Паспорта. Увійдіть у той самий Atlas-акаунт і повторіть.":"This device does not have access to this Passport. Sign in to the same Atlas account and try again.";
   if(/date-range-invalid/i.test(text))return uk?"Дата завершення не може бути раніше дати початку.":"The end date cannot be before the start date.";
   if(/quantity-invalid/i.test(text))return uk?"Вкажіть правильну кількість.":"Enter a valid quantity.";
   if(/catalog-item-required/i.test(text))return uk?"Оберіть потребу зі списку Atlas.":"Choose a need from the Atlas list.";
