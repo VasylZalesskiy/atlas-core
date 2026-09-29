@@ -77,3 +77,10 @@
   .passportRenameScreen .primary{min-height:47px;justify-content:center}
 @media(max-width:420px){.passportMobileView-editor .opportunityPrice{grid-template-columns:1fr}.passportMobileView-editor .opportunityLocation{grid-template-columns:1fr 1fr}}
 @media(min-width:761px){.passportQuickGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.passportQuickGrid button{min-height:145px;padding:20px}.passportMobileMenu h1{font-size:30px}.passportMobileView-editor .opportunityEditor{padding:24px}}
+
+.saleModePicker{display:grid;gap:9px}
+.saleModePicker>span{font-size:15px;line-height:1.35;color:#273d30;font-weight:800}
+.saleModePicker>div{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.saleModePicker button{min-height:48px;padding:10px 14px;border:1px solid #d7e3db;border-radius:12px;background:#fff;color:#405449;font:inherit;font-weight:800;cursor:pointer}
+.saleModePicker button.active{border-color:#0c8748;background:#edf8f1;color:#087442;box-shadow:0 0 0 1px rgba(12,135,72,.08)}
+@media(max-width:420px){.saleModePicker>div{grid-template-columns:1fr}}
