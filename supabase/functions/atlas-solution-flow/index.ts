@@ -70,7 +70,7 @@ async function enrichFlows(admin:any,rows:any[],userId:string,passportIds:Set<st
   const passportIdList=[...new Set(visibleRows.flatMap(flow=>[flow.passport_id,flow.requester_passport_id]).filter(Boolean))];
   let opportunities:any[]=[],needs:any[]=[],passports:any[]=[],messages:any[]=[];
   if(opportunityIds.length){const result=await admin.from("atlas_opportunities").select("id,text,kind").in("id",opportunityIds);if(result.error)throw result.error;opportunities=result.data||[]}
-  if(needIds.length){const result=await admin.from("atlas_needs").select("id,passport_id,item_key,quantity,unit,status,needed_until").in("id",needIds);if(result.error)throw result.error;needs=result.data||[];passportIdList.push(...needs.map(need=>need.passport_id).filter(Boolean))}
+  if(needIds.length){const result=await admin.from("atlas_needs").select("id,passport_id,item_key,description,quantity,unit,status,needed_until").in("id",needIds);if(result.error)throw result.error;needs=result.data||[];passportIdList.push(...needs.map(need=>need.passport_id).filter(Boolean))}
   const uniquePassportIds=[...new Set(passportIdList)];
   if(uniquePassportIds.length){const result=await admin.from("atlas_passports").select("id,slug,display_name,city").in("id",uniquePassportIds);if(result.error)throw result.error;passports=result.data||[]}
   if(requestIds.length){const result=await admin.from("atlas_request_messages").select("id,request_id,sender_id,sender_side,body,created_at,read_at").in("request_id",requestIds).order("created_at",{ascending:true});if(result.error)throw result.error;messages=result.data||[]}
@@ -190,7 +190,7 @@ Deno.serve(async request=>{
       if(!opportunity)return json({error:"opportunity-not-found"},404);
       if(passportIds.has(opportunity.passport_id)||opportunity.owner_id===user.id)return json({error:"own-opportunity"},400);
       let need:any=null;
-      if(needId){const result=await admin.from("atlas_needs").select("id,passport_id,owner_id,item_key,quantity,unit,status,needed_until").eq("id",needId).eq("status","not_received").maybeSingle();if(result.error)throw result.error;if(!result.data||!passportIds.has(result.data.passport_id))return json({error:"need-not-found"},404);need=result.data}
+      if(needId){const result=await admin.from("atlas_needs").select("id,passport_id,owner_id,item_key,description,quantity,unit,status,needed_until").eq("id",needId).eq("status","not_received").maybeSingle();if(result.error)throw result.error;if(!result.data||!passportIds.has(result.data.passport_id))return json({error:"need-not-found"},404);need=result.data}
       const requesterPassportId=need?.passport_id||(requestedPassportId&&passportIds.has(requestedPassportId)?requestedPassportId:null);
       const visibleText=visibleOpportunityText(opportunity.text);
       const finalMessage=(message||`Atlas знайшов збіг. Мене цікавить ваша можливість: ${visibleText}`).slice(0,1000);
@@ -227,13 +227,14 @@ Deno.serve(async request=>{
       if(opportunityError)throw opportunityError;
       if(!opportunity||!passportIds.has(opportunity.passport_id))return json({error:"opportunity-not-found"},404);
       const today=new Date().toISOString().slice(0,10);
-      const {data:need,error:needError}=await admin.from("atlas_needs").select("id,passport_id,owner_id,item_key,quantity,unit,status,needed_until").eq("id",needId).eq("status","not_received").gte("needed_until",today).maybeSingle();
+      const {data:need,error:needError}=await admin.from("atlas_needs").select("id,passport_id,owner_id,item_key,description,quantity,unit,status,needed_until").eq("id",needId).eq("status","not_received").gte("needed_until",today).maybeSingle();
       if(needError)throw needError;
       if(!need)return json({error:"need-not-found"},404);
       if(passportIds.has(need.passport_id))return json({error:"own-need"},400);
       const {data:existing}=await admin.from("atlas_requests").select(requestFields).eq("opportunity_id",opportunity.id).eq("need_id",need.id).in("status",activeStatuses).order("created_at",{ascending:false}).limit(1).maybeSingle();
       if(existing)return json({request:existing,duplicate:true});
-      const message=`Atlas знайшов збіг. Я можу допомогти з вашою потребою: ${visibleOpportunityText(opportunity.text)}`.slice(0,1000);
+      const needText=String(need.description||need.item_key||"ваша потреба").trim();
+      const message=`Atlas знайшов збіг. Я можу допомогти з потребою «${needText}». Моя можливість: ${visibleOpportunityText(opportunity.text)}`.slice(0,1000);
       const {data:requestRow,error}=await admin.from("atlas_requests").insert({
         passport_id:opportunity.passport_id,
         requester_passport_id:need.passport_id,
@@ -243,7 +244,7 @@ Deno.serve(async request=>{
         requester_id:need.owner_id,
         requester_name:"",
         message,
-        subject:visibleOpportunityText(opportunity.text).slice(0,240),
+        subject:needText.slice(0,240),
         request_kind:"opportunity",
         status:"pending",
         initiator_id:user.id,
