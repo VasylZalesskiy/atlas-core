@@ -160,7 +160,7 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
       <div className="needsMobileIdentity"><span className="needsMobileAvatar">{passport?.display_name?.trim().charAt(0).toUpperCase()||"А"}</span><span><strong>{passport?.display_name}{passport?.city?` · ${passport.city}`:""}</strong><small>{uk?"Моя сторінка Atlas":"My Atlas page"}</small></span><Link to="/profile" aria-label={uk?"Змінити назву сторінки":"Edit page name"}><Pencil size={15}/>{uk?"Змінити":"Edit"}</Link></div>
       <span className="needsMobileKicker needsMenuLabel">{uk?"ДОДАТИ ПОТРЕБУ":"ADD A NEED"}</span>
       <div className="needsMobileProduct">
-        <div><span className="needsMobileProductIcon">✍️</span><span><strong>{uk?"Своїми словами":"In your own words"}</strong><small>{uk?"Напишіть будь-яку потребу без категорій":"Describe any need without categories"}</small></span></div>
+        <div><span className="needsMobileProductIcon">✍️</span><span><strong>{uk?"Інша потреба":"Other need"}</strong><small>{uk?"Напишіть будь-яку потребу без категорій":"Describe any need without categories"}</small></span></div>
         <button type="button" onClick={openFreeCreate}><Plus size={18}/>{uk?"Написати потребу":"Write a need"}</button>
       </div>
       {activeItems.map(item=><div className="needsMobileProduct" key={item.item_key}><div><span className="needsMobileProductIcon">{item.icon||"🥔"}</span><span><strong>{uk?item.name_uk:(item.name_en||item.name_uk)}</strong><small>{uk?"Оберіть кількість і термін":"Choose quantity and dates"}</small></span></div><button type="button" onClick={()=>openCreate(item)}><Plus size={18}/>{uk?"Додати потребу":"Add need"}</button></div>)}
@@ -181,7 +181,7 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
       <div className="needsHeadingTools"><div className="needsPilotBadge">{uk?"Структурована база потреб":"Structured needs database"}</div></div>
     </div>
 
-    <div className="needsMobileCreateTitle"><h2>{uk?"Додати потребу":"Add a need"}</h2><span>{createMode==="free"?(uk?"Своїми словами":"In your own words"):(uk?selectedItem?.name_uk:(selectedItem?.name_en||selectedItem?.name_uk))}</span></div>
+    <div className="needsMobileCreateTitle"><h2>{uk?"Додати потребу":"Add a need"}</h2><span>{createMode==="free"?(uk?"Інша потреба":"Other need"):(uk?selectedItem?.name_uk:(selectedItem?.name_en||selectedItem?.name_uk))}</span></div>
     {createMode==="free"?<form className="needComposer freeNeedComposer" onSubmit={submitFreeNeed}>
       <div className="needStep">
         <div className="needStepTitle"><span>1</span><div><strong>{uk?"Опишіть, що вам потрібно":"Describe what you need"}</strong><small>{uk?"Пишіть звичайними словами — товар, послугу, допомогу або бізнес-задачу":"Use normal words — a product, service, help, or a business task"}</small></div></div>
@@ -245,7 +245,7 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
         const catalogGroup=groupLookup.get(item.group_key);
         const freeForm=Boolean(item.description);
         const itemName=freeForm?item.description:(uk?(catalogItem?.name_uk||item.item_key):(catalogItem?.name_en||catalogItem?.name_uk||item.item_key));
-        const groupName=freeForm?(uk?"Потреба своїми словами":"Free-form need"):(uk?(catalogGroup?.name_uk||item.group_key):(catalogGroup?.name_en||catalogGroup?.name_uk||item.group_key));
+        const groupName=freeForm?(uk?"Інша потреба":"Other need"):(uk?(catalogGroup?.name_uk||item.group_key):(catalogGroup?.name_en||catalogGroup?.name_uk||item.group_key));
         return <article className={"needRecord "+(received?"received":"")} key={item.id}>
           <div className="needRecordProduct"><span aria-hidden="true">{freeForm?"✍️":(catalogItem?.icon||"📦")}</span><div><small>{String(groupName).toLocaleUpperCase(uk?"uk-UA":"en-GB")}</small><h4>{itemName}</h4></div></div>
           <div className="needRecordMeta">{!freeForm&&<div><Scale size={16}/><span><small>{uk?"Кількість":"Quantity"}</small><strong>{Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} {item.unit}</strong></span></div>}<div><CalendarRange size={16}/><span><small>{uk?"Актуальність":"Validity"}</small><strong>{formatDateRange(item.needed_from,item.needed_until,uk)}</strong></span></div></div>
