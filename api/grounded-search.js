@@ -1,5 +1,5 @@
 import {getOpenAIStatus,runOpenAIResponse} from "./_openai-ai.js";
-import {looksLikeCategory,looksLikeConcreteListing} from "./_search-utils.js";
+import {looksLikeCategory,looksLikeConcreteListing,marketplaceSearchTerm} from "./_search-utils.js";
 
 const MODEL="gpt-6-luna";
 
@@ -15,6 +15,14 @@ function isCommerceTask(value){
   return /куп|прод|придба|замов|товар|продукт|достав|постач|маркетплейс|оголош|buy|sell|order|product|delivery|supplier|marketplace|listing/iu.test(String(value||""));
 }
 function host(url){try{return new URL(url).hostname.replace(/^www\./,"")}catch{return ""}}
+function commerceRelevance(source,goal,query){
+  const term=marketplaceSearchTerm(query)||marketplaceSearchTerm(goal)||"";
+  const tokens=term.toLowerCase().split(/\s+/).filter(Boolean).map(word=>word.length>5?word.slice(0,5):word);
+  if(!tokens.length)return true;
+  let hay=`${source?.title||""} ${source?.url||""}`.toLowerCase();
+  try{hay=decodeURIComponent(hay)}catch{}
+  return tokens.some(token=>hay.includes(token));
+}
 function collectGrounding(data){
   const answerParts=[];
   const seen=new Set();
@@ -96,6 +104,7 @@ function toResults({answer,sources,language,domain,goal="",query=""}){
   };
   const sourceResults=sources
     .filter(source=>!commerce||looksLikeConcreteListing(source.url))
+    .filter(source=>!commerce||commerceRelevance(source,goal,query))
     .filter(source=>!looksLikeCategory(source.url))
     .map((source,index)=>({
       title:source.title||host(source.url)||`${uk?"Джерело":"Source"} ${index+1}`,
@@ -113,7 +122,7 @@ function toResults({answer,sources,language,domain,goal="",query=""}){
         ?(commerce?"Конкретне джерело пропозиції, використане Atlas. Перевірте актуальність у продавця.":"Джерело, використане для відповіді Atlas.")
         :(commerce?"A concrete offer source used by Atlas. Confirm availability with the seller.":"A source used for the Atlas answer.")
     }));
-  return [answerResult,...sourceResults];
+  return commerce?sourceResults:[answerResult,...sourceResults];
 }
 
 export default async function handler(req,res){
