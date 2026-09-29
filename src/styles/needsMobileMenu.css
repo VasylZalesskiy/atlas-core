@@ -36,3 +36,12 @@
   .needsMobileView-create .needComposerFooter>div{display:none}
   .needsMobileView-active .needsMobileMenu,.needsMobileView-archive .needsMobileMenu,.needsMobileView-active .needsHeading,.needsMobileView-archive .needsHeading,.needsMobileView-active .needsMobileCreateTitle,.needsMobileView-archive .needsMobileCreateTitle,.needsMobileView-active .needComposer,.needsMobileView-archive .needComposer{display:none}
   .needsMobileView-active .needsListHeading,.needsMobileView-archive .needsListHeading{margin-top:0}
+
+.needCatalogVisibleList{display:grid;gap:9px;margin-top:12px}
+.needCatalogVisibleList button{display:flex;align-items:center;gap:12px;width:100%;min-height:58px;padding:10px 13px;border:1px solid #dce8e0;border-radius:14px;background:#fff;color:#1f3127;text-align:left;cursor:pointer}
+.needCatalogVisibleList button>span:nth-child(2){display:grid;gap:2px;flex:1}
+.needCatalogVisibleList button strong{font-size:15px}
+.needCatalogVisibleList button small{font-size:11px;color:#6d7c72}
+.needCatalogVisibleList button>svg{color:#0c8748;flex:none}
+.needCatalogVisibleList button.active{border-color:#0c8748;background:#eef8f2}
+.needCatalogVisibleIcon{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#f1f6f2;font-size:22px;flex:none}
