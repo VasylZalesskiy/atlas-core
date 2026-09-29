@@ -35,6 +35,14 @@ function searchCore(value){
   return text||clean(value);
 }
 function savedAtlasCity(){try{return clean(localStorage.getItem("atlas-city")||"")}catch{return ""}}
+function genericMoneyClarification(value,lang="uk"){
+  const text=clean(value).toLowerCase();
+  if(!/^(?:мені\s+)?(?:потрібні|потрібно|треба|хочу)?\s*(?:кошти|гроші|фінансування|money|funding)\s*$/iu.test(text))return null;
+  return lang==="uk"
+    ?{required:true,question:"Яким способом ви хочете отримати кошти?",helper_text:"Оберіть напрямок — тоді Atlas зможе шукати конкретне рішення.",options:["Знайти інвестора","Знайти кредит або позику","Знайти грант","Знайти роботу або заробіток","Продати товар чи майно"]}
+    :{required:true,question:"How do you want to obtain the money?",helper_text:"Choose a direction so Atlas can search for a concrete solution.",options:["Find an investor","Find a loan","Find a grant","Find work or income","Sell goods or assets"]};
+}
+
 
 function sourceForInternetStep(step,plannedSources,index){
   const planned=plannedSources[index]?.source||plannedSources[0]?.source;
@@ -531,6 +539,9 @@ ${initialWhere}`;
   const [originLoading,setOriginLoading]=useState(false);
   const [originError,setOriginError]=useState("");
   const [sortMode,setSortMode]=useState("recommended");
+  const effectiveClarification=Boolean(effectiveClarification)
+    ?plan.clarification
+    :(externalRequested&&brainReady?genericMoneyClarification(activeTask,lang):null);
   const geo=useGeolocation(state?.geoLocation||null);
   const origin=geo.location||typedOrigin;
 
@@ -727,7 +738,7 @@ ${initialWhere}`;
 
   useEffect(()=>{
     if(!internalChecked||!externalRequested||searchScope)return;
-    if(!brainReady||brainLoading||plan?.clarification?.required)return;
+    if(!brainReady||brainLoading||Boolean(effectiveClarification))return;
     if(plan?.solution_scope==="information"&&plannedAnswerCandidate){
       setSearchScope("direct");
       return;
@@ -1180,7 +1191,7 @@ ${initialWhere}`;
           <span className="solutionKicker">ATLAS</span>
           <h1>{!internalChecked
             ?(lang==="uk"?"Шукаю в Atlas…":"Searching Atlas…")
-            :plan?.clarification?.required
+            :Boolean(effectiveClarification)
               ?(lang==="uk"?"Потрібне уточнення":"One quick question")
               :externalRequested&&brainLoading
                 ?(lang==="uk"?"Luna аналізує запит…":"Luna is analysing the request…")
@@ -1192,7 +1203,7 @@ ${initialWhere}`;
         {plan?.safety?.level&&plan.safety.level!=="none"&&plan.safety.message&&<div className={`simpleSafety ${plan.safety.level}`}>{plan.safety.message}</div>}
       </div>
 
-      {!plan?.clarification?.required&&plan?.solution_scope==="transaction"&&rankedCandidates.length>1&&<div className="solutionSortBar">
+      {!Boolean(effectiveClarification)&&plan?.solution_scope==="transaction"&&rankedCandidates.length>1&&<div className="solutionSortBar">
         <label>{lang==="uk"?"Сортування":"Sort"}<select value={sortMode} onChange={event=>setSortMode(event.target.value)}>
           <option value="recommended">{lang==="uk"?"Найкраще рішення Atlas":"Best Atlas solution"}</option>
           <option value="price-asc">{lang==="uk"?"Від найдешевшого":"Lowest price first"}</option>
@@ -1201,13 +1212,13 @@ ${initialWhere}`;
         {structuredPriceCount<2&&<small>{lang==="uk"?"Цінове сортування з’явиться повністю, коли можливості матимуть ціну за однакову одиницю.":"Price sorting becomes useful when opportunities include comparable unit prices."}</small>}
       </div>}
 
-      {plan?.clarification?.required&&<div className="simpleClarifier">
-        <strong>{plan.clarification.question}</strong>
-        {plan.clarification.helper_text&&<span>{plan.clarification.helper_text}</span>}
-        {Array.isArray(plan.clarification.options)&&plan.clarification.options.length>0&&<div className="simpleClarifierChips">{plan.clarification.options.map(option=><button key={option} type="button" onClick={()=>refine(option)}>{option}</button>)}</div>}
+      {Boolean(effectiveClarification)&&<div className="simpleClarifier">
+        <strong>{effectiveClarification.question}</strong>
+        {effectiveClarification.helper_text&&<span>{effectiveClarification.helper_text}</span>}
+        {Array.isArray(effectiveClarification.options)&&effectiveClarification.options.length>0&&<div className="simpleClarifierChips">{effectiveClarification.options.map(option=><button key={option} type="button" onClick={()=>refine(option)}>{option}</button>)}</div>}
       </div>}
 
-      {!plan?.clarification?.required&&activeTask&&internalChecked&&<section className="atlasInternalResults">
+      {!Boolean(effectiveClarification)&&activeTask&&internalChecked&&<section className="atlasInternalResults">
         <div className="atlasInternalHead">
           <span>{lang==="uk"?"СПОЧАТКУ ATLAS":"ATLAS FIRST"}</span>
           <h2>{lang==="uk"?"Результати всередині Atlas":"Results inside Atlas"}</h2>
@@ -1231,14 +1242,14 @@ ${initialWhere}`;
         </div>
       </section>}
 
-      {!plan?.clarification?.required&&activeTask&&internalChecked&&<section className="openSourcesGate">
+      {!Boolean(effectiveClarification)&&activeTask&&internalChecked&&<section className="openSourcesGate">
         <div><span>{lang==="uk"?"ДРУГИЙ КРОК":"SECOND STEP"}</span><h2>{lang==="uk"?"Пошук у відкритих джерелах":"Search open sources"}</h2><p>{lang==="uk"?"Atlas уже перевірив свою базу. Магазини, карти, маркетплейси та відкритий інтернет запускаються окремо — тільки за вашою командою.":"Atlas has already checked its own database. Stores, maps, marketplaces and the open web run separately, only when you ask."}</p></div>
         <button type="button" onClick={startExternalSearch} disabled={externalRequested||solutionBusy}>
           <Globe2 size={19}/>{externalRequested?(brainLoading?(lang==="uk"?"Luna аналізує…":"Luna analysing…"):(externalBusy||!brainReady?(lang==="uk"?"Шукаю…":"Searching…"):(lang==="uk"?"Пошук запущено":"Search started"))):(lang==="uk"?"Шукати у відкритих джерелах":"Search open sources")}
         </button>
       </section>}
 
-      {!plan?.clarification?.required&&activeTask&&scopeChoiceAvailable&&<section className="searchScopePicker">
+      {!Boolean(effectiveClarification)&&activeTask&&scopeChoiceAvailable&&<section className="searchScopePicker">
         <div className="scopeHeading">
           <span>{lang==="uk"?"ВАШ ВИБІР":"YOUR CHOICE"}</span>
           <h2>{lang==="uk"?"Де шукати?":"Where should Atlas search?"}</h2>
@@ -1257,7 +1268,7 @@ ${initialWhere}`;
         </div>
       </section>}
 
-      {!plan?.clarification?.required&&externalRequested&&recommendedCandidate&&<ImmediateSolution
+      {!Boolean(effectiveClarification)&&externalRequested&&recommendedCandidate&&<ImmediateSolution
         candidate={recommendedCandidate}
         alternatives={recommendedAlternatives}
         origin={origin}
@@ -1265,9 +1276,9 @@ ${initialWhere}`;
         stillSearching={solutionBusy}
       />}
 
-      {!plan?.clarification?.required&&informationSearchAvailable&&recommendedCandidate&&<div className="searchScopePicker"><div className="scopeHeading"><span>{lang==="uk"?"ДОДАТКОВО":"OPTIONAL"}</span><h2>{lang==="uk"?"Потрібно пошукати ще?":"Search for more?"}</h2><p>{lang==="uk"?"Основну відповідь Atlas уже дав. Додатковий пошук запускається лише за вашим бажанням.":"Atlas already gave the main answer. Additional search runs only if you choose it."}</p></div><div className="scopeButtons" role="group"><button type="button" onClick={()=>chooseSearchScope("nearby")}><MapPin size={21}/><span><strong>{lang==="uk"?"Пошукати поруч":"Search nearby"}</strong><small>{lang==="uk"?"Місця та маршрут":"Places and route"}</small></span></button><button type="button" onClick={()=>chooseSearchScope("internet")}><Globe2 size={21}/><span><strong>{lang==="uk"?"Пошукати ще в інтернеті":"Search more online"}</strong><small>{lang==="uk"?"Додаткові джерела за бажанням":"Optional additional sources"}</small></span></button></div></div>}
+      {!Boolean(effectiveClarification)&&informationSearchAvailable&&recommendedCandidate&&<div className="searchScopePicker"><div className="scopeHeading"><span>{lang==="uk"?"ДОДАТКОВО":"OPTIONAL"}</span><h2>{lang==="uk"?"Потрібно пошукати ще?":"Search for more?"}</h2><p>{lang==="uk"?"Основну відповідь Atlas уже дав. Додатковий пошук запускається лише за вашим бажанням.":"Atlas already gave the main answer. Additional search runs only if you choose it."}</p></div><div className="scopeButtons" role="group"><button type="button" onClick={()=>chooseSearchScope("nearby")}><MapPin size={21}/><span><strong>{lang==="uk"?"Пошукати поруч":"Search nearby"}</strong><small>{lang==="uk"?"Місця та маршрут":"Places and route"}</small></span></button><button type="button" onClick={()=>chooseSearchScope("internet")}><Globe2 size={21}/><span><strong>{lang==="uk"?"Пошукати ще в інтернеті":"Search more online"}</strong><small>{lang==="uk"?"Додаткові джерела за бажанням":"Optional additional sources"}</small></span></button></div></div>}
 
-      {!plan?.clarification?.required&&solutionBusy&&<div className="solutionSearchState">
+      {!Boolean(effectiveClarification)&&solutionBusy&&<div className="solutionSearchState">
         <RefreshCw className="spin" size={20}/>
         <div><strong>{lang==="uk"?"Шукаю найкращі варіанти…":"Finding the best options…"}</strong></div>
       </div>}
@@ -1279,7 +1290,7 @@ ${initialWhere}`;
 
       {originError&&<div className="simpleEmpty">{lang==="uk"?"Не вдалося визначити цю локацію. Вкажіть місто на головній сторінці або дозвольте геолокацію.":"Could not resolve this location. Enter a city on the home page or allow geolocation."}</div>}
 
-      {!plan?.clarification?.required&&externalRequested&&!brainLoading&&!recommendedCandidate&&!solutionBusy&&recoveryRunRef.current&&<div className="simpleEmpty">
+      {!Boolean(effectiveClarification)&&externalRequested&&!brainLoading&&!recommendedCandidate&&!solutionBusy&&recoveryRunRef.current&&<div className="simpleEmpty">
         {lang==="uk"?"Нічого конкретного не знайдено. Спробуйте уточнити запит або місто.":"No concrete result was found. Try refining the request or location."}
       </div>}
 
