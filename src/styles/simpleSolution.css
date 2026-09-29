@@ -29,3 +29,9 @@
 .needContactActions .chainAction{margin-top:0;grid-column:auto;white-space:nowrap}
 .needContactError{margin-bottom:14px;color:#8a3b2f;background:#fff8f6;border-color:#efdbd5}
 @media(max-width:760px){.needContactActions{width:100%;justify-content:stretch}.needContactActions .chainAction{flex:1}}
+
+/* Reduce large green surfaces: keep green only as an accent */
+.atlasAiUnderstanding{background:#fff;border-color:#dde6e0;box-shadow:0 4px 16px rgba(24,58,38,.035)}
+.openSourcesGate{background:#fff;border-color:#dde6e0;box-shadow:none}
+.atlasInternalResults{background:#fff;border-color:#e1e7e3}
+.simpleGeoPrompt,.simpleClarifier,.solutionSearchState{background:#fff}
