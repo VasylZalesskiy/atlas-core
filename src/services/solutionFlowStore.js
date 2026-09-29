@@ -42,6 +42,10 @@ export async function startPassportConversation({passportId,requesterPassportId=
   return invoke("passport_request",{passportId,requesterPassportId,subject,message});
 }
 
+export async function startNeedConversation({needId,providerPassportId=null,message=""}){
+  return invoke("need_contact",{needId,providerPassportId,message});
+}
+
 export async function offerOpportunityToNeed({opportunityId,needId}){
   return invoke("offer",{opportunityId,needId});
 }
