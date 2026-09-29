@@ -35,3 +35,22 @@
     opacity:.72;
   }
 }
+
+/* Keep composer directly under the conversation instead of at the bottom of a tall empty pane */
+.conversationThread{
+  grid-template-rows:auto auto auto auto auto;
+  align-content:start;
+}
+.threadMessages{
+  min-height:0;
+  max-height:58vh;
+}
+.threadComposer{
+  position:static;
+  align-self:start;
+}
+@media(max-width:760px){
+  .conversationThread{min-height:0;align-content:start}
+  .threadMessages{min-height:0;max-height:52vh}
+  .threadComposer{position:static;bottom:auto}
+}
