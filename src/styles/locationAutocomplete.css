@@ -1,0 +1,16 @@
+.atlasLocationAutocomplete{position:relative;min-width:0;width:100%}
+.atlasLocationAutocomplete>input{width:100%}
+.atlasLocationSuggestions{position:absolute;z-index:120;left:0;right:0;top:calc(100% + 5px);display:grid;overflow:hidden;border:1px solid #d7e3dc;border-radius:13px;background:#fff;box-shadow:0 16px 40px rgba(20,68,43,.16)}
+.atlasLocationSuggestions button{width:100%;min-width:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px;align-items:start;padding:10px 11px;border:0;border-bottom:1px solid #edf1ee;background:#fff;color:#24352c;text-align:left;cursor:pointer}
+.atlasLocationSuggestions button:last-child{border-bottom:0}
+.atlasLocationSuggestions button:hover,.atlasLocationSuggestions button:focus{background:#f0f8f3;outline:0}
+.atlasLocationSuggestions button>svg{margin-top:2px;color:#0c7d43}
+.atlasLocationSuggestions button>span{min-width:0;display:grid;gap:2px}
+.atlasLocationSuggestions strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.atlasLocationSuggestions small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#6f7c74;font-size:10px}
+.atlasLocationLoading{padding:10px 12px;color:#65736b;font-size:11px;font-weight:800}
+@media(max-width:760px){
+  .atlasLocationSuggestions{position:absolute;max-height:280px;overflow-y:auto;border-radius:12px}
+  .atlasLocationSuggestions button{padding:11px 10px}
+  .atlasLocationSuggestions strong{font-size:13px}
+}
