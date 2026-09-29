@@ -54,10 +54,10 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
   const [error,setError]=useState("");
   const [showArchive,setShowArchive]=useState(false);
 
-  const activeGroups=useMemo(()=>groups.filter(group=>group.is_active!==false),[groups]);
+  const activeGroups=useMemo(()=>groups.filter(group=>group.is_active!==false&&group.group_key!=="custom"),[groups]);
   const activeItems=useMemo(()=>{
     const activeGroupKeys=new Set(activeGroups.map(group=>group.group_key));
-    return catalogItems.filter(item=>item.is_active&&activeGroupKeys.has(item.group_key));
+    return catalogItems.filter(item=>item.is_active&&item.group_key!=="custom"&&item.item_key!=="custom"&&activeGroupKeys.has(item.group_key));
   },[catalogItems,activeGroups]);
   const itemsForGroup=useMemo(()=>activeItems.filter(item=>item.group_key===form.groupKey),[activeItems,form.groupKey]);
   const selectedItem=itemsForGroup.find(item=>item.item_key===form.itemKey)||null;
@@ -69,7 +69,12 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
 
   function openView(view){setSearchParams(previous=>{const next=new URLSearchParams(previous);if(view==="menu")next.delete("view");else next.set("view",view);return next});setShowArchive(view==="archive");setError("");window.scrollTo({top:0,behavior:"auto"})}
   function openFreeCreate(){setCreateMode("free");setFreeText("");setFreeUntil(isoDate(30));openView("create")}
-  function openCreate(item){setCreateMode("structured");setForm(value=>({...value,groupKey:item.group_key,itemKey:item.item_key,unit:item.unit||"кг"}));openView("create")}
+  function openStructuredCreate(){
+    const firstGroup=activeGroups[0]||null;
+    setCreateMode("structured");
+    setForm(value=>({...value,groupKey:firstGroup?.group_key||"",itemKey:"",unit:"кг",quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7)}));
+    openView("create");
+  }
 
   useEffect(()=>{if(mobileView==="archive")setShowArchive(true);else if(mobileView==="active")setShowArchive(false)},[mobileView]);
 
@@ -163,12 +168,15 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
         <div><span className="needsMobileProductIcon">✍️</span><span><strong>{uk?"Інша потреба":"Other need"}</strong><small>{uk?"Напишіть будь-яку потребу без категорій":"Describe any need without categories"}</small></span></div>
         <button type="button" onClick={openFreeCreate}><Plus size={18}/>{uk?"Написати потребу":"Write a need"}</button>
       </div>
-      {activeItems.map(item=><div className="needsMobileProduct" key={item.item_key}><div><span className="needsMobileProductIcon">{item.icon||"🥔"}</span><span><strong>{uk?item.name_uk:(item.name_en||item.name_uk)}</strong><small>{uk?"Оберіть кількість і термін":"Choose quantity and dates"}</small></span></div><button type="button" onClick={()=>openCreate(item)}><Plus size={18}/>{uk?"Додати потребу":"Add need"}</button></div>)}
+      <div className="needsMobileProduct">
+        <div><span className="needsMobileProductIcon">📋</span><span><strong>{uk?"Вибрати зі списку":"Choose from the list"}</strong><small>{uk?"Оберіть категорію та конкретну позицію":"Choose a category and a specific item"}</small></span></div>
+        <button type="button" onClick={openStructuredCreate}><Plus size={18}/>{uk?"Вибрати":"Choose"}</button>
+      </div>
       {catalogLoading&&<div className="needCatalogLoading">{uk?"Завантажую список…":"Loading list…"}</div>}
       <span className="needsMobileKicker needsMenuLabel">{uk?"ВАШІ ПОТРЕБИ":"YOUR NEEDS"}</span>
       <button type="button" className="needsMobileRow" onClick={()=>openView("active")}><span className="needsRowIcon"><HeartHandshake size={20}/></span><span><strong>{uk?"Актуальні":"Active"}</strong><small>{uk?"Потреби, які ще потрібні":"Needs you still have"}</small></span><b>{openCount}</b><ChevronRight size={18}/></button>
       <button type="button" className="needsMobileRow" onClick={()=>openView("archive")}><span className="needsRowIcon"><PackageCheck size={20}/></span><span><strong>{uk?"Архів":"Archive"}</strong><small>{uk?"Отримані та закриті":"Received and closed"}</small></span><b>{archivedCount}</b><ChevronRight size={18}/></button>
-      <div className="needsPilotNote">{uk?"Можна написати будь-яку потребу своїми словами. Список нижче лишається для структурованих потреб.":"You can describe any need in your own words. The list remains for structured needs."}</div>
+      <div className="needsPilotNote">{uk?"Оберіть «Інша потреба» або знайдіть потрібну позицію у списку.":"Choose “Other need” or find a specific item in the list."}</div>
     </div>
     <button type="button" className="needsMobileBack" onClick={()=>openView("menu")}><ArrowLeft size={18}/>{uk?"Потреби":"Needs"}</button>
     <div className="needsHeading">
@@ -181,7 +189,7 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
       <div className="needsHeadingTools"><div className="needsPilotBadge">{uk?"Структурована база потреб":"Structured needs database"}</div></div>
     </div>
 
-    <div className="needsMobileCreateTitle"><h2>{uk?"Додати потребу":"Add a need"}</h2><span>{createMode==="free"?(uk?"Інша потреба":"Other need"):(uk?selectedItem?.name_uk:(selectedItem?.name_en||selectedItem?.name_uk))}</span></div>
+    <div className="needsMobileCreateTitle"><h2>{uk?"Додати потребу":"Add a need"}</h2><span>{createMode==="free"?(uk?"Інша потреба":"Other need"):(selectedItem?(uk?selectedItem.name_uk:(selectedItem.name_en||selectedItem.name_uk)):(uk?"Вибрати зі списку":"Choose from the list"))}</span></div>
     {createMode==="free"?<form className="needComposer freeNeedComposer" onSubmit={submitFreeNeed}>
       <div className="needStep">
         <div className="needStepTitle"><span>1</span><div><strong>{uk?"Опишіть, що вам потрібно":"Describe what you need"}</strong><small>{uk?"Пишіть звичайними словами — товар, послугу, допомогу або бізнес-задачу":"Use normal words — a product, service, help, or a business task"}</small></div></div>
