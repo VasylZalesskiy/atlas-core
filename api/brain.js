@@ -159,22 +159,26 @@ async function resolveLocationContext(location,language){
 }
 
 async function runAtlasAi({instructions,input,maxOutputTokens=2600,timeoutMs=15000,schema=null,schemaName="atlas_response",json=true}={}){
+  const openai=await getOpenAIStatus();
+  if(openai.configured){
+    try{
+      const paid=await runOpenAIResponse({
+        instructions,input,maxOutputTokens,
+        timeoutMs:Math.max(5000,timeoutMs),
+        schema,schemaName,
+        model:"gpt-6-luna"
+      });
+      if(paid?.data?.status!=="incomplete"&&extractText(paid?.data))return {...paid,provider:"openai",paid:true};
+    }catch(error){
+      console.warn(JSON.stringify({level:"warning",message:"atlas_luna_unavailable",error:String(error?.code||error?.message||"unknown").slice(0,120)}));
+    }
+  }
+
   try{
     const free=await runFreeAiResponse({instructions,input,maxOutputTokens,timeoutMs:Math.min(timeoutMs,6500),json});
     if(free?.data?.status!=="incomplete"&&extractText(free?.data))return {...free,provider:"google-gemini-free-tier",paid:false};
   }catch(error){
     console.warn(JSON.stringify({level:"warning",message:"atlas_free_ai_unavailable",error:String(error?.code||error?.message||"unknown").slice(0,120)}));
-  }
-
-  const openai=await getOpenAIStatus();
-  if(openai.configured){
-    const paid=await runOpenAIResponse({
-      instructions,input,maxOutputTokens,
-      timeoutMs:Math.max(5000,timeoutMs),
-      schema,schemaName,
-      model:"gpt-6-luna"
-    });
-    return {...paid,provider:"openai",paid:true};
   }
 
   const error=new Error("atlas-ai-unavailable");
