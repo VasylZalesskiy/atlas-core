@@ -670,7 +670,11 @@ ${initialWhere}`;
     brainRunRef.current=runKey;
 
     setBrainLoading(true);
+    setBrainReady(false);
     setBrainError("");
+    setSearchScope("");
+    setNearbyGroups([]);
+    setInternetGroups([]);
 
     analyzeAtlasQuery(searchCore(activeTask),{
       lang,
@@ -1123,21 +1127,16 @@ ${initialWhere}`;
 
   function startExternalSearch(){
     if(!internalChecked||externalRequested)return;
-    const fallback=createFallbackPlan(searchCore(activeTask),{lang});
-    const fallbackPlan={...fallback,location_text:initialWhere,original_query:activeTask};
-    const fallbackSteps=normalizeSteps(fallbackPlan,activeTask,lang);
-    const fallbackScope=automaticSearchScope(fallbackPlan,fallbackSteps);
-    setPlan(fallbackPlan);
     setExternalRequested(true);
-    setBrainReady(true);
+    setBrainReady(false);
     setBrainError("");
     brainRunRef.current="";
-    setSearchScope(fallbackScope==="direct"?"internet":fallbackScope);
+    setSearchScope("");
     setNearbyGroups([]);
     setInternetGroups([]);
     setRecoveryCandidates([]);
     recoveryRunRef.current="";
-    trackAtlas("Atlas Open Sources Search Requested",{language:lang,query:activeTask,initial_scope:fallbackScope});
+    trackAtlas("Atlas Open Sources Search Requested",{language:lang,query:activeTask});
   }
 
   function chooseSearchScope(scope){
@@ -1181,9 +1180,13 @@ ${initialWhere}`;
           <span className="solutionKicker">ATLAS</span>
           <h1>{!internalChecked
             ?(lang==="uk"?"Шукаю в Atlas…":"Searching Atlas…")
-            :externalRequested
-              ?(recommendedCandidate?(lang==="uk"?"Відкриті джерела":"Open sources"):(lang==="uk"?"Шукаю у відкритих джерелах…":"Searching open sources…"))
-              :(lang==="uk"?"Знайдено в Atlas":"Found in Atlas")}
+            :plan?.clarification?.required
+              ?(lang==="uk"?"Потрібне уточнення":"One quick question")
+              :externalRequested&&brainLoading
+                ?(lang==="uk"?"Luna аналізує запит…":"Luna is analysing the request…")
+                :externalRequested
+                  ?(recommendedCandidate?(lang==="uk"?"Відкриті джерела":"Open sources"):(lang==="uk"?"Шукаю у відкритих джерелах…":"Searching open sources…"))
+                  :(lang==="uk"?"Знайдено в Atlas":"Found in Atlas")}
           </h1>
         </div>
         {plan?.safety?.level&&plan.safety.level!=="none"&&plan.safety.message&&<div className={`simpleSafety ${plan.safety.level}`}>{plan.safety.message}</div>}
@@ -1231,7 +1234,7 @@ ${initialWhere}`;
       {!plan?.clarification?.required&&activeTask&&internalChecked&&<section className="openSourcesGate">
         <div><span>{lang==="uk"?"ДРУГИЙ КРОК":"SECOND STEP"}</span><h2>{lang==="uk"?"Пошук у відкритих джерелах":"Search open sources"}</h2><p>{lang==="uk"?"Atlas уже перевірив свою базу. Магазини, карти, маркетплейси та відкритий інтернет запускаються окремо — тільки за вашою командою.":"Atlas has already checked its own database. Stores, maps, marketplaces and the open web run separately, only when you ask."}</p></div>
         <button type="button" onClick={startExternalSearch} disabled={externalRequested||solutionBusy}>
-          <Globe2 size={19}/>{externalRequested?(externalBusy||!brainReady?(lang==="uk"?"Шукаю…":"Searching…"):(lang==="uk"?"Пошук запущено":"Search started")):(lang==="uk"?"Шукати у відкритих джерелах":"Search open sources")}
+          <Globe2 size={19}/>{externalRequested?(brainLoading?(lang==="uk"?"Luna аналізує…":"Luna analysing…"):(externalBusy||!brainReady?(lang==="uk"?"Шукаю…":"Searching…"):(lang==="uk"?"Пошук запущено":"Search started"))):(lang==="uk"?"Шукати у відкритих джерелах":"Search open sources")}
         </button>
       </section>}
 
@@ -1276,7 +1279,7 @@ ${initialWhere}`;
 
       {originError&&<div className="simpleEmpty">{lang==="uk"?"Не вдалося визначити цю локацію. Вкажіть місто на головній сторінці або дозвольте геолокацію.":"Could not resolve this location. Enter a city on the home page or allow geolocation."}</div>}
 
-      {!plan?.clarification?.required&&externalRequested&&!recommendedCandidate&&!solutionBusy&&recoveryRunRef.current&&<div className="simpleEmpty">
+      {!plan?.clarification?.required&&externalRequested&&!brainLoading&&!recommendedCandidate&&!solutionBusy&&recoveryRunRef.current&&<div className="simpleEmpty">
         {lang==="uk"?"Нічого конкретного не знайдено. Спробуйте уточнити запит або місто.":"No concrete result was found. Try refining the request or location."}
       </div>}
 
