@@ -1061,7 +1061,7 @@ ${initialWhere}`;
     if(searchScope==="internet")return [{
       ...build("internet"),
       title:lang==="uk"?"Результати з інтернету":"Internet results",
-      description:lang==="uk"?"Паспорт можливостей перевірено. Королева вибрала зовнішній пошук, відповідний типу задачі.":"Opportunity Passports were checked. Queen selected the external search channel appropriate to the task."
+      description:lang==="uk"?"Atlas перевірив внутрішні можливості та продовжив пошук у відкритих джерелах.":"Atlas checked internal opportunities and continued searching open sources."
     }];
     return [{
       ...build("nearby"),
@@ -1221,7 +1221,7 @@ ${initialWhere}`;
             :Boolean(effectiveClarification)
               ?(lang==="uk"?"Потрібне уточнення":"One quick question")
               :brainLoading
-                ?(lang==="uk"?"Luna аналізує задачу…":"Luna is analysing the task…")
+                ?(lang==="uk"?"Atlas шукає рішення…":"Atlas is finding a solution…")
                 :externalRequested
                   ?(recommendedCandidate?(lang==="uk"?"Знайдені рішення":"Solutions found"):(lang==="uk"?"Шукаю у відкритих джерелах…":"Searching open sources…"))
                   :(lang==="uk"?"Рішення Atlas":"Atlas solution")}
@@ -1242,12 +1242,11 @@ ${initialWhere}`;
       {internalChecked&&!Boolean(effectiveClarification)&&<section className="atlasAiUnderstanding">
         <div className="atlasAiIcon"><Sparkles size={22}/></div>
         <div>
-          <span>{lang==="uk"?"LUNA · ATLAS AI":"LUNA · ATLAS AI"}</span>
+          <span>ATLAS</span>
           <h2>{brainLoading
-            ?(lang==="uk"?"Розумію, яку задачу ви хочете вирішити…":"Understanding the task you want to solve…")
-            :(lang==="uk"?"Я зрозумів задачу так:":"I understood the task as:")}</h2>
-          {!brainLoading&&<strong>{clean(plan?.goal)||activeTask}</strong>}
-          <p>{lang==="uk"?"Спочатку перевіряю людей і бізнеси всередині Atlas. Зовнішній пошук запускається окремо.":"I check people and businesses inside Atlas first. External search runs separately."}</p>
+            ?(lang==="uk"?"Шукаю рішення…":"Finding a solution…")
+            :(lang==="uk"?"Пошук за запитом:":"Search for:")}</h2>
+          {!brainLoading&&<strong>{activeTask}</strong>}
         </div>
       </section>}
 
@@ -1291,9 +1290,9 @@ ${initialWhere}`;
       </section>}
 
       {!Boolean(effectiveClarification)&&activeTask&&internalChecked&&!externalRequested&&<section className="openSourcesGate">
-        <div><span>{lang==="uk"?"НАСТУПНИЙ КРОК":"NEXT STEP"}</span><h2>{lang==="uk"?"Розширити пошук":"Expand the search"}</h2><p>{lang==="uk"?"Якщо всередині Atlas рішення немає — Luna підбере правильний тип зовнішнього пошуку: карти, магазини, маркетплейси або відкритий веб.":"If Atlas has no solution, Luna will choose the right external source: maps, stores, marketplaces or the open web."}</p></div>
+        <div><span>{lang==="uk"?"НАСТУПНИЙ КРОК":"NEXT STEP"}</span><h2>{lang==="uk"?"Розширити пошук":"Expand the search"}</h2><p>{lang==="uk"?"Якщо в Atlas немає готового рішення — можна розширити пошук на карти, магазини, маркетплейси та відкриті джерела.":"If Atlas has no ready solution, you can expand the search to maps, stores, marketplaces and open sources."}</p></div>
         <button type="button" onClick={startExternalSearch} disabled={!brainReady||brainLoading||solutionBusy}>
-          <Globe2 size={19}/>{brainLoading?(lang==="uk"?"Luna аналізує…":"Luna analysing…"):(lang==="uk"?"Знайти рішення назовні":"Find a solution outside Atlas")}
+          <Globe2 size={19}/>{brainLoading?(lang==="uk"?"Atlas шукає…":"Atlas searching…"):(lang==="uk"?"Знайти рішення назовні":"Find a solution outside Atlas")}
         </button>
       </section>}
 
