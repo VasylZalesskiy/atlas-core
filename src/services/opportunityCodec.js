@@ -33,6 +33,9 @@ export function decodeOpportunityText(value,kind="other"){
     currency:"UAH",
     saleQuantity:"",
     saleUnit:"кг",
+    saleMode:"catalog",
+    saleDescription:"",
+    saleQuantityText:"",
     validUntil:"",
     catalogGroupKey:"",
     catalogItemKey:"",
@@ -62,6 +65,9 @@ export function decodeOpportunityText(value,kind="other"){
       currency:["UAH","USD","EUR"].includes(metadata.currency)?metadata.currency:"UAH",
       saleQuantity:metadata.saleQuantity==null?"":String(metadata.saleQuantity),
       saleUnit:["кг","шт.","т","л","комплект"].includes(metadata.saleUnit)?metadata.saleUnit:"кг",
+      saleMode:metadata.saleMode==="free"?"free":"catalog",
+      saleDescription:String(metadata.saleDescription||""),
+      saleQuantityText:String(metadata.saleQuantityText||""),
       validUntil:String(metadata.validUntil||""),
       catalogGroupKey:String(metadata.catalogGroupKey||""),
       catalogItemKey:String(metadata.catalogItemKey||""),
@@ -73,7 +79,7 @@ export function decodeOpportunityText(value,kind="other"){
       lastFulfilledAt:typeof metadata.lastFulfilledAt==="string"?metadata.lastFulfilledAt:""
     };
   }catch{
-    return {text,group:legacyGroupByKind[kind]||"additional",duration:"month",place:"",radiusValue:"",radiusUnit:"км",online:false,paymentType:kind==="sell"?"paid":"free",priceValue:"",priceUnit:"шт.",currency:"UAH",saleQuantity:"",saleUnit:"кг",validUntil:"",catalogGroupKey:"",catalogItemKey:"",catalogItemName:"",minimumQuantity:"",deliveryIncluded:false,completedAt:"",fulfillmentCount:0,lastFulfilledAt:""};
+    return {text,group:legacyGroupByKind[kind]||"additional",duration:"month",place:"",radiusValue:"",radiusUnit:"км",online:false,paymentType:kind==="sell"?"paid":"free",priceValue:"",priceUnit:"шт.",currency:"UAH",saleQuantity:"",saleUnit:"кг",saleMode:"catalog",saleDescription:"",saleQuantityText:"",validUntil:"",catalogGroupKey:"",catalogItemKey:"",catalogItemName:"",minimumQuantity:"",deliveryIncluded:false,completedAt:"",fulfillmentCount:0,lastFulfilledAt:""};
   }
 }
 
@@ -93,6 +99,9 @@ export function encodeOpportunityText(entry){
     currency:["UAH","USD","EUR"].includes(entry.currency)?entry.currency:"UAH",
     saleQuantity:String(entry.saleQuantity||"").trim().replace(",",".").slice(0,14),
     saleUnit:["кг","шт.","т","л","комплект"].includes(entry.saleUnit)?entry.saleUnit:"кг",
+    saleMode:entry.saleMode==="free"?"free":"catalog",
+    saleDescription:String(entry.saleDescription||"").trim().slice(0,500),
+    saleQuantityText:String(entry.saleQuantityText||"").trim().slice(0,120),
     validUntil:String(entry.validUntil||"").trim().slice(0,10),
     catalogGroupKey:String(entry.catalogGroupKey||"").trim().slice(0,80),
     catalogItemKey:String(entry.catalogItemKey||"").trim().slice(0,80),
@@ -110,6 +119,9 @@ export function encodeOpportunityText(entry){
     metadata.catalogGroupKey="";
     metadata.catalogItemKey="";
     metadata.catalogItemName="";
+    metadata.saleMode="catalog";
+    metadata.saleDescription="";
+    metadata.saleQuantityText="";
   }
   const suffix=`${metadataMarker}${encodeURIComponent(JSON.stringify(metadata))}`;
   return `${text.slice(0,Math.max(2,1495-suffix.length))}${suffix}`;
