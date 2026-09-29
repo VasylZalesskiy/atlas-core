@@ -169,7 +169,7 @@ function isAgriculture(text){
 }
 
 function hasMerchandiseCount(text){
-  return /(?:^|\s)\d[\d\s.]*(?:[.,]\d+)?\s*(?:пар(?:а|и)?|шт(?:\.|ук(?:а|и|ів)?)?|упаков\w*|пач\w*|короб\w*|ящик\w*|комплект\w*|pairs?|pcs?|packs?|boxes?|sets?)\b/iu.test(String(text||""));
+  return /(?:^|\s)\d[\d\s.]*(?:[.,]\d+)?\s*(?:пар(?:а|и)?|шт(?:\.|ук(?:а|и|ів)?)?|упаков\p{L}*|пач\p{L}*|короб\p{L}*|ящик\p{L}*|комплект\p{L}*|pairs?|pcs?|packs?|boxes?|sets?)(?!\p{L})/iu.test(String(text||""));
 }
 
 export function isProductTransaction(text){
@@ -244,7 +244,7 @@ export function marketplaceSearchTerm(text){
   const withoutQuantity=String(text||"")
     .toLowerCase()
     .replace(/\d+(?:[\s.]*\d)*(?:[.,]\d+)?\s*(?:тон(?:н(?:а|и|у)?|а|и|у)?(?!\p{L})|т(?!\p{L})|кг(?!\p{L})|kg\b|кілограм(?:ів|и|а)?|tonnes?\b|tons?\b)/giu," ")
-    .replace(/\d+(?:[\s.]*\d)*(?:[.,]\d+)?\s*(?:пар(?:а|и)?|шт(?:\.|ук(?:а|и|ів)?)?|упаков\w*|пач\w*|короб\w*|ящик\w*|комплект\w*|pairs?|pcs?|packs?|boxes?|sets?)\b/giu," ")
+    .replace(/\d+(?:[\s.]*\d)*(?:[.,]\d+)?\s*(?:пар(?:а|и)?|шт(?:\.|ук(?:а|и|ів)?)?|упаков\p{L}*|пач\p{L}*|короб\p{L}*|ящик\p{L}*|комплект\p{L}*|pairs?|pcs?|packs?|boxes?|sets?)(?!\p{L})/giu," ")
     .replace(/[^\p{L}\p{N}\s-]/gu," ");
   const seen=new Set();
   const words=withoutQuantity.split(/\s+/).filter(Boolean).filter(word=>!SEARCH_STOP_WORDS.has(word)).map(word=>SEARCH_WORD_ALIASES[word]||word).filter(word=>{
