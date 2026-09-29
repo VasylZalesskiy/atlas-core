@@ -135,7 +135,7 @@ function historicalPassportCandidate(profile,lang){
   };
 }
 
-function placeCandidate(place,route,lang,{resolved=true}={}){
+function placeCandidate(place,route,lang,{resolved=true,verificationText=""}={}){
   return {
     ...place,
     kind:"place",
@@ -144,6 +144,7 @@ function placeCandidate(place,route,lang,{resolved=true}={}){
     description:[place.typeLabel,place.address].filter(Boolean).join(" · "),
     distanceKm:route?.distanceKm??place.straightDistanceKm,
     route,
+    verificationText,
     resolved
   };
 }
@@ -397,6 +398,7 @@ function ImmediateSolution({candidate,alternatives,origin,lang,stillSearching}){
         <h2>{candidate.title}</h2>
         {candidate.description&&<p>{candidate.description}</p>}
         <p className="recommendationReason">{recommendationReason(candidate,lang)}</p>
+        {candidate.verificationText&&<small className="chainVerification">{candidate.verificationText}</small>}
         <div className="chainMeta">
           {candidate.locationText&&<span><MapPin size={13}/>{candidate.locationText}</span>}
           {candidate.city&&<span><MapPin size={13}/>{candidate.city}</span>}
@@ -725,7 +727,12 @@ ${initialWhere}`;
         const commerceStep=sourceForInternetStep(step,[],0)==="marketplace";
         const candidates=await Promise.all(places.slice(0,12).map(async(place,index)=>{
           const route=index<3?await getDrivingRoute(origin,place,{lang,signal:controller.signal}).catch(()=>null):null;
-          return placeCandidate(place,route,lang,{resolved:!commerceStep});
+          return placeCandidate(place,route,lang,{
+            resolved:true,
+            verificationText:commerceStep
+              ?(lang==="uk"?"Магазин поруч знайдено. Наявність потрібної кількості товару варто підтвердити перед поїздкою.":"Nearby store found. Confirm the required quantity is in stock before travelling.")
+              :""
+          });
         }));
         return {stepId:step.id,candidates,error:false};
       }catch(error){
