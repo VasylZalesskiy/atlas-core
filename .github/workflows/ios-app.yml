@@ -1,0 +1,72 @@
+name: Build iOS App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "capacitor.config.ts"
+      - "assets/**"
+      - ".github/workflows/ios-app.yml"
+      - "package.json"
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build web bundle
+        run: npm run build
+
+      - name: Create iOS project
+        run: npx cap add ios
+
+      - name: Generate ATLAS iOS icon and splash
+        run: npx capacitor-assets generate --ios --iconBackgroundColor '#0c8748' --splashBackgroundColor '#ffffff' --splashBackgroundColorDark '#0b1f15'
+
+      - name: Sync Capacitor
+        run: npx cap sync ios
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Build ATLAS for iOS Simulator
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios-simulator \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package simulator app
+        run: |
+          APP_PATH=$(find build/ios-simulator/Build/Products -type d -name "App.app" | head -1)
+          test -n "$APP_PATH"
+          cp -R "$APP_PATH" "ATLAS.app"
+          ditto -c -k --sequesterRsrc --keepParent "ATLAS.app" "ATLAS-iOS-Simulator.zip"
+
+      - name: Upload iOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ATLAS-iOS-Simulator
+          path: ATLAS-iOS-Simulator.zip
+          if-no-files-found: error
+          retention-days: 14
