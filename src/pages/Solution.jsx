@@ -1,5 +1,5 @@
 import {useEffect,useMemo,useRef,useState} from "react";
-import {Link,useLocation,useSearchParams} from "react-router-dom";
+import {Link,useLocation,useNavigate,useSearchParams} from "react-router-dom";
 import {
   ArrowLeft,Check,Clock3,ExternalLink,Globe2,HeartHandshake,MapPin,Navigation,
   MessageCircle,Phone,RefreshCw,Search,Sparkles,UserRound
@@ -15,6 +15,7 @@ import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
 import {saveSearchHistory} from "../services/searchHistory";
 import {createAvailabilityCheck,loadMyPassport} from "../services/passportStore";
+import {startNeedConversation} from "../services/solutionFlowStore";
 import "../styles/simpleSolution.css";
 import "../styles/solutionChains.css";
 
@@ -539,6 +540,9 @@ ${initialWhere}`;
   const [originLoading,setOriginLoading]=useState(false);
   const [originError,setOriginError]=useState("");
   const [sortMode,setSortMode]=useState("recommended");
+  const [needContactBusy,setNeedContactBusy]=useState("");
+  const [needContactError,setNeedContactError]=useState("");
+  const navigate=useNavigate();
   const effectiveClarification=plan?.clarification?.required
     ?plan.clarification
     :(externalRequested&&brainReady?genericMoneyClarification(activeTask,lang):null);
@@ -1136,6 +1140,31 @@ ${initialWhere}`;
     launchSearch(value,initialWhere,"clarification");
   }
 
+  async function contactNeed(item){
+    if(!item?.need_id||needContactBusy)return;
+    setNeedContactBusy(item.need_id);
+    setNeedContactError("");
+    try{
+      const text=needResultTitle(item,lang);
+      const result=await startNeedConversation({
+        needId:item.need_id,
+        message:lang==="uk"
+          ?`Вітаю. Побачив(ла) вашу потребу «${text}» в Atlas і хочу обговорити, як можу допомогти.`
+          :`Hello. I saw your need “${text}” in Atlas and would like to discuss how I can help.`
+      });
+      const requestId=result?.request?.id;
+      if(!requestId)throw new Error("conversation-not-created");
+      navigate(`/messages?thread=${encodeURIComponent(requestId)}`);
+    }catch(error){
+      const message=String(error?.message||error||"");
+      if(/passport-required/i.test(message))setNeedContactError(lang==="uk"?"Спочатку створіть свій Паспорт Atlas, щоб написати людині.":"Create your Atlas Passport first to message this person.");
+      else if(/own-need/i.test(message))setNeedContactError(lang==="uk"?"Це ваша власна потреба.":"This is your own need.");
+      else setNeedContactError(lang==="uk"?"Не вдалося відкрити розмову. Спробуйте ще раз.":"Could not open the conversation. Please try again.");
+    }finally{
+      setNeedContactBusy("");
+    }
+  }
+
   function startExternalSearch(){
     if(!internalChecked||!brainReady||externalRequested)return;
     const scope=automaticSearchScope(plan,steps);
@@ -1228,6 +1257,8 @@ ${initialWhere}`;
         {Array.isArray(effectiveClarification.options)&&effectiveClarification.options.length>0&&<div className="simpleClarifierChips">{effectiveClarification.options.map(option=><button key={option} type="button" onClick={()=>refine(option)}>{option}</button>)}</div>}
       </div>}
 
+      {needContactError&&<div className="simpleEmpty needContactError"><MessageCircle size={18}/>{needContactError}</div>}
+
       {!Boolean(effectiveClarification)&&activeTask&&internalChecked&&<section className="atlasInternalResults">
         <div className="atlasInternalHead">
           <span>{lang==="uk"?"ВСЕРЕДИНІ ATLAS":"INSIDE ATLAS"}</span>
@@ -1250,7 +1281,10 @@ ${initialWhere}`;
             <div className="atlasInternalColumnTitle"><HeartHandshake size={18}/><strong>{lang==="uk"?"Потреби":"Needs"}</strong><b>{needMatches.length}</b></div>
             {needMatches.slice(0,8).map(item=><article className="atlasInternalCard needCard" key={item.need_id}>
               <div><span>{lang==="uk"?"ПОТРЕБА":"NEED"}</span><h3>{needResultTitle(item,lang)}</h3><p>{[item.display_name,item.city].filter(Boolean).join(" · ")}</p>{item.needed_until&&<small><Clock3 size={13}/>{lang==="uk"?"Актуально до":"Valid until"} {item.needed_until}</small>}</div>
-              {item.passport_slug&&<Link className="chainAction secondaryAction" to={`/p/${item.passport_slug}`}><UserRound size={16}/>{lang==="uk"?"Паспорт":"Passport"}</Link>}
+              <div className="needContactActions">
+                <button className="chainAction primaryAction" type="button" onClick={()=>contactNeed(item)} disabled={needContactBusy===item.need_id}><MessageCircle size={16}/>{needContactBusy===item.need_id?(lang==="uk"?"Відкриваю…":"Opening…"):(lang==="uk"?"Написати":"Message")}</button>
+                {item.passport_slug&&<Link className="chainAction secondaryAction" to={`/p/${item.passport_slug}`}><UserRound size={16}/>{lang==="uk"?"Паспорт":"Passport"}</Link>}
+              </div>
             </article>)}
           </div>}
         </div>}
