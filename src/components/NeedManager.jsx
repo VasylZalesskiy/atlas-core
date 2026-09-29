@@ -1,7 +1,7 @@
 import {useEffect,useMemo,useState} from "react";
 import {ArrowLeft,CalendarRange,Check,ChevronRight,Clock3,HeartHandshake,PackageCheck,Pencil,Plus,Scale,Search,Trash2,X} from "lucide-react";
 import {Link,useSearchParams} from "react-router-dom";
-import {addMyNeed,deleteMyNeed,updateMyNeedStatus} from "../services/passportStore";
+import {addMyFreeTextNeed,addMyNeed,deleteMyNeed,updateMyNeedStatus} from "../services/passportStore";
 import {loadNeedCatalog} from "../services/catalogStore";
 import "../styles/needs.css";
 import "../styles/needsMobileMenu.css";
@@ -29,6 +29,7 @@ function friendlyNeedError(error,uk){
   if(/date-range-invalid/i.test(text))return uk?"Дата завершення не може бути раніше дати початку.":"The end date cannot be before the start date.";
   if(/quantity-invalid/i.test(text))return uk?"Вкажіть правильну кількість.":"Enter a valid quantity.";
   if(/catalog-item-required/i.test(text))return uk?"Оберіть потребу зі списку Atlas.":"Choose a need from the Atlas list.";
+  if(/need-text-required/i.test(text))return uk?"Опишіть потребу своїми словами.":"Describe what you need in your own words.";
   return text||(uk?"Не вдалося виконати дію.":"The action could not be completed.");
 }
 
@@ -42,6 +43,9 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
   const [catalogItems,setCatalogItems]=useState([]);
   const [catalogLoading,setCatalogLoading]=useState(true);
   const [form,setForm]=useState({groupKey:"",itemKey:"",unit:"кг",quantity:"",neededFrom:isoDate(),neededUntil:isoDate(7)});
+  const [createMode,setCreateMode]=useState("free");
+  const [freeText,setFreeText]=useState("");
+  const [freeUntil,setFreeUntil]=useState(isoDate(30));
   const [adding,setAdding]=useState(false);
   const [busyId,setBusyId]=useState("");
   const [confirmDeleteId,setConfirmDeleteId]=useState("");
@@ -63,7 +67,8 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
   const visibleNeeds=needs.filter(item=>(item.status==="received")===showArchive);
 
   function openView(view){setSearchParams(previous=>{const next=new URLSearchParams(previous);if(view==="menu")next.delete("view");else next.set("view",view);return next});setShowArchive(view==="archive");setError("");window.scrollTo({top:0,behavior:"auto"})}
-  function openCreate(item){setForm(value=>({...value,groupKey:item.group_key,itemKey:item.item_key,unit:item.unit||"кг"}));openView("create")}
+  function openFreeCreate(){setCreateMode("free");setFreeText("");setFreeUntil(isoDate(30));openView("create")}
+  function openCreate(item){setCreateMode("structured");setForm(value=>({...value,groupKey:item.group_key,itemKey:item.item_key,unit:item.unit||"кг"}));openView("create")}
 
   useEffect(()=>{if(mobileView==="archive")setShowArchive(true);else if(mobileView==="active")setShowArchive(false)},[mobileView]);
 
@@ -93,6 +98,22 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
     setForm(value=>({...value,itemKey,unit:item?.unit||"шт"}));
     setError("");
     setNotice("");
+  }
+
+  async function submitFreeNeed(event){
+    event.preventDefault();
+    if(adding)return;
+    const clean=freeText.trim();
+    if(clean.length<3){setError(uk?"Опишіть потребу своїми словами.":"Describe what you need in your own words.");return}
+    setAdding(true);setError("");setNotice("");
+    try{
+      const added=await addMyFreeTextNeed(passportId,{text:clean,neededUntil:freeUntil});
+      setNeeds(items=>[added,...items]);
+      setFreeText("");
+      setFreeUntil(isoDate(30));
+      setNotice(uk?"✓ Потребу збережено. Тепер можна запустити пошук рішення.":"✓ Need saved. You can now search for a solution.");
+      openView("active");
+    }catch(cause){setError(friendlyNeedError(cause,uk))}finally{setAdding(false)}
   }
 
   async function submitNeed(event){
@@ -137,12 +158,16 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
       <span className="needsMobileKicker">{uk?"ПАСПОРТ ПОТРЕБ":"NEEDS PASSPORT"}</span><h1>{uk?"Що вам потрібно?":"What do you need?"}</h1>
       <div className="needsMobileIdentity"><span className="needsMobileAvatar">{passport?.display_name?.trim().charAt(0).toUpperCase()||"А"}</span><span><strong>{passport?.display_name}{passport?.city?` · ${passport.city}`:""}</strong><small>{uk?"Моя сторінка Atlas":"My Atlas page"}</small></span><Link to="/profile" aria-label={uk?"Змінити назву сторінки":"Edit page name"}><Pencil size={15}/>{uk?"Змінити":"Edit"}</Link></div>
       <span className="needsMobileKicker needsMenuLabel">{uk?"ДОДАТИ ПОТРЕБУ":"ADD A NEED"}</span>
+      <div className="needsMobileProduct">
+        <div><span className="needsMobileProductIcon">✍️</span><span><strong>{uk?"Своїми словами":"In your own words"}</strong><small>{uk?"Напишіть будь-яку потребу без категорій":"Describe any need without categories"}</small></span></div>
+        <button type="button" onClick={openFreeCreate}><Plus size={18}/>{uk?"Написати потребу":"Write a need"}</button>
+      </div>
       {activeItems.map(item=><div className="needsMobileProduct" key={item.item_key}><div><span className="needsMobileProductIcon">{item.icon||"🥔"}</span><span><strong>{uk?item.name_uk:(item.name_en||item.name_uk)}</strong><small>{uk?"Оберіть кількість і термін":"Choose quantity and dates"}</small></span></div><button type="button" onClick={()=>openCreate(item)}><Plus size={18}/>{uk?"Додати потребу":"Add need"}</button></div>)}
       {catalogLoading&&<div className="needCatalogLoading">{uk?"Завантажую список…":"Loading list…"}</div>}
       <span className="needsMobileKicker needsMenuLabel">{uk?"ВАШІ ПОТРЕБИ":"YOUR NEEDS"}</span>
       <button type="button" className="needsMobileRow" onClick={()=>openView("active")}><span className="needsRowIcon"><HeartHandshake size={20}/></span><span><strong>{uk?"Актуальні":"Active"}</strong><small>{uk?"Потреби, які ще потрібні":"Needs you still have"}</small></span><b>{openCount}</b><ChevronRight size={18}/></button>
       <button type="button" className="needsMobileRow" onClick={()=>openView("archive")}><span className="needsRowIcon"><PackageCheck size={20}/></span><span><strong>{uk?"Архів":"Archive"}</strong><small>{uk?"Отримані та закриті":"Received and closed"}</small></span><b>{archivedCount}</b><ChevronRight size={18}/></button>
-      <div className="needsPilotNote">{uk?"Інші овочі додамо після пілоту":"More vegetables will follow the pilot"}</div>
+      <div className="needsPilotNote">{uk?"Можна написати будь-яку потребу своїми словами. Список нижче лишається для структурованих потреб.":"You can describe any need in your own words. The list remains for structured needs."}</div>
     </div>
     <button type="button" className="needsMobileBack" onClick={()=>openView("menu")}><ArrowLeft size={18}/>{uk?"Потреби":"Needs"}</button>
     <div className="needsHeading">
@@ -150,13 +175,26 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
       <div>
         <div className="needsEyebrow">ATLAS · {uk?"ПАСПОРТ ПОТРЕБ":"NEEDS PASSPORT"}</div>
         <h2>{uk?"Що вам потрібно?":"What do you need?"}</h2>
-        <p>{uk?"Потреба обирається тільки зі списку Atlas. Так система точно знає, що саме потрібно людині або компанії.":"Needs are selected only from the Atlas list so the system knows exactly what a person or company needs."}</p>
+        <p>{uk?"Напишіть будь-яку потребу своїми словами. За бажанням можна й далі обрати структуровану потребу зі списку Atlas.":"Describe any need in your own words. You can also keep using the structured Atlas list."}</p>
       </div>
       <div className="needsHeadingTools"><div className="needsPilotBadge">{uk?"Структурована база потреб":"Structured needs database"}</div></div>
     </div>
 
-    <div className="needsMobileCreateTitle"><h2>{uk?"Додати потребу":"Add a need"}</h2><span>{uk?selectedItem?.name_uk:(selectedItem?.name_en||selectedItem?.name_uk)}</span></div>
-    <form className="needComposer" onSubmit={submitNeed}>
+    <div className="needsMobileCreateTitle"><h2>{uk?"Додати потребу":"Add a need"}</h2><span>{createMode==="free"?(uk?"Своїми словами":"In your own words"):(uk?selectedItem?.name_uk:(selectedItem?.name_en||selectedItem?.name_uk))}</span></div>
+    {createMode==="free"?<form className="needComposer freeNeedComposer" onSubmit={submitFreeNeed}>
+      <div className="needStep">
+        <div className="needStepTitle"><span>1</span><div><strong>{uk?"Опишіть, що вам потрібно":"Describe what you need"}</strong><small>{uk?"Пишіть звичайними словами — товар, послугу, допомогу або бізнес-задачу":"Use normal words — a product, service, help, or a business task"}</small></div></div>
+        <label><span>{uk?"Ваша потреба":"Your need"}</span><textarea autoFocus maxLength={1000} required value={freeText} onChange={event=>setFreeText(event.target.value)} placeholder={uk?"Наприклад: Потрібно 20 тонн картоплі з доставкою в Тернопіль наступного тижня":"For example: I need 20 tonnes of potatoes delivered next week"}/></label>
+      </div>
+      <div className="needStep">
+        <div className="needStepTitle"><span>2</span><div><strong>{uk?"До коли актуально":"Valid until"}</strong><small>{uk?"Після цієї дати Atlas не показуватиме потребу як актуальну":"After this date Atlas will stop treating the need as active"}</small></div></div>
+        <label><span><CalendarRange size={16}/>{uk?"Актуально до":"Needed until"}</span><input type="date" required min={isoDate()} value={freeUntil} onChange={event=>setFreeUntil(event.target.value)}/></label>
+      </div>
+      <div className="needComposerFooter">
+        <div><Clock3 size={17}/><span>{uk?"Після збереження натисніть «Знайти рішення». Atlas перевірить Паспорти можливостей.":"After saving, tap “Find a solution”. Atlas will check Opportunity Passports."}</span></div>
+        <button className="needAddButton" disabled={adding||freeText.trim().length<3}><Plus size={19}/>{adding?(uk?"Додаю…":"Adding…"):(uk?"Додати потребу":"Add need")}</button>
+      </div>
+    </form>:<form className="needComposer" onSubmit={submitNeed}>
       <div className="needStep">
         <div className="needStepTitle"><span>1</span><div><strong>{uk?"Оберіть потребу зі списку":"Choose a need from the list"}</strong><small>{uk?"Спочатку категорія, потім конкретна позиція":"First choose a category, then a specific item"}</small></div></div>
         <div className="needDetailsGrid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))"}}>
@@ -190,7 +228,7 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
         <div><Clock3 size={17}/><span>{uk?"Пошук рішення запускається окремо і перевіряє Паспорти можливостей.":"Solution search runs separately and checks Opportunity Passports."}</span></div>
         <button className="needAddButton" disabled={adding||!selectedItem||!form.quantity}><Plus size={19}/>{adding?(uk?"Додаю…":"Adding…"):(uk?"Додати потребу":"Add need")}</button>
       </div>
-    </form>
+    </form>}
 
     {(error||notice)&&<div className={"needMessage "+(error?"errorState":"successState")} role="status" aria-live="polite">{error||notice}</div>}
 
@@ -204,11 +242,12 @@ export default function NeedManager({passport,passportId,initialNeeds=emptyNeeds
         const deleting=confirmDeleteId===item.id;
         const catalogItem=catalogLookup.get(item.group_key+":"+item.item_key);
         const catalogGroup=groupLookup.get(item.group_key);
-        const itemName=uk?(catalogItem?.name_uk||item.item_key):(catalogItem?.name_en||catalogItem?.name_uk||item.item_key);
-        const groupName=uk?(catalogGroup?.name_uk||item.group_key):(catalogGroup?.name_en||catalogGroup?.name_uk||item.group_key);
+        const freeForm=Boolean(item.description);
+        const itemName=freeForm?item.description:(uk?(catalogItem?.name_uk||item.item_key):(catalogItem?.name_en||catalogItem?.name_uk||item.item_key));
+        const groupName=freeForm?(uk?"Потреба своїми словами":"Free-form need"):(uk?(catalogGroup?.name_uk||item.group_key):(catalogGroup?.name_en||catalogGroup?.name_uk||item.group_key));
         return <article className={"needRecord "+(received?"received":"")} key={item.id}>
-          <div className="needRecordProduct"><span aria-hidden="true">{catalogItem?.icon||"📦"}</span><div><small>{String(groupName).toLocaleUpperCase(uk?"uk-UA":"en-GB")}</small><h4>{itemName}</h4></div></div>
-          <div className="needRecordMeta"><div><Scale size={16}/><span><small>{uk?"Кількість":"Quantity"}</small><strong>{Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} {item.unit}</strong></span></div><div><CalendarRange size={16}/><span><small>{uk?"Актуальність":"Validity"}</small><strong>{formatDateRange(item.needed_from,item.needed_until,uk)}</strong></span></div></div>
+          <div className="needRecordProduct"><span aria-hidden="true">{freeForm?"✍️":(catalogItem?.icon||"📦")}</span><div><small>{String(groupName).toLocaleUpperCase(uk?"uk-UA":"en-GB")}</small><h4>{itemName}</h4></div></div>
+          <div className="needRecordMeta">{!freeForm&&<div><Scale size={16}/><span><small>{uk?"Кількість":"Quantity"}</small><strong>{Number(item.quantity).toLocaleString(uk?"uk-UA":"en-GB")} {item.unit}</strong></span></div>}<div><CalendarRange size={16}/><span><small>{uk?"Актуальність":"Validity"}</small><strong>{formatDateRange(item.needed_from,item.needed_until,uk)}</strong></span></div></div>
           <div className="needRecordActions">
             {!received&&<Link className="needArchiveAction needFindSolutionAction" to={`/matches?mode=need&need=${item.id}`}><Search size={16}/>{uk?"Знайти рішення":"Find a solution"}</Link>}
             <button type="button" className="needArchiveAction" disabled={busyId===item.id} onClick={()=>changeStatus(item,received?"not_received":"received")}>{received?<><Clock3 size={16}/>{uk?"Повернути":"Restore"}</>:<><PackageCheck size={16}/>{uk?"Отримано · в архів":"Received · archive"}</>}</button>
