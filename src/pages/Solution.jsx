@@ -340,6 +340,14 @@ function passportMatchesTask(candidate,task){
   const subjectMatch=taskTokens.some(token=>candidateTokens.has(token));
   if(subjectMatch)return true;
 
+  // The retrieval layer also searches semantic synonyms and spelling/grammar variants.
+  // Accept a confident semantic match instead of throwing it away just because
+  // the original wording differs (e.g. "комп'ютер" vs "ПК").
+  const semanticMatch=Number(candidate?.matchScore||0)>=8
+    &&Array.isArray(candidate?.matchedTerms)
+    &&candidate.matchedTerms.length>0;
+  if(semanticMatch)return true;
+
   const assistanceTask=/допомог|поміч|привез|підвез|достав|help|assist|deliver|pickup/iu.test(taskText);
   if(!assistanceTask)return false;
 
