@@ -321,6 +321,21 @@ const TASK_STOP_WORDS=new Set([
   "need","needed","want","find","buy","sell","rent","for","with","the","and","or","kg"
 ]);
 
+const GENERIC_SEMANTIC_TERMS=new Set([
+  "ремонт","ремонтувати","зремонтувати","відремонтувати","repair","fix",
+  "майстер","майстра","майстри","service","послуга","послуги",
+  "допомога","допомогти","help","assist","assistance",
+  "робота","роботи","виконати","виконання","налаштувати","установка","монтаж"
+]);
+
+function hasSpecificSemanticMatch(candidate){
+  if(Number(candidate?.matchScore||0)<8||!Array.isArray(candidate?.matchedTerms))return false;
+  return candidate.matchedTerms.some(term=>{
+    const words=String(term||"").toLowerCase().replace(/[^p{L}p{N}s'-]/gu," ").split(/s+/).filter(Boolean);
+    return words.some(word=>word.length>2&&!GENERIC_SEMANTIC_TERMS.has(word));
+  });
+}
+
 function subjectTokens(value){
   return String(value||"").toLowerCase()
     .replace(/[^\p{L}\p{N}\s-]/gu," ")
@@ -343,9 +358,7 @@ function passportMatchesTask(candidate,task){
   // The retrieval layer also searches semantic synonyms and spelling/grammar variants.
   // Accept a confident semantic match instead of throwing it away just because
   // the original wording differs (e.g. "комп'ютер" vs "ПК").
-  const semanticMatch=Number(candidate?.matchScore||0)>=8
-    &&Array.isArray(candidate?.matchedTerms)
-    &&candidate.matchedTerms.length>0;
+  const semanticMatch=hasSpecificSemanticMatch(candidate);
   if(semanticMatch)return true;
 
   const assistanceTask=/допомог|поміч|привез|підвез|достав|help|assist|deliver|pickup/iu.test(taskText);
