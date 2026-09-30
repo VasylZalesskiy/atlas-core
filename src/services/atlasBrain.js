@@ -35,8 +35,8 @@ export function createPassportSeedPlan(query,{lang="uk"}={}){
     passport_search:{
       terms,
       capability_description:assistance
-        ?(uk?"Людина або компанія, яка може допомогти з купівлею, доставкою, привезенням або виконанням цієї задачі":"A person or company that can help buy, deliver, collect or complete this task")
-        :(uk?"Можливість людини або компанії, яка прямо відповідає запиту":"A person or company capability that directly matches the request")
+        ?(uk?`${goal}. Допомога з виконанням задачі, купівлею, доставкою, привезенням або підвезенням`:`${goal}. Help completing the task, buying, delivery, pickup or transport`)
+        :goal
     },
     solution_steps:goal?[{
       id:"passport-first",
