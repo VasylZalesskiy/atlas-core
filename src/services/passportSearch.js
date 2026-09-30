@@ -2,7 +2,31 @@ import supabase from "./supabase";
 import {decodeOpportunityText} from "./opportunityCodec";
 
 function normalize(value){
-  return String(value||"").toLowerCase().replace(/[.,!?;:()]/g," ").replace(/\s+/g," ").trim();
+  return String(value||"")
+    .toLowerCase()
+    .replace(/[’ʼ`]/g,"'")
+    .replace(/[.,!?;:()]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+
+const SEARCH_STOP_WORDS=new Set([
+  "потрібно","потрібен","потрібна","потрібні","треба","хочу","шукаю","знайти","знайди","покажи","мені",
+  "для","або","та","і","у","в","на","по","до","від","це","цей","ця","ці","який","яка","яке","які",
+  "можливість","можливості","людина","людини","людей","компанія","компанії","може","можуть","надати","надає",
+  "допомогти","виконання","задачі","задача","запит","запиту","прямо","відповідає","релевантні",
+  "need","needs","want","find","show","me","for","with","the","and","or","a","an","person","people","company",
+  "capability","capabilities","relevant","request","provide","provides","task"
+]);
+
+function searchToken(value){
+  return normalize(value).replace(/[^a-zа-яіїєґ0-9'-]/gi,"");
+}
+
+function tokenRoot(value){
+  const token=searchToken(value).replace(/'/g,"");
+  if(token.length<=5)return token;
+  return token.slice(0,Math.min(7,Math.max(5,token.length-2)));
 }
 
 
@@ -55,9 +79,9 @@ function searchWords(plan){
   const words=[];
   for(const term of termsFromPlan(plan)){
     for(const word of normalize(term).split(" ")){
-      const clean=word.replace(/[^\p{L}\p{N}_-]/gu,"");
-      if(clean.length>2&&!words.includes(clean))words.push(clean);
-      if(words.length>=12)return words;
+      const clean=searchToken(word);
+      if(clean.length>2&&!SEARCH_STOP_WORDS.has(clean)&&!/^\d+$/.test(clean)&&!words.includes(clean))words.push(clean);
+      if(words.length>=18)return words;
     }
   }
   return words;
@@ -119,23 +143,39 @@ function planWithExpandedTerms(plan,expandedTerms){
 
 function scoreText(text,plan){
   const haystack=normalize(text);
+  const hayWords=haystack.split(" ")
+    .map(searchToken)
+    .filter(word=>word.length>2&&!SEARCH_STOP_WORDS.has(word));
+  const hayRoots=new Set(hayWords.map(tokenRoot).filter(root=>root.length>=4));
   const terms=termsFromPlan(plan);
   let score=0;
   const matched=[];
 
   for(const term of terms){
     if(!term)continue;
-    if(haystack.includes(term)){
-      score+=term.includes(" ")?14:7;
-      matched.push(term);
+    const normalizedTerm=normalize(term);
+    if(normalizedTerm.length>=4&&haystack.includes(normalizedTerm)){
+      score+=normalizedTerm.includes(" ")?16:9;
+      matched.push(normalizedTerm);
       continue;
     }
-    const termWords=term.split(" ").filter(word=>word.length>2);
-    const partial=termWords.filter(word=>haystack.includes(word));
-    if(partial.length){
-      score+=Math.min(8,partial.length*2);
-      matched.push(...partial);
+    const termWords=normalizedTerm.split(" ")
+      .map(searchToken)
+      .filter(word=>word.length>2&&!SEARCH_STOP_WORDS.has(word)&&!/^\d+$/.test(word));
+    let local=0;
+    for(const word of termWords){
+      if(hayWords.includes(word)){
+        local+=5;
+        matched.push(word);
+        continue;
+      }
+      const root=tokenRoot(word);
+      if(root.length>=4&&hayRoots.has(root)){
+        local+=3;
+        matched.push(word);
+      }
     }
+    score+=Math.min(12,local);
   }
 
   return {score,matched:[...new Set(matched)]};
@@ -234,6 +274,71 @@ async function searchNewPassports(plan,{limit}){
 }
 
 
+async function searchBroadPassports(plan,{limit}){
+  const candidateLimit=Math.max(120,Math.min(500,limit*80));
+  const [{data:passports,error:passportError},{data:rawOpportunities,error:opportunityError}]=await Promise.all([
+    supabase
+      .from("atlas_passports")
+      .select("id,slug,display_name,profession,skills,city")
+      .limit(Math.min(350,candidateLimit)),
+    supabase
+      .from("atlas_opportunities")
+      .select("id,passport_id,kind,text,visibility_scope,created_at")
+      .eq("is_active",true)
+      .in("visibility_scope",["global","both"])
+      .limit(candidateLimit)
+  ]);
+  if(passportError)throw passportError;
+  if(opportunityError)throw opportunityError;
+
+  const passportMap=new Map((passports||[]).map(item=>[item.id,item]));
+  const opportunitiesByPassport=new Map();
+  for(const rawItem of rawOpportunities||[]){
+    const item={...rawItem,...decodeOpportunityText(rawItem.text,rawItem.kind)};
+    if(!opportunitiesByPassport.has(item.passport_id))opportunitiesByPassport.set(item.passport_id,[]);
+    opportunitiesByPassport.get(item.passport_id).push(item);
+  }
+
+  return [...passportMap.values()].map(passport=>{
+    const profileScore=scoreText([passport.profession,passport.skills].filter(Boolean).join(" "),plan);
+    let bestOpportunity=null;
+    let bestOpportunityScore={score:0,matched:[]};
+    for(const opportunity of opportunitiesByPassport.get(passport.id)||[]){
+      const scored=scoreText([opportunity.text,opportunity.kind].filter(Boolean).join(" "),plan);
+      if(scored.score>bestOpportunityScore.score){
+        bestOpportunity=opportunity;
+        bestOpportunityScore=scored;
+      }
+    }
+    const score=profileScore.score+bestOpportunityScore.score;
+    if(score<=0)return null;
+    const profileWins=profileScore.score>=bestOpportunityScore.score&&profileScore.score>0;
+    return {
+      slug:passport.slug,
+      name:passport.display_name,
+      city:passport.city||"",
+      profession:passport.profession||"",
+      skills:passport.skills||"",
+      headline:profileWins
+        ?(passport.profession||passport.skills||bestOpportunity?.text||passport.display_name)
+        :(bestOpportunity?.text||passport.profession||passport.skills||passport.display_name),
+      can_help:[passport.profession,passport.skills,bestOpportunity?.text].filter(Boolean).join(" · "),
+      can_share:bestOpportunity?.kind||"",
+      needs:"",
+      opportunity_id:bestOpportunity?.id||null,
+      opportunity_kind:bestOpportunity?.kind||"",
+      payment_type:bestOpportunity?.paymentType||"free",
+      price_value:bestOpportunity?.priceValue||"",
+      price_unit:bestOpportunity?.priceUnit||"",
+      currency:bestOpportunity?.currency||"UAH",
+      minimum_quantity:bestOpportunity?.minimumQuantity||"",
+      delivery_included:Boolean(bestOpportunity?.deliveryIncluded),
+      score,
+      matched:[...new Set([...profileScore.matched,...bestOpportunityScore.matched])]
+    };
+  }).filter(Boolean).sort((a,b)=>b.score-a.score).slice(0,limit);
+}
+
 async function searchRecentPassportHistory(plan,{limit}){
   const terms=searchWords(plan);
   if(!terms.length)return [];
@@ -302,16 +407,26 @@ export async function searchPassportProfiles(plan,{limit=5}={}){
   if(!supabase)return {matches:[],historicalMatches:[],error:"supabase-unavailable"};
 
   try{
-    let searchPlan=plan;
-    let matches=await searchNewPassports(searchPlan,{limit});
+    const strictPromise=searchNewPassports(plan,{limit}).catch(()=>[]);
+    const expandedTerms=await expandTermsWithQwen(plan);
+    const searchPlan=expandedTerms.length?planWithExpandedTerms(plan,expandedTerms):plan;
+    const [strictMatches,semanticMatches]=await Promise.all([
+      strictPromise,
+      expandedTerms.length?searchNewPassports(searchPlan,{limit}).catch(()=>[]):Promise.resolve([])
+    ]);
 
-    if(!matches.length){
-      const expandedTerms=await expandTermsWithQwen(plan);
-      if(expandedTerms.length){
-        searchPlan=planWithExpandedTerms(plan,expandedTerms);
-        matches=await searchNewPassports(searchPlan,{limit});
-      }
-    }
+    const merged=[...strictMatches,...semanticMatches]
+      .sort((a,b)=>b.score-a.score)
+      .filter((item,index,array)=>array.findIndex(other=>(other.opportunity_id||other.slug)===(item.opportunity_id||item.slug))===index)
+      .slice(0,limit);
+
+    const broadMatches=merged.length>=limit
+      ?[]
+      :await searchBroadPassports(searchPlan,{limit}).catch(()=>[]);
+    const matches=[...merged,...broadMatches]
+      .sort((a,b)=>b.score-a.score)
+      .filter((item,index,array)=>array.findIndex(other=>(other.opportunity_id||other.slug)===(item.opportunity_id||item.slug))===index)
+      .slice(0,limit);
 
     const historicalMatches=matches.length?[]:await searchRecentPassportHistory(searchPlan,{limit}).catch(()=>[]);
     return {matches,historicalMatches,error:null};
