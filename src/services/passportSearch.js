@@ -19,6 +19,13 @@ const SEARCH_STOP_WORDS=new Set([
   "capability","capabilities","relevant","request","provide","provides","task"
 ]);
 
+const GENERIC_ACTION_WORDS=new Set([
+  "ремонт","ремонтувати","зремонтувати","відремонтувати","repair","fix",
+  "майстер","майстра","майстри","service","послуга","послуги",
+  "допомога","help","assist","assistance","робота","роботи",
+  "монтаж","установка","налаштувати","налаштування"
+]);
+
 function searchToken(value){
   return normalize(value).replace(/[^a-zа-яіїєґ0-9'-]/gi,"");
 }
@@ -148,34 +155,40 @@ function scoreText(text,plan){
     .filter(word=>word.length>2&&!SEARCH_STOP_WORDS.has(word));
   const hayRoots=new Set(hayWords.map(tokenRoot).filter(root=>root.length>=4));
   const terms=termsFromPlan(plan);
+  const scoredWords=new Set();
+  const scoredPhrases=new Set();
   let score=0;
   const matched=[];
 
   for(const term of terms){
     if(!term)continue;
     const normalizedTerm=normalize(term);
-    if(normalizedTerm.length>=4&&haystack.includes(normalizedTerm)){
-      score+=normalizedTerm.includes(" ")?16:9;
+    if(normalizedTerm.includes(" ")&&normalizedTerm.length>=4&&haystack.includes(normalizedTerm)&&!scoredPhrases.has(normalizedTerm)){
+      scoredPhrases.add(normalizedTerm);
+      score+=16;
       matched.push(normalizedTerm);
-      continue;
     }
+
     const termWords=normalizedTerm.split(" ")
       .map(searchToken)
       .filter(word=>word.length>2&&!SEARCH_STOP_WORDS.has(word)&&!/^\d+$/.test(word));
-    let local=0;
     for(const word of termWords){
+      const root=tokenRoot(word);
+      const scoreKey=root||word;
+      if(!scoreKey||scoredWords.has(scoreKey))continue;
+
       if(hayWords.includes(word)){
-        local+=5;
+        scoredWords.add(scoreKey);
+        score+=GENERIC_ACTION_WORDS.has(word)?1:5;
         matched.push(word);
         continue;
       }
-      const root=tokenRoot(word);
       if(root.length>=4&&hayRoots.has(root)){
-        local+=3;
+        scoredWords.add(scoreKey);
+        score+=GENERIC_ACTION_WORDS.has(word)?1:3;
         matched.push(word);
       }
     }
-    score+=Math.min(12,local);
   }
 
   return {score,matched:[...new Set(matched)]};
