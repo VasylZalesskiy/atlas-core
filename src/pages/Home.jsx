@@ -65,7 +65,7 @@ export default function Home({t,lang}){
 
   if(thinking)return <ThinkingState steps={t.thinkingSteps} activeStep={activeStep}/>;
 
-  const title=lang==="uk"?"Знайдіть допомогу поруч":"Find help nearby";
+  const title=lang==="uk"?"Твої можливості є частинкою чиєїсь задачі":"Your capabilities are part of someone else’s task";
   const placeholder=lang==="uk"
     ?"Наприклад: потрібен генератор на сьогодні"
     :"For example: I need a generator today";
@@ -74,7 +74,7 @@ export default function Home({t,lang}){
 
   return <main className="home atlasSearchHome">
     <section className="hero" style={{paddingTop:40}}>
-      <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,letterSpacing:"-.035em",marginBottom:22}}>
+      <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,textWrap:"balance",letterSpacing:"-.035em",marginBottom:22}}>
         {title}
       </h1>
 
