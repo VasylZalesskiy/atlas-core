@@ -1,6 +1,6 @@
 import {useEffect,useState} from "react";
 import {Globe2,HeartHandshake,IdCard,LogOut,MessagesSquare,Share2,UserRound} from "lucide-react";
-import {Link,NavLink,useLocation} from "react-router-dom";
+import {Link,NavLink} from "react-router-dom";
 import {loadAtlasAccounts,logoutAtlasAccount} from "../services/passportStore";
 
 const labels={
@@ -11,7 +11,6 @@ const labels={
 function copy(lang){return labels[lang]||labels.uk;}
 
 export default function Header({lang,setLang,inboxUnread=0}){
-  const location=useLocation();
   const l=copy(lang);
   const [hasAccount,setHasAccount]=useState(null);
   const [leaving,setLeaving]=useState(false);
@@ -43,7 +42,7 @@ export default function Header({lang,setLang,inboxUnread=0}){
   return <header className="atlasTopbarV3">
     <Link className="atlasTopbarV3Brand" to="/" aria-label={l.goHome}>
       <b>A</b>
-      <span><strong>ATLAS</strong><small>{l.home}</small></span>
+      <span><strong>{l.home}</strong><small>ATLAS</small></span>
       <em style={{fontStyle:"normal",fontSize:8,fontWeight:900,letterSpacing:".08em",color:"#7b6830",background:"#fff5d8",border:"1px solid #eadca9",borderRadius:999,padding:"2px 5px",alignSelf:"flex-start",marginTop:1}}>{lang==="uk"?"ТЕСТ":"TEST"}</em>
     </Link>
 
