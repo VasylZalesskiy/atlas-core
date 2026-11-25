@@ -2,7 +2,6 @@ import {useEffect,useRef,useState} from "react";
 import {Bell,Camera,FileText,HeartHandshake,IdCard,LoaderCircle,MapPin,MessageSquare,RotateCcw,Search,Smartphone,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
-import SearchHistoryList from "./SearchHistoryList";
 import LocationAutocomplete,{rememberedAtlasLocation,rememberAtlasLocation} from "./LocationAutocomplete";
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
@@ -157,10 +156,6 @@ export default function MobileHome({lang="uk"}){
     <div className="mobilePilotInfoLinks">
       <a href={uk?"/atlas-about-uk.txt":"/atlas-about-en.txt"} target="_blank" rel="noreferrer"><FileText size={16}/>{uk?"Як працює Atlas":"How Atlas works"}</a>
     </div>
-
-    <section className="mobilePilotHistory">
-      <SearchHistoryList lang={lang} compact limit={4} onSelect={item=>nav(solutionUrl(item.task,item.where))}/>
-    </section>
 
     <section className={`mobileFeedbackCompact ${feedbackOpen?"open":""}`}>
       <button className="mobileFeedbackTrigger" type="button" onClick={()=>setFeedbackOpen(open=>!open)} aria-expanded={feedbackOpen}>
