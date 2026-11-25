@@ -1,8 +1,7 @@
 import {useEffect,useState} from "react";
 import {Link,useNavigate} from "react-router-dom";
-import {HeartHandshake,MapPin,PlusCircle,RotateCcw,Search,Smartphone} from "lucide-react";
+import {HeartHandshake,MapPin,PlusCircle,RotateCcw,Search} from "lucide-react";
 import ThinkingState from "../components/ThinkingState";
-import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
 import LocationAutocomplete,{rememberedAtlasLocation,rememberAtlasLocation} from "../components/LocationAutocomplete";
 import {trackAtlas} from "../services/analytics";
@@ -80,13 +79,6 @@ export default function Home({t,lang}){
 
   return <main className="home">
     <section className="hero" style={{paddingTop:40}}>
-      <div style={{marginBottom:18,display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap"}}>
-        <Link to="/share" style={{display:"inline-flex",alignItems:"center",gap:7,padding:"8px 12px",borderRadius:12,background:"#e9f7ee",border:"1px solid #b9ddc7",color:"#08723d",fontSize:13,fontWeight:900}}>
-          <Smartphone size={17}/>
-          {lang==="uk"?"Встановити на телефон →":"Install on phone →"}
-        </Link>
-      </div>
-
       <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,letterSpacing:"-.035em",marginBottom:22}}>
         {title}
       </h1>
@@ -119,10 +111,6 @@ export default function Home({t,lang}){
         <span>{t.examples}:</span>
         {examples[lang].map(example=><button key={example} type="button" onClick={()=>setTask(example)} style={{fontSize:12,padding:"7px 10px"}}>{example}</button>)}
       </div>
-
-      <section className="homeHistory">
-        <SearchHistoryList lang={lang} compact limit={4} onSelect={item=>nav(solutionUrl(item.task,item.where))}/>
-      </section>
 
       <section style={{maxWidth:780,margin:"28px auto 0",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:12,textAlign:"left"}}>
         <div style={{padding:"18px 20px",background:"#fff",border:"1px solid #dfe8e2",borderRadius:18}}>
