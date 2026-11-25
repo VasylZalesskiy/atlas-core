@@ -139,11 +139,6 @@ export default function MobileHome({lang="uk"}){
       <button className="mobilePilotGo" type="submit" disabled={!task.trim()||locating||visionBusy}>{locating?<MapPin size={21}/>:<Search size={21}/>}<span>{locating?(uk?"Визначаю місце…":"Finding location…"):(uk?"Знайти рішення":"Find a solution")}</span></button>
     </form>
 
-    <div className="mobilePilotQuick">
-      <button type="button" onClick={()=>quick(uk?"Потрібна допомога":"I need help")}>🤝 {uk?"Потрібна допомога":"Need help"}</button>
-      <button type="button" onClick={()=>quick(uk?"Хто може це надати?":"Who can provide this?")}>🔎 {uk?"Хто може надати?":"Who can provide it?"}</button>
-    </div>
-
     <div className="mobilePassportGrid">
       <Link className="mobilePassportCard capability" to="/profile">
         <IdCard size={27}/><div><strong>{uk?"Паспорт можливостей":"Opportunity Passport"}</strong><span>{uk?"Людина або компанія вказує, що має, вміє або може надати":"A person or company adds what they have, know or can provide"}</span></div><b>{uk?"Заповнити":"Fill in"}</b>
@@ -153,25 +148,33 @@ export default function MobileHome({lang="uk"}){
       </Link>
     </div>
 
-    <div className="mobilePilotInfoLinks">
-      <a href={uk?"/atlas-about-uk.txt":"/atlas-about-en.txt"} target="_blank" rel="noreferrer"><FileText size={16}/>{uk?"Як працює Atlas":"How Atlas works"}</a>
-    </div>
+    <details className="mobilePilotMore">
+      <summary>{uk?"Ще":"More"}{unreadCount>0&&<span>{uk?` · ${unreadCount} нових`:` · ${unreadCount} new`}</span>}</summary>
+      <div className="mobilePilotQuick">
+        <button type="button" onClick={()=>quick(uk?"Потрібна допомога":"I need help")}>🤝 {uk?"Потрібна допомога":"Need help"}</button>
+        <button type="button" onClick={()=>quick(uk?"Хто може це надати?":"Who can provide this?")}>🔎 {uk?"Хто може надати?":"Who can provide it?"}</button>
+      </div>
 
-    <section className={`mobileFeedbackCompact ${feedbackOpen?"open":""}`}>
-      <button className="mobileFeedbackTrigger" type="button" onClick={()=>setFeedbackOpen(open=>!open)} aria-expanded={feedbackOpen}>
-        <MessageSquare size={17}/><span>{uk?"Відгук про Atlas":"Atlas feedback"}</span><b>{feedbackOpen?"−":"+"}</b>
-      </button>
-      {feedbackOpen&&<form onSubmit={sendFeedback}>
-        <textarea value={feedback} onChange={event=>setFeedback(event.target.value)} maxLength={2000} placeholder={uk?"Повідомлення для команди Atlas…":"Message for the Atlas team…"}/>
-        <button type="submit" disabled={feedbackBusy||feedback.trim().length<2}>{feedbackBusy?(uk?"Надсилаю…":"Sending…"):(uk?"Надіслати":"Send")}</button>
-      </form>}
-      {feedbackStatus&&<small className={feedbackStatus.startsWith("✓")?"success":"error"}>{feedbackStatus}</small>}
-    </section>
+      <div className="mobilePilotInfoLinks">
+        <a href={uk?"/atlas-about-uk.txt":"/atlas-about-en.txt"} target="_blank" rel="noreferrer"><FileText size={16}/>{uk?"Як працює Atlas":"How Atlas works"}</a>
+      </div>
 
-    <div className="mobilePilotUtilityGrid"><Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
-      <span className="mobileNotificationIcon"><Bell size={20}/>{unreadCount>0&&<i>{unreadCount>99?"99+":unreadCount}</i>}</span>
-      <span><strong>{uk?"Сповіщення":"Notifications"}</strong><small>{unreadCount>0?(uk?`${unreadCount} нових`:`${unreadCount} new`):(uk?"Збіги та запити":"Matches & requests")}</small></span>
-    </Link>
-    <Link className="mobileInstallCard" to="/share"><Smartphone size={20}/><span><strong>{uk?"На телефон":"On your phone"}</strong><small>{uk?"Встановити Atlas":"Install Atlas"}</small></span></Link></div>
+      <section className={`mobileFeedbackCompact ${feedbackOpen?"open":""}`}>
+        <button className="mobileFeedbackTrigger" type="button" onClick={()=>setFeedbackOpen(open=>!open)} aria-expanded={feedbackOpen}>
+          <MessageSquare size={17}/><span>{uk?"Відгук про Atlas":"Atlas feedback"}</span><b>{feedbackOpen?"−":"+"}</b>
+        </button>
+        {feedbackOpen&&<form onSubmit={sendFeedback}>
+          <textarea value={feedback} onChange={event=>setFeedback(event.target.value)} maxLength={2000} placeholder={uk?"Повідомлення для команди Atlas…":"Message for the Atlas team…"}/>
+          <button type="submit" disabled={feedbackBusy||feedback.trim().length<2}>{feedbackBusy?(uk?"Надсилаю…":"Sending…"):(uk?"Надіслати":"Send")}</button>
+        </form>}
+        {feedbackStatus&&<small className={feedbackStatus.startsWith("✓")?"success":"error"}>{feedbackStatus}</small>}
+      </section>
+
+      <div className="mobilePilotUtilityGrid"><Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
+        <span className="mobileNotificationIcon"><Bell size={20}/>{unreadCount>0&&<i>{unreadCount>99?"99+":unreadCount}</i>}</span>
+        <span><strong>{uk?"Сповіщення":"Notifications"}</strong><small>{unreadCount>0?(uk?`${unreadCount} нових`:`${unreadCount} new`):(uk?"Збіги та запити":"Matches & requests")}</small></span>
+      </Link>
+      <Link className="mobileInstallCard" to="/share"><Smartphone size={20}/><span><strong>{uk?"На телефон":"On your phone"}</strong><small>{uk?"Встановити Atlas":"Install Atlas"}</small></span></Link></div>
+    </details>
   </section>;
 }
