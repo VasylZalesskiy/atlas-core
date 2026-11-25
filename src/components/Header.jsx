@@ -29,12 +29,7 @@ export default function Header({lang,setLang,inboxUnread=0}){
     }catch(error){if(error?.name!=="AbortError")setActionNotice(lang==="en"?"Could not share":"Не вдалося поділитися")}
   }
   async function logout(){
-    if(leaving||hasAccount===null)return;
-    if(!hasAccount){
-      window.close();
-      window.setTimeout(()=>{if(!document.hidden)window.location.replace("about:blank")},100);
-      return;
-    }
+    if(leaving||!hasAccount)return;
     setLeaving(true);
     try{await logoutAtlasAccount();window.location.replace("/")}
     catch{setActionNotice(lang==="en"?"Could not sign out":"Не вдалося вийти");setLeaving(false)}
@@ -63,7 +58,7 @@ export default function Header({lang,setLang,inboxUnread=0}){
 
     <div className="atlasTopbarV3Right">
       <button type="button" className="atlasTopbarV3Action" onClick={share} title={lang==="en"?"Share":"Поділитися"} aria-label={lang==="en"?"Share":"Поділитися"}><Share2 size={18}/></button>
-      <button type="button" className="atlasTopbarV3Action" onClick={logout} disabled={leaving||hasAccount===null} title={lang==="en"?"Exit Atlas":"Вийти з Atlas"} aria-label={lang==="en"?"Exit Atlas":"Вийти з Atlas"}><LogOut size={18}/></button>
+      {hasAccount&&<button type="button" className="atlasTopbarV3Action" onClick={logout} disabled={leaving} title={lang==="en"?"Sign out":"Вийти з акаунта"} aria-label={lang==="en"?"Sign out":"Вийти з акаунта"}><LogOut size={18}/></button>}
       <label className="atlasTopbarV3Lang" aria-label="Language">
         <Globe2 size={17}/>
         <select value={lang} onChange={event=>setLang(event.target.value)} aria-label="Language">
