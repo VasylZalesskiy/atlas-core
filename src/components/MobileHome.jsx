@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from "react";
-import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,RotateCcw,Search,Smartphone,X} from "lucide-react";
+import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,RotateCcw,Search,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
 import LocationAutocomplete,{rememberedAtlasLocation,rememberAtlasLocation} from "./LocationAutocomplete";
@@ -67,7 +67,6 @@ export default function MobileHome({lang="uk"}){
     submit(event);
   }
 
-  function quick(value){setTask(value);window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
   function resetSearch(){setTask("");setWhere(rememberedAtlasLocation());setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value="";window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
   function clearPhoto(){setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value=""}
 
@@ -131,18 +130,9 @@ export default function MobileHome({lang="uk"}){
       </Link>
     </div>
 
-    <details className="mobilePilotMore">
-      <summary>{uk?"Ще":"More"}{unreadCount>0&&<span>{uk?` · ${unreadCount} нових`:` · ${unreadCount} new`}</span>}</summary>
-      <div className="mobilePilotQuick">
-        <button type="button" onClick={()=>quick(uk?"Потрібна допомога":"I need help")}>🤝 {uk?"Потрібна допомога":"Need help"}</button>
-        <button type="button" onClick={()=>quick(uk?"Хто може це надати?":"Who can provide this?")}>🔎 {uk?"Хто може надати?":"Who can provide it?"}</button>
-      </div>
-
       <div className="mobilePilotUtilityGrid"><Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
         <span className="mobileNotificationIcon"><Bell size={20}/>{unreadCount>0&&<i>{unreadCount>99?"99+":unreadCount}</i>}</span>
         <span><strong>{uk?"Сповіщення":"Notifications"}</strong><small>{unreadCount>0?(uk?`${unreadCount} нових`:`${unreadCount} new`):(uk?"Збіги та запити":"Matches & requests")}</small></span>
-      </Link>
-      <Link className="mobileInstallCard" to="/share"><Smartphone size={20}/><span><strong>{uk?"На телефон":"On your phone"}</strong><small>{uk?"Встановити Atlas":"Install Atlas"}</small></span></Link></div>
-    </details>
+      </Link></div>
   </section>;
 }
