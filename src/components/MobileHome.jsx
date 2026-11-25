@@ -84,10 +84,9 @@ export default function MobileHome({lang="uk"}){
   }
 
 
-  return <section className="mobilePilotHome">
+  return <section className="mobilePilotHome atlasSearchHome">
     <div className="mobilePilotIntro">
       <h1>{uk?"Знайдіть допомогу поруч":"Find help nearby"}</h1>
-      <p className="mobilePilotLead">{uk?"Опишіть, що вам потрібно, або поділіться тим, чим можете допомогти.":"Describe what you need or share what you can offer."}</p>
     </div>
 
     <div className="mobilePilotSearchHead">
