@@ -74,7 +74,7 @@ export default function Home({t,lang}){
 
   return <main className="home atlasSearchHome">
     <section className="hero" style={{paddingTop:40}}>
-      <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,textWrap:"balance",textAlign:"center",fontFamily:"Georgia, serif",fontWeight:500,letterSpacing:"normal",marginBottom:22}}>
+      <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,textWrap:"balance",textAlign:"center",fontFamily:"system-ui, -apple-system, BlinkMacSystemFont, sans-serif",fontWeight:600,letterSpacing:"normal",marginBottom:22}}>
         {title}
       </h1>
 
