@@ -1,6 +1,6 @@
-import {useEffect,useRef,useState} from "react";
-import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,RotateCcw,Search,X} from "lucide-react";
-import {Link,useNavigate} from "react-router-dom";
+import {useRef,useState} from "react";
+import {Camera,LoaderCircle,MapPin,RotateCcw,Search,X} from "lucide-react";
+import {useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
 import LocationAutocomplete,{rememberedAtlasLocation,rememberAtlasLocation} from "./LocationAutocomplete";
 import {getCurrentLocation} from "../services/geolocation";
@@ -35,16 +35,8 @@ export default function MobileHome({lang="uk"}){
   const [photo,setPhoto]=useState(null);
   const [vision,setVision]=useState(null);
   const [visionBusy,setVisionBusy]=useState(false);
-  const [unreadCount,setUnreadCount]=useState(0);
   const fileRef=useRef(null);
   const nav=useNavigate();
-
-
-  useEffect(()=>{
-    const onNotifications=event=>setUnreadCount(Number(event?.detail?.unread)||0);
-    window.addEventListener("atlas:notifications",onNotifications);
-    return()=>window.removeEventListener("atlas:notifications",onNotifications);
-  },[]);
 
   async function submit(event){
     event?.preventDefault?.();
@@ -98,15 +90,6 @@ export default function MobileHome({lang="uk"}){
       <h1>{uk?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task"}</h1>
     </div>
 
-    <div className="mobilePassportGrid">
-      <Link className="mobilePassportCard capability" to="/profile">
-        <IdCard size={27}/><div><strong>{uk?"Паспорт можливостей":"Opportunity Passport"}</strong><span>{uk?"Людина або компанія вказує, що має, вміє або може надати":"A person or company adds what they have, know or can provide"}</span></div><b>{uk?"Заповнити →":"Fill in →"}</b>
-      </Link>
-      <Link className="mobilePassportCard need" to="/needs?view=create">
-        <HeartHandshake size={27}/><div><strong>{uk?"Паспорт потреб":"Needs Passport"}</strong><span>{uk?"Додайте будь-яку потребу своїми словами":"Add any need in your own words"}</span></div><b>{uk?"Додати потребу →":"Add need →"}</b>
-      </Link>
-    </div>
-
 
     <div className="mobilePilotSearchHead">
       <div><Search size={19}/><strong>{uk?"Знайти рішення":"Find a solution"}</strong></div>
@@ -131,9 +114,5 @@ export default function MobileHome({lang="uk"}){
       <button className="mobilePilotGo" type="submit" disabled={!task.trim()||locating||visionBusy}>{locating?<MapPin size={21}/>:<Search size={21}/>}<span>{locating?(uk?"Визначаю місце…":"Finding location…"):(uk?"Знайти рішення":"Find a solution")}</span></button>
     </form>
 
-    <div className="mobilePilotUtilityGrid"><Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
-      <span className="mobileNotificationIcon"><Bell size={20}/>{unreadCount>0&&<i>{unreadCount>99?"99+":unreadCount}</i>}</span>
-      <span><strong>{uk?"Сповіщення":"Notifications"}</strong><small>{unreadCount>0?(uk?`${unreadCount} нових`:`${unreadCount} new`):(uk?"Збіги та запити":"Matches & requests")}</small></span>
-    </Link></div>
   </section>;
 }
