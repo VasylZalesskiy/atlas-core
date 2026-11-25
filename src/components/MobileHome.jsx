@@ -113,22 +113,12 @@ export default function MobileHome({lang="uk"}){
 
   return <section className="mobilePilotHome">
     <div className="mobilePilotIntro">
-      <span className="mobilePilotEyebrow">ATLAS · {uk?"ГОЛОВНА":"HOME"}</span>
-      <h1>{uk?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task"}</h1>
+      <h1>{uk?"Знайдіть допомогу поруч":"Find help nearby"}</h1>
+      <p className="mobilePilotLead">{uk?"Опишіть, що вам потрібно, або поділіться тим, чим можете допомогти.":"Describe what you need or share what you can offer."}</p>
     </div>
-
-    <div className="mobilePassportGrid">
-      <Link className="mobilePassportCard capability" to="/profile">
-        <IdCard size={27}/><div><strong>{uk?"Паспорт можливостей":"Opportunity Passport"}</strong><span>{uk?"Людина або компанія вказує, що має, вміє або може надати":"A person or company adds what they have, know or can provide"}</span></div><b>{uk?"Заповнити →":"Fill in →"}</b>
-      </Link>
-      <Link className="mobilePassportCard need" to="/needs?view=create">
-        <HeartHandshake size={27}/><div><strong>{uk?"Паспорт потреб":"Needs Passport"}</strong><span>{uk?"Додайте будь-яку потребу своїми словами":"Add any need in your own words"}</span></div><b>{uk?"Додати потребу →":"Add need →"}</b>
-      </Link>
-    </div>
-
 
     <div className="mobilePilotSearchHead">
-      <div><Search size={19}/><strong>{uk?"Знайти рішення":"Find a solution"}</strong></div>
+      <div><strong>{uk?"Що вам потрібно?":"What do you need?"}</strong></div>
       {(task.trim()||where.trim())&&<button className="mobilePilotReset" type="button" onClick={resetSearch}><RotateCcw size={14}/>{uk?"Новий пошук":"New search"}</button>}
     </div>
 
@@ -153,6 +143,15 @@ export default function MobileHome({lang="uk"}){
     <div className="mobilePilotQuick">
       <button type="button" onClick={()=>quick(uk?"Потрібна допомога":"I need help")}>🤝 {uk?"Потрібна допомога":"Need help"}</button>
       <button type="button" onClick={()=>quick(uk?"Хто може це надати?":"Who can provide this?")}>🔎 {uk?"Хто може надати?":"Who can provide it?"}</button>
+    </div>
+
+    <div className="mobilePassportGrid">
+      <Link className="mobilePassportCard capability" to="/profile">
+        <IdCard size={27}/><div><strong>{uk?"Паспорт можливостей":"Opportunity Passport"}</strong><span>{uk?"Людина або компанія вказує, що має, вміє або може надати":"A person or company adds what they have, know or can provide"}</span></div><b>{uk?"Заповнити":"Fill in"}</b>
+      </Link>
+      <Link className="mobilePassportCard need" to="/needs?view=create">
+        <HeartHandshake size={27}/><div><strong>{uk?"Паспорт потреб":"Needs Passport"}</strong><span>{uk?"Додайте будь-яку потребу своїми словами":"Add any need in your own words"}</span></div><b>{uk?"Додати потребу":"Add need"}</b>
+      </Link>
     </div>
 
     <div className="mobilePilotInfoLinks">
