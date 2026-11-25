@@ -1,11 +1,10 @@
 import {useEffect,useRef,useState} from "react";
-import {Bell,Camera,FileText,HeartHandshake,IdCard,LoaderCircle,MapPin,MessageSquare,RotateCcw,Search,Smartphone,X} from "lucide-react";
+import {Bell,Camera,HeartHandshake,IdCard,LoaderCircle,MapPin,RotateCcw,Search,Smartphone,X} from "lucide-react";
 import {Link,useNavigate} from "react-router-dom";
 import VoiceTaskInput from "./VoiceTaskInput";
 import LocationAutocomplete,{rememberedAtlasLocation,rememberAtlasLocation} from "./LocationAutocomplete";
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
-import {saveAtlasFeedback} from "../services/feedbackStore";
 import "../styles/mobilePilot.css";
 import "../styles/mobilePilotOverrides.css";
 
@@ -37,10 +36,6 @@ export default function MobileHome({lang="uk"}){
   const [vision,setVision]=useState(null);
   const [visionBusy,setVisionBusy]=useState(false);
   const [unreadCount,setUnreadCount]=useState(0);
-  const [feedback,setFeedback]=useState("");
-  const [feedbackOpen,setFeedbackOpen]=useState(false);
-  const [feedbackBusy,setFeedbackBusy]=useState(false);
-  const [feedbackStatus,setFeedbackStatus]=useState("");
   const fileRef=useRef(null);
   const nav=useNavigate();
 
@@ -75,18 +70,6 @@ export default function MobileHome({lang="uk"}){
   function quick(value){setTask(value);window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
   function resetSearch(){setTask("");setWhere(rememberedAtlasLocation());setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value="";window.setTimeout(()=>document.querySelector(".mobilePilotSearch textarea, .mobilePilotSearch input")?.focus(),0)}
   function clearPhoto(){setPhoto(null);setVision(null);if(fileRef.current)fileRef.current.value=""}
-  async function sendFeedback(event){
-    event.preventDefault();
-    if(feedbackBusy||feedback.trim().length<2)return;
-    setFeedbackBusy(true);setFeedbackStatus("");
-    try{
-      await saveAtlasFeedback(feedback,lang);
-      setFeedback("");
-      setFeedbackStatus(uk?"✓ Дякуємо. Відгук збережено.":"✓ Thank you. Your feedback was saved.");
-    }catch{
-      setFeedbackStatus(uk?"Не вдалося надіслати відгук. Спробуйте ще раз.":"Could not send feedback. Please try again.");
-    }finally{setFeedbackBusy(false)}
-  }
 
   async function choosePhoto(event){
     const file=event.target.files?.[0];
@@ -154,21 +137,6 @@ export default function MobileHome({lang="uk"}){
         <button type="button" onClick={()=>quick(uk?"Потрібна допомога":"I need help")}>🤝 {uk?"Потрібна допомога":"Need help"}</button>
         <button type="button" onClick={()=>quick(uk?"Хто може це надати?":"Who can provide this?")}>🔎 {uk?"Хто може надати?":"Who can provide it?"}</button>
       </div>
-
-      <div className="mobilePilotInfoLinks">
-        <a href={uk?"/atlas-about-uk.txt":"/atlas-about-en.txt"} target="_blank" rel="noreferrer"><FileText size={16}/>{uk?"Як працює Atlas":"How Atlas works"}</a>
-      </div>
-
-      <section className={`mobileFeedbackCompact ${feedbackOpen?"open":""}`}>
-        <button className="mobileFeedbackTrigger" type="button" onClick={()=>setFeedbackOpen(open=>!open)} aria-expanded={feedbackOpen}>
-          <MessageSquare size={17}/><span>{uk?"Відгук про Atlas":"Atlas feedback"}</span><b>{feedbackOpen?"−":"+"}</b>
-        </button>
-        {feedbackOpen&&<form onSubmit={sendFeedback}>
-          <textarea value={feedback} onChange={event=>setFeedback(event.target.value)} maxLength={2000} placeholder={uk?"Повідомлення для команди Atlas…":"Message for the Atlas team…"}/>
-          <button type="submit" disabled={feedbackBusy||feedback.trim().length<2}>{feedbackBusy?(uk?"Надсилаю…":"Sending…"):(uk?"Надіслати":"Send")}</button>
-        </form>}
-        {feedbackStatus&&<small className={feedbackStatus.startsWith("✓")?"success":"error"}>{feedbackStatus}</small>}
-      </section>
 
       <div className="mobilePilotUtilityGrid"><Link className={`mobileNotificationsCard ${unreadCount>0?"hasUnread":""}`} to="/requests">
         <span className="mobileNotificationIcon"><Bell size={20}/>{unreadCount>0&&<i>{unreadCount>99?"99+":unreadCount}</i>}</span>
