@@ -1,11 +1,10 @@
 import {useEffect,useState} from "react";
 import {Link,useNavigate} from "react-router-dom";
-import {FileText,HeartHandshake,MapPin,MessageSquare,PlusCircle,RotateCcw,Search,Smartphone} from "lucide-react";
+import {HeartHandshake,MapPin,PlusCircle,RotateCcw,Search,Smartphone} from "lucide-react";
 import ThinkingState from "../components/ThinkingState";
 import SearchHistoryList from "../components/SearchHistoryList";
 import VoiceTaskInput from "../components/VoiceTaskInput";
 import LocationAutocomplete,{rememberedAtlasLocation,rememberAtlasLocation} from "../components/LocationAutocomplete";
-import {saveAtlasFeedback} from "../services/feedbackStore";
 import {trackAtlas} from "../services/analytics";
 import {getCurrentLocation} from "../services/geolocation";
 import {saveSearchHistory,solutionUrl} from "../services/searchHistory";
@@ -25,9 +24,6 @@ export default function Home({t,lang}){
   const [geoLocation,setGeoLocation]=useState(null);
   const [thinking,setThinking]=useState(false);
   const [activeStep,setActiveStep]=useState(0);
-  const [feedback,setFeedback]=useState("");
-  const [feedbackBusy,setFeedbackBusy]=useState(false);
-  const [feedbackStatus,setFeedbackStatus]=useState("");
   const nav=useNavigate();
 
   useEffect(()=>{
@@ -68,25 +64,6 @@ export default function Home({t,lang}){
     window.setTimeout(()=>document.querySelector(".searchbox textarea")?.focus(),0);
   }
 
-  async function sendFeedback(e){
-    e.preventDefault();
-    if(feedbackBusy||feedback.trim().length<2)return;
-    setFeedbackBusy(true);
-    setFeedbackStatus("");
-    try{
-      await saveAtlasFeedback(feedback,lang);
-      setFeedback("");
-      setFeedbackStatus(lang==="uk"?"✓ Дякуємо. Відгук збережено.":"✓ Thank you. Your feedback was saved.");
-    }catch(error){
-      const text=String(error?.message||error||"");
-      setFeedbackStatus(/atlas_feedback|relation .*does not exist/i.test(text)
-        ?(lang==="uk"?"Поле відгуків ще активується в тестовій базі.":"Feedback storage is still being activated in the test database.")
-        :(lang==="uk"?"Не вдалося надіслати відгук. Спробуйте ще раз.":"Could not send feedback. Please try again."));
-    }finally{
-      setFeedbackBusy(false);
-    }
-  }
-
   if(thinking)return <ThinkingState steps={t.thinkingSteps} activeStep={activeStep}/>;
 
   const title=lang==="uk"?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task";
@@ -99,16 +76,11 @@ export default function Home({t,lang}){
     ?"Додайте те, що маєте або можете надати."
     :"Add what you have or can provide.";
   const capabilityButton=lang==="uk"?"+ Додати можливість":"+ Add an opportunity";
-  const aboutUrl=lang==="uk"?"/atlas-about-uk.txt":"/atlas-about-en.txt";
   const hasSearch=Boolean(task.trim()||where.trim());
 
   return <main className="home">
     <section className="hero" style={{paddingTop:40}}>
       <div style={{marginBottom:18,display:"flex",justifyContent:"center",gap:10,flexWrap:"wrap"}}>
-        <a href={aboutUrl} target="_blank" rel="noreferrer" style={{display:"inline-flex",alignItems:"center",gap:7,color:"#0d7a41",fontSize:13,fontWeight:800,textDecoration:"underline",textUnderlineOffset:3}}>
-          <FileText size={16}/>
-          {lang==="uk"?"Як працює Atlas →":"How Atlas works →"}
-        </a>
         <Link to="/share" style={{display:"inline-flex",alignItems:"center",gap:7,padding:"8px 12px",borderRadius:12,background:"#e9f7ee",border:"1px solid #b9ddc7",color:"#08723d",fontSize:13,fontWeight:900}}>
           <Smartphone size={17}/>
           {lang==="uk"?"Встановити на телефон →":"Install on phone →"}
@@ -174,15 +146,6 @@ export default function Home({t,lang}){
           </div>
         </div>
       </section>
-
-      <details className="homeFeedbackDisclosure">
-        <summary><MessageSquare size={17}/>{lang==="uk"?"Відгук про Atlas":"Atlas feedback"}</summary>
-        <form onSubmit={sendFeedback}>
-          <textarea value={feedback} onChange={e=>setFeedback(e.target.value)} maxLength={2000} placeholder={lang==="uk"?"Повідомлення для команди Atlas…":"Message for the Atlas team…"}/>
-          <button className="secondary" type="submit" disabled={feedbackBusy||feedback.trim().length<2}>{feedbackBusy?(lang==="uk"?"Надсилаю…":"Sending…"):(lang==="uk"?"Надіслати":"Send")}</button>
-        </form>
-        {feedbackStatus&&<div className={feedbackStatus.startsWith("✓")?"success":"error"}>{feedbackStatus}</div>}
-      </details>
 
       <p className="principle" style={{fontSize:13,marginTop:26}}>{t.principle}</p>
     </section>
