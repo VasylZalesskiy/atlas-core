@@ -7,6 +7,8 @@ import BottomNav from "./components/BottomNav";
 import NavigationControls from "./components/NavigationControls";
 import SolutionNavigation from "./components/SolutionNavigation";
 import Solution from "./pages/Solution";
+import Home from "./pages/Home";
+import MobileHome from "./components/MobileHome";
 import PilotGate from "./components/PilotGate";
 import i18n from "./i18n";
 import {loadSolutionFlows,subscribeSolutionFlowEvents} from "./services/solutionFlowStore";
@@ -14,8 +16,6 @@ import {trackAtlasActivity} from "./services/analytics";
 
 const MatchNotificationBridge=lazy(()=>import("./components/MatchNotificationBridge"));
 const VoicePrivacyControl=lazy(()=>import("./components/VoicePrivacyControl"));
-const Home=lazy(()=>import("./pages/Home"));
-const MobileHome=lazy(()=>import("./components/MobileHome"));
 const Profile=lazy(()=>import("./pages/Profile"));
 const PublicPassport=lazy(()=>import("./pages/PublicPassport"));
 const Chat=lazy(()=>import("./pages/Chat"));
@@ -126,34 +126,34 @@ export default function App(){
   },[location.pathname,location.search,adminRoute]);
 
   return <>
-    <Suspense fallback={<RouteLoader/>}>
-      {adminRoute?<Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="/admin/stats" element={<ActivityAdmin/>}/><Route path="*" element={<Navigate to="/admin/stats" replace/>}/></Routes>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
+    {adminRoute?<Suspense fallback={<RouteLoader/>}><Routes><Route path="/admin/catalog" element={<CatalogAdmin/>}/><Route path="/admin/stats" element={<ActivityAdmin/>}/><Route path="*" element={<Navigate to="/admin/stats" replace/>}/></Routes></Suspense>:<PilotGate lang={lang} bypass={location.pathname.startsWith("/share")}>
         <Header lang={lang} setLang={setLang} inboxUnread={inboxUnread}/>
         <NavigationControls lang={lang}/>
         {backgroundReady&&<Suspense fallback={null}><MatchNotificationBridge lang={lang}/></Suspense>}
         {solutionRoute&&<SolutionNavigation lang={lang}/>}
         {chatRoute&&<Suspense fallback={null}><VoicePrivacyControl/></Suspense>}
-        <Routes>
-          <Route path="/" element={<ResponsiveHome t={t} lang={lang}/>}/>
-          <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
-          <Route path="/needs" element={<Needs lang={lang}/>}/>
-          <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
-          <Route path="/share" element={<ShareApp lang={lang}/>}/>
-          <Route path="/requests" element={<Requests lang={lang}/>}/>
-          <Route path="/messages" element={<Messages lang={lang}/>}/>
-          <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
-          <Route path="/groups" element={<Groups lang={lang}/>}/>
-          <Route path="/groups/:groupId" element={<GroupPage lang={lang}/>}/>
-          <Route path="/chat" element={<Chat/>}/>
-          <Route path="/market" element={<Market/>}/>
-          <Route path="/tomatoes" element={<TomatoPilot lang={lang}/>}/>
-          <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
-          <Route path="*" element={<Navigate to="/" replace/>}/>
-        </Routes>
+        <Suspense fallback={<RouteLoader/>}>
+          <Routes>
+            <Route path="/" element={<ResponsiveHome t={t} lang={lang}/>}/>
+            <Route path="/solution" element={<Solution t={t} lang={lang}/>}/>
+            <Route path="/needs" element={<Needs lang={lang}/>}/>
+            <Route path="/matches" element={<MatchSearch lang={lang}/>}/>
+            <Route path="/share" element={<ShareApp lang={lang}/>}/>
+            <Route path="/requests" element={<Requests lang={lang}/>}/>
+            <Route path="/messages" element={<Messages lang={lang}/>}/>
+            <Route path="/profile" element={<Profile t={t} lang={lang}/>}/>
+            <Route path="/groups" element={<Groups lang={lang}/>}/>
+            <Route path="/groups/:groupId" element={<GroupPage lang={lang}/>}/>
+            <Route path="/chat" element={<Chat/>}/>
+            <Route path="/market" element={<Market/>}/>
+            <Route path="/tomatoes" element={<TomatoPilot lang={lang}/>}/>
+            <Route path="/p/:slug" element={<PublicPassport lang={lang}/>}/>
+            <Route path="*" element={<Navigate to="/" replace/>}/>
+          </Routes>
+        </Suspense>
         <BottomNav lang={lang} inboxUnread={inboxUnread}/>
         <footer>Atlas 2.6 · {t.principle}</footer>
       </PilotGate>}
-    </Suspense>
     <Analytics/>
     <SpeedInsights/>
   </>;
