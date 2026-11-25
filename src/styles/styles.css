@@ -8,3 +8,35 @@
     backdrop-filter: none;
   }
 }
+
+.atlasSearchHome {
+  position: relative;
+  isolation: isolate;
+  background: linear-gradient(180deg, #fff 34%, #eef7f1 100%);
+}
+.atlasSearchHome::before {
+  content: "A" / "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 0.78em;
+  overflow: hidden;
+  color: #d7eadf;
+  font: 850 clamp(190px, 48vw, 510px)/0.9 system-ui, sans-serif;
+  text-align: center;
+  pointer-events: none;
+  z-index: -1;
+}
+main.atlasSearchHome {
+  min-height: calc(100svh - 64px);
+}
+.atlasSearchHome ~ footer {
+  display: none;
+}
+@media (max-width: 760px) {
+  section.mobilePilotHome.atlasSearchHome {
+    min-height: calc(100svh - 60px);
+  }
+  section.mobilePilotHome.atlasSearchHome::before {
+    bottom: calc(62px + env(safe-area-inset-bottom));
+  }
+}
