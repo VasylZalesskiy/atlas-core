@@ -1,1 +1,17 @@
-<!doctype html><html lang="uk"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/><meta name="theme-color" content="#0f7a43"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="default"/><meta name="apple-mobile-web-app-title" content="Atlas"/><link rel="manifest" href="/manifest.webmanifest"/><link rel="icon" href="/atlas-icon.svg" type="image/svg+xml"/><link rel="apple-touch-icon" href="/atlas-icon-180.png"/><title>ATLAS</title></head><body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body></html>
+<!doctype html><html lang="uk"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/><meta name="theme-color" content="#0f7a43"/><meta name="apple-mobile-web-app-capable" content="yes"/><meta name="apple-mobile-web-app-status-bar-style" content="default"/><meta name="apple-mobile-web-app-title" content="Atlas"/><link rel="manifest" href="/manifest.webmanifest"/><link rel="icon" href="/atlas-icon.svg" type="image/svg+xml"/><link rel="apple-touch-icon" href="/atlas-icon-180.png"/><title>ATLAS</title></head><body><div id="root"></div>
+<output id="atlas-diagnostic" hidden style="position:absolute;top:calc(100px + env(safe-area-inset-top));right:8px;z-index:2000;pointer-events:none;padding:4px 8px;border-radius:6px;background:#173628;color:#fff;font:12px system-ui"></output>
+<script>
+  if (window.navigator.standalone || window.matchMedia("(display-mode: standalone)").matches) {
+    const key = "atlas-preview-document-starts";
+    let label = "—";
+    try {
+      const starts = Number(localStorage.getItem(key) || 0) + 1;
+      localStorage.setItem(key, String(starts));
+      label = String(starts);
+    } catch {}
+    const badge = document.getElementById("atlas-diagnostic");
+    const navigation = performance.getEntriesByType("navigation")[0]?.type;
+    badge.textContent = "Запуск № " + label + (navigation === "reload" ? " · перезавантаження" : "");
+    badge.hidden = false;
+  }
+</script><script type="module" src="/src/main.jsx"></script></body></html>
