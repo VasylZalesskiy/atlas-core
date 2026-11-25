@@ -1,1 +1,10 @@
 @import "../styles.css";
+
+@media (max-width: 760px) and (display-mode: standalone) {
+  :root .atlasTopbarV3,
+  :root .bottomNav {
+    background: #fff;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
