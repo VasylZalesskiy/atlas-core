@@ -65,14 +65,14 @@ export default function Home({t,lang}){
 
   if(thinking)return <ThinkingState steps={t.thinkingSteps} activeStep={activeStep}/>;
 
-  const title=lang==="uk"?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task";
+  const title=lang==="uk"?"Знайдіть допомогу поруч":"Find help nearby";
   const placeholder=lang==="uk"
     ?"Наприклад: потрібен генератор на сьогодні"
     :"For example: I need a generator today";
   const locationLabel=lang==="uk"?"Де це потрібно? (необов'язково)":"Where is it needed? (optional)";
   const hasSearch=Boolean(task.trim()||where.trim());
 
-  return <main className="home">
+  return <main className="home atlasSearchHome">
     <section className="hero" style={{paddingTop:40}}>
       <h1 style={{fontSize:"clamp(32px,4vw,48px)",lineHeight:1.08,letterSpacing:"-.035em",marginBottom:22}}>
         {title}
@@ -107,7 +107,6 @@ export default function Home({t,lang}){
         {examples[lang].map(example=><button key={example} type="button" onClick={()=>setTask(example)} style={{fontSize:12,padding:"7px 10px"}}>{example}</button>)}
       </div>
 
-      <p className="principle" style={{fontSize:13,marginTop:26}}>{t.principle}</p>
     </section>
   </main>;
 }
