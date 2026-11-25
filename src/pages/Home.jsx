@@ -1,6 +1,6 @@
 import {useEffect,useState} from "react";
-import {Link,useNavigate} from "react-router-dom";
-import {HeartHandshake,MapPin,PlusCircle,RotateCcw,Search} from "lucide-react";
+import {useNavigate} from "react-router-dom";
+import {MapPin,RotateCcw,Search} from "lucide-react";
 import ThinkingState from "../components/ThinkingState";
 import VoiceTaskInput from "../components/VoiceTaskInput";
 import LocationAutocomplete,{rememberedAtlasLocation,rememberAtlasLocation} from "../components/LocationAutocomplete";
@@ -70,11 +70,6 @@ export default function Home({t,lang}){
     ?"Наприклад: потрібен генератор на сьогодні"
     :"For example: I need a generator today";
   const locationLabel=lang==="uk"?"Де це потрібно? (необов'язково)":"Where is it needed? (optional)";
-  const capabilityTitle=lang==="uk"?"А що можете ви?":"What can you offer?";
-  const capabilityText=lang==="uk"
-    ?"Додайте те, що маєте або можете надати."
-    :"Add what you have or can provide.";
-  const capabilityButton=lang==="uk"?"+ Додати можливість":"+ Add an opportunity";
   const hasSearch=Boolean(task.trim()||where.trim());
 
   return <main className="home">
@@ -111,29 +106,6 @@ export default function Home({t,lang}){
         <span>{t.examples}:</span>
         {examples[lang].map(example=><button key={example} type="button" onClick={()=>setTask(example)} style={{fontSize:12,padding:"7px 10px"}}>{example}</button>)}
       </div>
-
-      <section style={{maxWidth:780,margin:"28px auto 0",display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:12,textAlign:"left"}}>
-        <div style={{padding:"18px 20px",background:"#fff",border:"1px solid #dfe8e2",borderRadius:18}}>
-          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-            <PlusCircle size={24} color="#0d7a41" style={{flex:"0 0 auto"}}/>
-            <div style={{flex:1}}>
-              <h2 style={{margin:"0 0 5px",fontSize:18}}>{capabilityTitle}</h2>
-              <p style={{margin:"0 0 13px",color:"#66746c",lineHeight:1.5,fontSize:14}}>{capabilityText}</p>
-              <Link className="primary" style={{display:"inline-flex",padding:"10px 15px",fontSize:13}} to="/profile">{capabilityButton}</Link>
-            </div>
-          </div>
-        </div>
-        <div style={{padding:"18px 20px",background:"#fff",border:"1px solid #dfe8e2",borderRadius:18}}>
-          <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-            <HeartHandshake size={24} color="#0d7a41" style={{flex:"0 0 auto"}}/>
-            <div style={{flex:1}}>
-              <h2 style={{margin:"0 0 5px",fontSize:18}}>{lang==="uk"?"Що вам потрібно?":"What do you need?"}</h2>
-              <p style={{margin:"0 0 13px",color:"#66746c",lineHeight:1.5,fontSize:14}}>{lang==="uk"?"Додайте потребу своїми словами.":"Add a need in your own words."}</p>
-              <Link className="primary" style={{display:"inline-flex",padding:"10px 15px",fontSize:13}} to="/needs?view=create">{lang==="uk"?"+ Додати потребу":"+ Add a need"}</Link>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <p className="principle" style={{fontSize:13,marginTop:26}}>{t.principle}</p>
     </section>
