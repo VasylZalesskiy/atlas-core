@@ -3,19 +3,20 @@
   .mobilePilotSearchHead{order:2}
   .mobilePilotSearch{order:3}
   .mobilePilotQuick{order:4}
-  .mobilePilotHistory{order:5}
-  .mobilePassportGrid{order:6;margin-top:11px;margin-bottom:4px}
-  .mobilePilotInfoLinks{order:7}
+  .mobilePassportGrid{order:5;margin-top:11px;margin-bottom:4px}
+  .mobilePilotInfoLinks{order:6}
+  .mobilePilotHistory{order:7}
   .mobileFeedbackCompact{order:8}
   .mobilePilotUtilityGrid{order:9}
 
-  .mobilePilotIntro{padding:2px 0 8px}
-  .mobilePilotIntro h1{font-size:25px;line-height:1.05;margin-bottom:0}
+  .mobilePilotIntro{padding:16px 0 14px}
+  .mobilePilotIntro h1{font-size:clamp(28px,8vw,38px);line-height:1.12;margin-bottom:8px}
+  .mobilePilotIntro .mobilePilotLead{font-size:16px;line-height:1.45}
   .mobilePilotSearchHead{margin:5px 0 8px}
   .mobilePilotSearchHead>div{color:#08783e}
-  .mobilePilotSearchHead strong{font-size:21px}
-  .mobilePilotSearch{padding:12px;border:2px solid #0b8c48;background:#fff;box-shadow:0 12px 30px rgba(11,140,72,.17),0 0 0 4px rgba(11,140,72,.05)}
-  .mobilePilotSearch:focus-within{border-color:#067139;box-shadow:0 14px 34px rgba(11,140,72,.22),0 0 0 5px rgba(11,140,72,.09)}
+  .mobilePilotSearchHead strong{font-size:16px}
+  .mobilePilotSearch{padding:12px;border:1px solid #badbca;background:#fff;box-shadow:0 6px 18px rgba(11,80,45,.08)}
+  .mobilePilotSearch:focus-within{border-color:#08783e;box-shadow:0 0 0 3px rgba(11,140,72,.12)}
   .mobilePilotSearch .voiceTaskInput textarea,.mobilePilotSearch .voiceTaskInput input{min-height:112px;padding-right:59px!important}
   .mobilePilotSearch .voiceButton{right:9px;top:9px;width:39px;height:39px;border-radius:11px}
   .mobilePilotSearch .mobilePilotCamera{right:9px;bottom:9px;width:39px;height:39px;border-radius:11px}
