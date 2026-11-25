@@ -84,15 +84,14 @@ export default function MobileHome({lang="uk"}){
   }
 
 
-  return <section className="mobilePilotHome">
+  return <section className="mobilePilotHome atlasSearchHome">
     <div className="mobilePilotIntro">
-      <span className="mobilePilotEyebrow">ATLAS · {uk?"ГОЛОВНА":"HOME"}</span>
-      <h1>{uk?"Твої можливості — це частинка чиєїсь задачі":"Your capabilities are part of someone else’s task"}</h1>
+      <h1>{uk?"Знайдіть допомогу поруч":"Find help nearby"}</h1>
     </div>
 
 
     <div className="mobilePilotSearchHead">
-      <div><Search size={19}/><strong>{uk?"Знайти рішення":"Find a solution"}</strong></div>
+      <div><strong>{uk?"Що вам потрібно?":"What do you need?"}</strong></div>
       {(task.trim()||where.trim())&&<button className="mobilePilotReset" type="button" onClick={resetSearch}><RotateCcw size={14}/>{uk?"Новий пошук":"New search"}</button>}
     </div>
 
