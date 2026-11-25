@@ -182,6 +182,8 @@ export default function Messages({lang="uk"}){
       <button type="button" onClick={()=>refreshFlows()} disabled={loading}><RefreshCw className={loading?"spin":""} size={18}/>{uk?"Оновити":"Refresh"}</button>
     </div>
 
+    <Link className="secondary" to="/requests">{uk?"Сповіщення та запити":"Notifications and requests"}</Link>
+
     <div className="messagesFilters">
       {[
         ["all",uk?"Усі":"All",flows.length],
